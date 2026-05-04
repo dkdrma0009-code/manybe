@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import TabNavigator from './TabNavigator';
+import TaxCalculatorScreen from '../screens/tax/TaxCalculatorScreen';
 import { colors } from '../constants/colors';
 
 // 개발 중 인증 우회 — 배포 전 false로 변경
@@ -17,7 +18,13 @@ export type AuthStackParamList = {
   Signup: undefined;
 };
 
+export type RootStackParamList = {
+  Main: undefined;
+  TaxCalculator: undefined;
+};
+
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 function AuthNavigator() {
   return (
@@ -25,6 +32,19 @@ function AuthNavigator() {
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Signup" component={SignupScreen} />
     </AuthStack.Navigator>
+  );
+}
+
+function MainNavigator() {
+  return (
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Screen name="Main" component={TabNavigator} />
+      <RootStack.Screen
+        name="TaxCalculator"
+        component={TaxCalculatorScreen}
+        options={{ presentation: 'card' }}
+      />
+    </RootStack.Navigator>
   );
 }
 
@@ -44,7 +64,7 @@ export default function AppNavigator() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        {DEV_BYPASS_AUTH || session ? <TabNavigator /> : <AuthNavigator />}
+        {DEV_BYPASS_AUTH || session ? <MainNavigator /> : <AuthNavigator />}
       </NavigationContainer>
     </SafeAreaProvider>
   );

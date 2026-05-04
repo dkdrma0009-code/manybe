@@ -1,0 +1,190 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../api/supabase';
+
+export interface DonutSegment {
+  label: string;
+  pct: number;
+  amount: number;
+  color: string;
+}
+
+export interface BarItem {
+  month: string;
+  value: number;
+}
+
+export interface Transaction {
+  id: string;
+  date: string;
+  desc: string;
+  amount: number;
+  icon: string;
+}
+
+export interface RevenueData {
+  total: number;
+  tax: number;
+  net: number;
+  goal: number;
+  segments: DonutSegment[];
+  barData: BarItem[];
+  transactions: Transaction[];
+}
+
+const TAX_RATE = 0.033;
+const DEFAULT_GOAL = 5_000_000;
+
+const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+  platform:    { label: '플랫폼 광고', color: '#EF4444', icon: '📱' },
+  sponsorship: { label: '브랜드 협찬', color: '#6C63FF', icon: '🤝' },
+  affiliate:   { label: '제휴 수익',   color: '#F97316', icon: '🔗' },
+  other:       { label: '기타',        color: '#9CA3AF', icon: '💡' },
+};
+
+const DEFAULT_DATA: RevenueData = {
+  total: 0,
+  tax: 0,
+  net: 0,
+  goal: DEFAULT_GOAL,
+  segments: [],
+  barData: [],
+  transactions: [],
+};
+
+const DEV_DATA: RevenueData = {
+  total: 4320000,
+  tax: 142560,
+  net: 4177440,
+  goal: DEFAULT_GOAL,
+  segments: [
+    { label: '플랫폼 광고', pct: 41, amount: 1800000, color: '#EF4444' },
+    { label: '브랜드 협찬', pct: 47, amount: 2000000, color: '#6C63FF' },
+    { label: '제휴 수익',   pct:  7, amount:  320000, color: '#F97316' },
+    { label: '기타',        pct:  5, amount:  200000, color: '#9CA3AF' },
+  ],
+  barData: [
+    { month: '12월', value: 2800000 },
+    { month: '1월',  value: 3200000 },
+    { month: '2월',  value: 2600000 },
+    { month: '3월',  value: 3800000 },
+    { month: '4월',  value: 3500000 },
+    { month: '5월',  value: 4320000 },
+  ],
+  transactions: [
+    { id: '1', date: '05.12', desc: '애드센스 수익',  amount: 1800000, icon: '📱' },
+    { id: '2', date: '05.08', desc: '올리브영 협찬',  amount: 1500000, icon: '🤝' },
+    { id: '3', date: '05.03', desc: '쿠팡파트너스',  amount:  320000, icon: '🔗' },
+  ],
+};
+
+export function useRevenueData(
+  userId: string | undefined,
+  year: number,
+  month: number,
+) {
+  const [data, setData] = useState<RevenueData>(__DEV__ ? DEV_DATA : DEFAULT_DATA);
+  const [loading, setLoading] = useState(!!userId);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!userId) {
+      setData(DEV_DATA);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const monthStart = new Date(year, month, 1).toISOString().split('T')[0];
+      const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
+
+      // Build date range for last 6 months bar chart
+      const barStart = new Date(year, month - 5, 1).toISOString().split('T')[0];
+
+      const [monthRes, barRes, txRes] = await Promise.all([
+        supabase
+          .from('revenue')
+          .select('amount, category')
+          .eq('user_id', userId)
+          .gte('date', monthStart)
+          .lte('date', monthEnd),
+        supabase
+          .from('revenue')
+          .select('amount, date')
+          .eq('user_id', userId)
+          .gte('date', barStart)
+          .lte('date', monthEnd),
+        supabase
+          .from('revenue')
+          .select('id, amount, category, description, date')
+          .eq('user_id', userId)
+          .gte('date', monthStart)
+          .lte('date', monthEnd)
+          .order('date', { ascending: false })
+          .limit(10),
+      ]);
+
+      if (monthRes.error) throw monthRes.error;
+      if (barRes.error) throw barRes.error;
+      if (txRes.error) throw txRes.error;
+
+      // Monthly totals
+      const revenues = monthRes.data ?? [];
+      const total = revenues.reduce((s, r) => s + r.amount, 0);
+      const tax = Math.round(total * TAX_RATE);
+
+      // Category breakdown for donut
+      const catTotals: Record<string, number> = {};
+      for (const r of revenues) {
+        const key = r.category in CATEGORY_CONFIG ? r.category : 'other';
+        catTotals[key] = (catTotals[key] ?? 0) + r.amount;
+      }
+      const segments: DonutSegment[] = Object.entries(CATEGORY_CONFIG)
+        .map(([key, cfg]) => ({
+          label: cfg.label,
+          color: cfg.color,
+          amount: catTotals[key] ?? 0,
+          pct: total > 0 ? Math.round(((catTotals[key] ?? 0) / total) * 100) : 0,
+        }))
+        .filter((s) => s.amount > 0);
+
+      // Last 6 months bar chart
+      const monthTotals: Record<string, number> = {};
+      for (const r of barRes.data ?? []) {
+        const key = r.date.slice(0, 7); // "YYYY-MM"
+        monthTotals[key] = (monthTotals[key] ?? 0) + r.amount;
+      }
+      const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+      const barData: BarItem[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(year, month - i, 1);
+        const key = d.toISOString().slice(0, 7);
+        barData.push({ month: MONTH_NAMES[d.getMonth()], value: monthTotals[key] ?? 0 });
+      }
+
+      // Recent transactions
+      const transactions: Transaction[] = (txRes.data ?? []).map((r) => {
+        const cfg = CATEGORY_CONFIG[r.category] ?? CATEGORY_CONFIG.other;
+        const d = new Date(r.date);
+        const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+        return {
+          id: r.id,
+          date: dateStr,
+          desc: r.description || cfg.label,
+          amount: r.amount,
+          icon: cfg.icon,
+        };
+      });
+
+      setData({ total, tax, net: total - tax, goal: DEFAULT_GOAL, segments, barData, transactions });
+    } catch (e: any) {
+      setError(e.message ?? '데이터를 불러오지 못했습니다');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, year, month]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  return { data, loading, error, refetch: fetchData };
+}

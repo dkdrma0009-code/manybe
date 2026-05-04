@@ -6,6 +6,7 @@ import HomeScreen from '../screens/dashboard/HomeScreen';
 import RevenueScreen from '../screens/revenue/RevenueScreen';
 import DealsScreen from '../screens/deals/DealsScreen';
 import ScheduleScreen from '../screens/schedules/ScheduleScreen';
+import SettingsScreen from '../screens/settings/SettingsScreen';
 import { colors } from '../constants/colors';
 
 export type TabParamList = {
@@ -26,22 +27,6 @@ const TAB_ICONS: Record<string, string> = {
   설정: '⚙️',
 };
 
-function PlaceholderScreen({ route }: { route: { name: string } }) {
-  return (
-    <View style={placeholder.container}>
-      <Text style={placeholder.icon}>{TAB_ICONS[route.name]}</Text>
-      <Text style={placeholder.label}>{route.name} 화면</Text>
-      <Text style={placeholder.sub}>준비 중입니다</Text>
-    </View>
-  );
-}
-
-const placeholder = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F8FF' },
-  icon: { fontSize: 48, marginBottom: 12 },
-  label: { fontSize: 20, fontWeight: '700', color: '#1A1A2E' },
-  sub: { fontSize: 14, color: '#9CA3AF', marginTop: 6 },
-});
 
 export default function TabNavigator() {
   const insets = useSafeAreaInsets();
@@ -83,7 +68,7 @@ export default function TabNavigator() {
       <Tab.Screen name="수익" component={RevenueScreen} />
       <Tab.Screen name="협찬" component={DealsScreen} />
       <Tab.Screen name="캘린더" component={ScheduleScreen} />
-      <Tab.Screen name="설정" component={PlaceholderScreen} />
+      <Tab.Screen name="설정" component={SettingsScreen} />
     </Tab.Navigator>
   );
 }
