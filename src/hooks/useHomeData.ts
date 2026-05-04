@@ -66,13 +66,37 @@ const DEFAULT_DATA: HomeData = {
   barData: [0, 0, 0, 0, 0, 0, 0],
 };
 
+// DEV_BYPASS_AUTH 모드에서 보여줄 샘플 데이터
+const DEV_DATA: HomeData = {
+  totalRevenue: 4320000,
+  prevMonthRevenue: 3857143,
+  categoryStats: [
+    { ...CATEGORY_CONFIG.platform,    amount: 1800000 },
+    { ...CATEGORY_CONFIG.sponsorship, amount: 2000000 },
+    { ...CATEGORY_CONFIG.affiliate,   amount: 320000 },
+    { ...CATEGORY_CONFIG.other,       amount: 200000 },
+  ],
+  activeDeals: [
+    { id: '1', brand: '나이키',   amount: 3000000, statusLabel: '협상중',   statusColor: '#7C3AED', statusBg: '#F5F3FF', initial: '나', initBg: '#1A1A2E' },
+    { id: '2', brand: '올리브영', amount: 1500000, statusLabel: '계약완료', statusColor: '#059669', statusBg: '#D1FAE5', initial: '올', initBg: '#6C63FF' },
+  ],
+  dealCount: 5,
+  pendingSettlement: 1200000,
+  estimatedTax: 142560,
+  barData: [2400000, 3200000, 1800000, 3600000, 2800000, 3400000, 4320000],
+};
+
 export function useHomeData(userId: string | undefined) {
-  const [data, setData] = useState<HomeData>(DEFAULT_DATA);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<HomeData>(__DEV__ ? DEV_DATA : DEFAULT_DATA);
+  const [loading, setLoading] = useState(!!userId);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setData(DEV_DATA);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
 
