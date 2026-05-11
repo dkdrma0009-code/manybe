@@ -180,6 +180,7 @@ export default function SettingsScreen() {
           title="비즈니스"
           items={[
             { icon: '💼', label: '내 채널 정보', onPress: () => {} },
+            { icon: '🔗', label: '미디어 키트 URL', onPress: () => navigation.navigate('MediaKitSlug') },
             { icon: '🏦', label: '정산 계좌 관리', onPress: () => {} },
             { icon: '📄', label: '세금 계산기', onPress: () => navigation.navigate('TaxCalculator') },
           ]}

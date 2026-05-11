@@ -8,6 +8,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import TabNavigator from './TabNavigator';
 import TaxCalculatorScreen from '../screens/tax/TaxCalculatorScreen';
+import MediaKitSlugScreen from '../screens/settings/MediaKitSlugScreen';
 import { colors } from '../constants/colors';
 
 // 개발 중 인증 우회 — 배포 전 false로 변경
@@ -21,6 +22,7 @@ export type AuthStackParamList = {
 export type RootStackParamList = {
   Main: undefined;
   TaxCalculator: undefined;
+  MediaKitSlug: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -42,6 +44,11 @@ function MainNavigator() {
       <RootStack.Screen
         name="TaxCalculator"
         component={TaxCalculatorScreen}
+        options={{ presentation: 'card' }}
+      />
+      <RootStack.Screen
+        name="MediaKitSlug"
+        component={MediaKitSlugScreen}
         options={{ presentation: 'card' }}
       />
     </RootStack.Navigator>
