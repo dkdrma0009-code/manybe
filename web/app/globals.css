@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@source "..";
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #6C63FF 0%, #9B95FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
