@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -93,25 +92,32 @@ export default function YouTubeConnectScreen({ navigation }: Props) {
 
   const [input, setInput] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   async function handleConnect() {
     if (!input.trim()) return;
+    setErrorMsg('');
+    setSuccessMsg('');
     setSyncing(true);
     const err = await syncChannel(input.trim());
     setSyncing(false);
     if (err) {
-      Alert.alert('연동 실패', err);
+      setErrorMsg(err);
     } else {
       setInput('');
-      Alert.alert('연동 완료', '유튜브 채널이 연동됐습니다!');
+      setSuccessMsg('✓ 채널이 연동됐습니다!');
+      setTimeout(() => setSuccessMsg(''), 3000);
     }
   }
 
   async function handleSync(channelId: string) {
+    setErrorMsg('');
     setSyncing(true);
     const err = await syncChannel(channelId);
     setSyncing(false);
-    if (err) Alert.alert('동기화 실패', err);
+    if (err) setErrorMsg(err);
+    else setSuccessMsg('✓ 동기화 완료');
   }
 
   return (
@@ -151,6 +157,17 @@ export default function YouTubeConnectScreen({ navigation }: Props) {
             <Text style={styles.exampleItem}>• youtube.com/@채널핸들</Text>
             <Text style={styles.exampleItem}>• UCxxxxxxxxxxxxxxxxxxxxxx (채널 ID)</Text>
           </View>
+
+          {errorMsg ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>⚠ {errorMsg}</Text>
+            </View>
+          ) : null}
+          {successMsg ? (
+            <View style={styles.successBox}>
+              <Text style={styles.successText}>{successMsg}</Text>
+            </View>
+          ) : null}
 
           <TouchableOpacity
             style={[styles.connectBtn, (!input.trim() || syncing) && styles.connectBtnDisabled]}
@@ -238,6 +255,11 @@ const styles = StyleSheet.create({
   },
   connectBtnDisabled: { opacity: 0.4, shadowOpacity: 0 },
   connectBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+
+  errorBox:    { backgroundColor: '#FEE2E2', borderRadius: 10, padding: 12, marginBottom: 10 },
+  errorText:   { fontSize: 13, color: '#DC2626', fontWeight: '500' },
+  successBox:  { backgroundColor: '#D1FAE5', borderRadius: 10, padding: 12, marginBottom: 10 },
+  successText: { fontSize: 13, color: '#059669', fontWeight: '600' },
 
   sectionTitle: { fontSize: 13, fontWeight: '700', color: '#9CA3AF', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12 },
 
