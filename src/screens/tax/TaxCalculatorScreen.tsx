@@ -120,8 +120,8 @@ export default function TaxCalculatorScreen({ navigation }: Props) {
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <View>
-          <Text style={styles.title}>세금 계산기</Text>
-          <Text style={styles.subtitle}>크리에이터 맞춤 세금 계산</Text>
+          <Text style={styles.title}>세금 시뮬레이터</Text>
+          <Text style={styles.subtitle}>크리에이터 맞춤 세금 시뮬레이터</Text>
         </View>
       </View>
 
@@ -165,13 +165,13 @@ export default function TaxCalculatorScreen({ navigation }: Props) {
           </View>
 
           <TouchableOpacity style={styles.calcBtn} onPress={handleCalc} activeOpacity={0.85}>
-            <Text style={styles.calcBtnText}>계산하기</Text>
+            <Text style={styles.calcBtnText}>시뮬레이션하기</Text>
           </TouchableOpacity>
         </View>
 
         {/* 계산 결과 카드 */}
         <View style={styles.resultCard}>
-            <Text style={styles.cardTitle}>세금 계산 결과</Text>
+            <Text style={styles.cardTitle}>세금 시뮬레이션 결과 (예상)</Text>
 
             <ResultRow label="이번 달 총수익" value={formatKRW(total)} />
             <ResultRow
@@ -205,7 +205,7 @@ export default function TaxCalculatorScreen({ navigation }: Props) {
 
             <View style={styles.disclaimer}>
               <Text style={styles.disclaimerText}>
-                위 계산은 참고용이며 실제 세액은 공제 항목에 따라 다를 수 있습니다
+                ⚠️ 본 결과는 참고용 시뮬레이션이며 실제 납부 세액과 다를 수 있습니다. 정확한 세금 신고는 세무사 또는 국세청 홈택스를 이용하세요.
               </Text>
             </View>
           </View>
