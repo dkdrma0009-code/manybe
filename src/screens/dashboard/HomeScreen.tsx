@@ -84,7 +84,7 @@ export default function HomeScreen() {
             <TouchableOpacity style={styles.iconBtn}>
               <Text style={styles.iconBtnText}>🔔</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.avatar} onPress={signOut}>
+            <TouchableOpacity style={styles.avatar} activeOpacity={0.85}>
               <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
             </TouchableOpacity>
           </View>
