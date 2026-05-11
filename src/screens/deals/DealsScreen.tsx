@@ -6,11 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useDealsData, DisplayStatus, DealItem } from '../../hooks/useDealsData';
 import { colors } from '../../constants/colors';
+import { parseClipboardText, ParsedDeal } from '../../utils/parseClipboard';
+import ClipboardParserModal from './ClipboardParserModal';
 
 // ─── 상태 설정 ──────────────────────────────────────────────
 
@@ -141,6 +145,17 @@ export default function DealsScreen() {
   const { user } = useAuth();
   const { data, loading, refetch } = useDealsData(user?.id);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('전체');
+  const [parsedDeal, setParsedDeal] = useState<ParsedDeal | null>(null);
+
+  async function handleClipboard() {
+    const text = await Clipboard.getStringAsync();
+    const result = parseClipboardText(text);
+    if (!result) {
+      Alert.alert('협찬 문의를 찾지 못했습니다', '카카오톡에서 협찬 문의 내용을 복사한 뒤 다시 눌러주세요.');
+      return;
+    }
+    setParsedDeal(result);
+  }
 
   const filtered =
     activeFilter === '전체'
@@ -152,9 +167,14 @@ export default function DealsScreen() {
       {/* 헤더 */}
       <View style={styles.header}>
         <Text style={styles.title}>협찬 관리</Text>
-        <TouchableOpacity style={styles.addBtn} activeOpacity={0.85}>
-          <Text style={styles.addBtnText}>＋ 새 협찬</Text>
-        </TouchableOpacity>
+        <View style={styles.headerBtns}>
+          <TouchableOpacity style={styles.clipBtn} onPress={handleClipboard} activeOpacity={0.85}>
+            <Text style={styles.clipBtnText}>📋 붙여넣기</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} activeOpacity={0.85}>
+            <Text style={styles.addBtnText}>＋ 새 협찬</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -215,6 +235,20 @@ export default function DealsScreen() {
       <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 88 }]} activeOpacity={0.85}>
         <Text style={styles.fabText}>＋</Text>
       </TouchableOpacity>
+
+      {/* 클립보드 파서 모달 */}
+      {parsedDeal && user && (
+        <ClipboardParserModal
+          visible={!!parsedDeal}
+          parsed={parsedDeal}
+          userId={user.id}
+          onClose={() => setParsedDeal(null)}
+          onSuccess={() => {
+            setParsedDeal(null);
+            refetch();
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -229,6 +263,14 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   title:  { fontSize: 22, fontWeight: '800', color: '#1A1A2E', letterSpacing: -0.4 },
+  headerBtns: { flexDirection: 'row', gap: 8 },
+  clipBtn: {
+    backgroundColor: '#F0EFFE',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  clipBtnText: { color: colors.primary, fontSize: 13, fontWeight: '700' },
   addBtn: {
     backgroundColor: colors.primary,
     paddingHorizontal: 14,
