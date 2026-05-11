@@ -10,9 +10,13 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
 import { useHomeData } from '../../hooks/useHomeData';
+import { useSocialChannels } from '../../hooks/useSocialChannels';
 import { colors } from '../../constants/colors';
+import { RootStackParamList } from '../../navigation/AppNavigator';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 40 - 12) / 2;
@@ -54,7 +58,9 @@ function pctChange(current: number, prev: number) {
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
   const { data, loading, refetch } = useHomeData(user?.id);
+  const { channels, formatCount } = useSocialChannels(user?.id);
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const userName =
     user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? '크리에이터';
 
@@ -155,6 +161,58 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* 소셜 채널 현황 */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>소셜 채널 현황</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('YouTubeConnect')}>
+            <Text style={styles.sectionMore}>{channels.length > 0 ? '관리' : '+ 연동'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {channels.length === 0 ? (
+          <TouchableOpacity
+            style={channelStyle.empty}
+            onPress={() => navigation.navigate('YouTubeConnect')}
+            activeOpacity={0.85}
+          >
+            <Text style={channelStyle.emptyIcon}>📺</Text>
+            <View>
+              <Text style={channelStyle.emptyTitle}>YouTube 채널을 연동하세요</Text>
+              <Text style={channelStyle.emptyDesc}>구독자·조회수를 홈에서 바로 확인</Text>
+            </View>
+            <Text style={channelStyle.emptyArrow}>›</Text>
+          </TouchableOpacity>
+        ) : (
+          channels.map((ch) => (
+            <View key={ch.id} style={channelStyle.card}>
+              <View style={channelStyle.cardHeader}>
+                <View style={channelStyle.ytBadge}>
+                  <Text style={channelStyle.ytBadgeText}>▶</Text>
+                </View>
+                <Text style={channelStyle.channelName} numberOfLines={1}>{ch.channel_name}</Text>
+              </View>
+              <View style={channelStyle.stats}>
+                <View style={channelStyle.stat}>
+                  <Text style={channelStyle.statValue}>{formatCount(ch.subscriber_count)}</Text>
+                  <Text style={channelStyle.statLabel}>구독자</Text>
+                </View>
+                <View style={channelStyle.statDivider} />
+                <View style={channelStyle.stat}>
+                  <Text style={channelStyle.statValue}>{formatCount(ch.view_count)}</Text>
+                  <Text style={channelStyle.statLabel}>총 조회수</Text>
+                </View>
+                <View style={channelStyle.statDivider} />
+                <View style={channelStyle.stat}>
+                  <Text style={channelStyle.statValue}>{ch.video_count}개</Text>
+                  <Text style={channelStyle.statLabel}>영상</Text>
+                </View>
+              </View>
+            </View>
+          ))
+        )}
+
+        <View style={{ height: 24 }} />
 
         {/* 진행 중인 협찬 */}
         <View style={styles.sectionHeader}>
@@ -448,4 +506,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9CA3AF',
   },
+});
+
+const channelStyle = StyleSheet.create({
+  empty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 8,
+    gap: 12,
+    borderWidth: 1.5,
+    borderColor: '#E8E4FF',
+    borderStyle: 'dashed',
+  },
+  emptyIcon:  { fontSize: 28 },
+  emptyTitle: { fontSize: 14, fontWeight: '700', color: '#1A1A2E' },
+  emptyDesc:  { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  emptyArrow: { fontSize: 22, color: '#D1D5DB', marginLeft: 'auto' },
+
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  ytBadge: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: '#FF0000',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  ytBadgeText:  { color: '#fff', fontSize: 12, fontWeight: '800' },
+  channelName:  { flex: 1, fontSize: 14, fontWeight: '700', color: '#1A1A2E' },
+
+  stats: {
+    flexDirection: 'row',
+    backgroundColor: '#F8F8FF',
+    borderRadius: 12,
+    padding: 12,
+  },
+  stat:       { flex: 1, alignItems: 'center' },
+  statValue:  { fontSize: 16, fontWeight: '800', color: '#1A1A2E', marginBottom: 2 },
+  statLabel:  { fontSize: 11, color: '#7C6FCD' },
+  statDivider:{ width: 1, backgroundColor: 'rgba(108,99,255,0.15)' },
 });
