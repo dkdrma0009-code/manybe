@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Session, User } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { supabase } from '../api/supabase';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -36,9 +41,43 @@ export function useAuth() {
     return { error };
   };
 
+  const signInWithGoogle = async () => {
+    if (Platform.OS === 'web') {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin },
+      });
+      return { error };
+    }
+
+    // Native (iOS/Android)
+    const redirectUrl = Linking.createURL('auth/callback');
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
+    });
+    if (error || !data.url) return { error };
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+    if (result.type === 'success') {
+      const url = result.url;
+      const params = new URLSearchParams(url.split('#')[1] ?? url.split('?')[1] ?? '');
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      if (accessToken) {
+        const { error: setErr } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken ?? '',
+        });
+        return { error: setErr };
+      }
+    }
+    return { error: null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
-  return { session, user, loading, signIn, signUp, signOut };
+  return { session, user, loading, signIn, signUp, signOut, signInWithGoogle };
 }

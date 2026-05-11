@@ -13,7 +13,7 @@ import YouTubeConnectScreen from '../screens/settings/YouTubeConnectScreen';
 import { colors } from '../constants/colors';
 
 // 개발 중 인증 우회 — 배포 전 false로 변경
-const DEV_BYPASS_AUTH = __DEV__;
+const DEV_BYPASS_AUTH = false;
 
 export type AuthStackParamList = {
   Login: undefined;
