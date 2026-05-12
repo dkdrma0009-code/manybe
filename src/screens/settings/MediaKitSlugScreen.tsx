@@ -8,8 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Clipboard,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../api/supabase';
@@ -43,6 +43,7 @@ export default function MediaKitSlugScreen({ navigation }: Props) {
   const [slugError, setSlugError] = useState('');
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [copied, setCopied] = useState(false);
+  const [inquiryCopied, setInquiryCopied] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -126,9 +127,16 @@ export default function MediaKitSlugScreen({ navigation }: Props) {
 
   function handleCopy() {
     if (!originalSlug) return;
-    Clipboard.setString(`${WEB_BASE_URL}/${originalSlug}`);
+    Clipboard.setStringAsync(`${WEB_BASE_URL}/${originalSlug}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleCopyInquiry() {
+    if (!originalSlug) return;
+    Clipboard.setStringAsync(`${WEB_BASE_URL}/${originalSlug}/inquiry`);
+    setInquiryCopied(true);
+    setTimeout(() => setInquiryCopied(false), 2000);
   }
 
   const publicUrl = `${WEB_BASE_URL}/${slug || '나의-slug'}`;
@@ -233,10 +241,10 @@ export default function MediaKitSlugScreen({ navigation }: Props) {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.inquiryBtn}
-                  onPress={() => Alert.alert('협찬 문의 폼', `${WEB_BASE_URL}/${originalSlug}/inquiry\n\n브랜드에게 이 링크를 공유하세요.`)}
+                  onPress={handleCopyInquiry}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.inquiryBtnText}>📬 문의 폼 링크</Text>
+                  <Text style={styles.inquiryBtnText}>{inquiryCopied ? '✓ 복사됨' : '📬 문의 폼 복사'}</Text>
                 </TouchableOpacity>
               </View>
             </View>

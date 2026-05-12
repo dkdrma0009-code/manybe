@@ -13,7 +13,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
-import { useHomeData } from '../../hooks/useHomeData';
+import { useHomeData, ActionItem } from '../../hooks/useHomeData';
+import { usePlan } from '../../hooks/usePlan';
+import FomoBanner from '../../components/FomoBanner';
 import { useSocialChannels } from '../../hooks/useSocialChannels';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -55,10 +57,57 @@ function pctChange(current: number, prev: number) {
   return pct;
 }
 
+
+// ─── 액션 카드 ──────────────────────────────────────────────
+
+function ActionCard({ item, onPress }: { item: ActionItem; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      style={[action.card, { backgroundColor: item.bg }, item.urgent && action.cardUrgent]}
+      onPress={onPress}
+      activeOpacity={0.82}
+    >
+      <View style={[action.iconBg, { backgroundColor: item.urgent ? item.color : item.bg }]}>
+        <Text style={action.icon}>{item.icon}</Text>
+      </View>
+      <View style={action.body}>
+        <Text style={[action.title, { color: item.color }]} numberOfLines={1}>{item.title}</Text>
+        <Text style={action.sub} numberOfLines={1}>{item.subtitle}</Text>
+      </View>
+      {item.urgent && <View style={action.urgentDot} />}
+      <Text style={[action.arrow, { color: item.color }]}>›</Text>
+    </TouchableOpacity>
+  );
+}
+
+const action = StyleSheet.create({
+  card: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 14, padding: 14, marginBottom: 8,
+  },
+  cardUrgent: {
+    borderWidth: 1.5, borderColor: '#FCA5A5',
+  },
+  iconBg: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+    opacity: 0.85,
+  },
+  icon:  { fontSize: 18 },
+  body:  { flex: 1 },
+  title: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  sub:   { fontSize: 12, color: '#6B7280' },
+  urgentDot: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: '#DC2626',
+  },
+  arrow: { fontSize: 20, fontWeight: '600' },
+});
+
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
   const { data, loading, refetch } = useHomeData(user?.id);
   const { channels, formatCount } = useSocialChannels(user?.id);
+  const { isPro } = usePlan(user?.id);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const userName =
@@ -81,10 +130,10 @@ export default function HomeScreen() {
             <Text style={styles.greetingSub}>오늘도 좋은 하루 되세요</Text>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Text style={styles.iconBtnText}>🔔</Text>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Inquiries')}>
+              <Text style={styles.iconBtnText}>📬</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.avatar} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.avatar} onPress={() => navigation.navigate('Profile')} activeOpacity={0.85}>
               <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
             </TouchableOpacity>
           </View>
@@ -136,10 +185,36 @@ export default function HomeScreen() {
           )}
         </LinearGradient>
 
+        {/* 액션 카드 */}
+        {data.actionItems.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>오늘 할 일</Text>
+              <Text style={styles.sectionCount}>{data.actionItems.length}개</Text>
+            </View>
+            {data.actionItems.map((item) => (
+              <ActionCard
+                key={item.id}
+                item={item}
+                onPress={() => {
+                  if (item.type === 'deal_deadline_today' || item.type === 'deal_deadline_week') {
+                    navigation.navigate('Main', { screen: '협찬' } as any);
+                  } else if (item.type === 'schedule_today') {
+                    navigation.navigate('Main', { screen: '캘린더' } as any);
+                  } else if (item.type === 'unsettled') {
+                    navigation.navigate('Main', { screen: '수익' } as any);
+                  }
+                }}
+              />
+            ))}
+            <View style={{ height: 16 }} />
+          </>
+        )}
+
         {/* 수익원별 카드 */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>수익원별 현황</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: '수익' } as any)}>
             <Text style={styles.sectionMore}>전체보기</Text>
           </TouchableOpacity>
         </View>
@@ -150,6 +225,7 @@ export default function HomeScreen() {
               key={src.label}
               style={[styles.gridCard, { width: CARD_WIDTH, height: 120, backgroundColor: src.cardBg }]}
               activeOpacity={0.85}
+              onPress={() => navigation.navigate('Main', { screen: '수익' } as any)}
             >
               <View style={[styles.gridIconBg, { backgroundColor: src.iconBg }]}>
                 <Text style={styles.gridIcon}>{src.icon}</Text>
@@ -217,7 +293,7 @@ export default function HomeScreen() {
         {/* 진행 중인 협찬 */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>진행 중인 협찬</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: '협찬' } as any)}>
             <Text style={styles.sectionMore}>전체보기</Text>
           </TouchableOpacity>
         </View>
@@ -229,7 +305,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             data.activeDeals.map((deal) => (
-              <TouchableOpacity key={deal.id} style={styles.dealCard} activeOpacity={0.85}>
+              <TouchableOpacity key={deal.id} style={styles.dealCard} activeOpacity={0.85} onPress={() => navigation.navigate('Main', { screen: '협찬' } as any)}>
                 <View style={[styles.dealAvatar, { backgroundColor: deal.initBg }]}>
                   <Text style={styles.dealAvatarText}>{deal.initial}</Text>
                 </View>
@@ -246,6 +322,9 @@ export default function HomeScreen() {
             ))
           )}
         </View>
+
+        {/* FOMO 페이월 배너 - 무료 유저만 */}
+        {!isPro && <FomoBanner variant="home" />}
 
         <View style={{ height: 24 }} />
       </ScrollView>
@@ -412,6 +491,11 @@ const styles = StyleSheet.create({
   sectionMore: {
     fontSize: 13,
     color: colors.primary,
+    fontWeight: '500',
+  },
+  sectionCount: {
+    fontSize: 13,
+    color: '#9CA3AF',
     fontWeight: '500',
   },
   grid: {

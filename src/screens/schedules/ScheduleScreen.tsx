@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useScheduleData, ScheduleItem } from '../../hooks/useScheduleData';
+import AddScheduleModal from './AddScheduleModal';
+import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
@@ -80,9 +83,16 @@ const calStyle = StyleSheet.create({
 
 // ─── 일정 카드 ──────────────────────────────────────────────
 
-function ScheduleCard({ item }: { item: ScheduleItem }) {
+function ScheduleCard({ item, onDelete }: { item: ScheduleItem; onDelete: () => void }) {
+  function handlePress() {
+    Alert.alert(item.title, `${item.type} · ${item.time}`, [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: onDelete },
+    ]);
+  }
+
   return (
-    <View style={schedCard.wrapper}>
+    <TouchableOpacity style={schedCard.wrapper} onPress={handlePress} activeOpacity={0.8}>
       <View style={[schedCard.iconBg, { backgroundColor: item.iconBg }]}>
         <Text style={schedCard.icon}>{TYPE_ICON[item.type] ?? '📌'}</Text>
       </View>
@@ -93,7 +103,7 @@ function ScheduleCard({ item }: { item: ScheduleItem }) {
       <View style={[schedCard.timeBadge, { backgroundColor: item.iconBg }]}>
         <Text style={[schedCard.time, { color: item.color }]}>{item.time}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -120,6 +130,12 @@ export default function ScheduleScreen() {
   const [selectedDay, setSelectedDay] = useState(today.getDate());
 
   const { data, refetch } = useScheduleData(user?.id, year, month);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  async function handleDeleteSchedule(id: string) {
+    await supabase.from('schedules').delete().eq('id', id);
+    refetch();
+  }
 
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
   const grid = getCalendarGrid(year, month);
@@ -149,7 +165,7 @@ export default function ScheduleScreen() {
             <Text style={styles.navArrow}>›</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.addBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
           <Text style={styles.addBtnText}>＋ 일정 추가</Text>
         </TouchableOpacity>
       </View>
@@ -199,7 +215,9 @@ export default function ScheduleScreen() {
             <Text style={styles.emptyText}>일정이 없습니다</Text>
           </View>
         ) : (
-          schedules.map((item) => <ScheduleCard key={item.id} item={item} />)
+          schedules.map((item) => (
+            <ScheduleCard key={item.id} item={item} onDelete={() => handleDeleteSchedule(item.id)} />
+          ))
         )}
 
         {/* 이번 주 요약 */}
@@ -222,8 +240,19 @@ export default function ScheduleScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      {/* 일정 추가 모달 */}
+      {user && (
+        <AddScheduleModal
+          visible={showAddModal}
+          userId={user.id}
+          defaultDate={[year, String(month + 1).padStart(2, '0'), String(selectedDay).padStart(2, '0')].join('-')}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => { setShowAddModal(false); refetch(); }}
+        />
+      )}
+
       {/* 플로팅 버튼 */}
-      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 88 }]} activeOpacity={0.85}>
+      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 88 }]} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
         <Text style={styles.fabText}>＋</Text>
       </TouchableOpacity>
     </View>

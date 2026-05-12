@@ -7,11 +7,17 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  Alert,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Svg, { Path, G } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useRevenueData } from '../../hooks/useRevenueData';
+import AddRevenueModal from './AddRevenueModal';
 import { colors } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
@@ -174,9 +180,12 @@ export default function RevenueScreen() {
   const { user } = useAuth();
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const selected = MONTHS[selectedIdx];
-  const { data, loading, refetch } = useRevenueData(user?.id, selected.year, selected.month);
+  const { data, loading, refetch, saveGoal } = useRevenueData(user?.id, selected.year, selected.month);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalInput, setGoalInput] = useState('');
 
   const progressPct = data.goal > 0 ? Math.min(Math.round((data.total / data.goal) * 100), 100) : 0;
 
@@ -229,7 +238,9 @@ export default function RevenueScreen() {
                   <Text style={styles.summaryTotal}>{formatKRW(data.total)}</Text>
                 </View>
                 <View style={styles.summaryRight}>
-                  <Text style={styles.summaryGoalLabel}>목표 {formatKRW(data.goal)}</Text>
+                  <TouchableOpacity onPress={() => { setGoalInput(String(data.goal)); setEditingGoal(true); }} activeOpacity={0.7}>
+                    <Text style={styles.summaryGoalLabel}>목표 {formatKRW(data.goal)} ✎</Text>
+                  </TouchableOpacity>
                   <Text style={styles.summaryPct}>{progressPct}%</Text>
                 </View>
               </View>
@@ -298,8 +309,55 @@ export default function RevenueScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      {/* 수입 추가 모달 */}
+      {user && (
+        <AddRevenueModal
+          visible={showAddModal}
+          userId={user.id}
+          defaultDate={new Date(selected.year, selected.month, new Date().getDate()).toISOString().slice(0, 10)}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => { setShowAddModal(false); refetch(); }}
+        />
+      )}
+
+
+      {/* 목표 수정 모달 */}
+      <Modal visible={editingGoal} transparent animationType="fade" onRequestClose={() => setEditingGoal(false)}>
+        <KeyboardAvoidingView style={goalModal.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={goalModal.sheet}>
+            <Text style={goalModal.title}>월 수익 목표 설정</Text>
+            <TextInput
+              style={goalModal.input}
+              value={goalInput}
+              onChangeText={(t) => setGoalInput(t.replace(/[^0-9]/g, ''))}
+              keyboardType="number-pad"
+              placeholder="목표 금액 입력"
+              placeholderTextColor="#C4C4C4"
+              autoFocus
+            />
+            <Text style={goalModal.hint}>현재: {formatKRW(data.goal)}</Text>
+            <View style={goalModal.btnRow}>
+              <TouchableOpacity style={goalModal.cancelBtn} onPress={() => setEditingGoal(false)}>
+                <Text style={goalModal.cancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={goalModal.saveBtn}
+                onPress={() => {
+                  const amount = parseInt(goalInput, 10);
+                  if (!amount || amount <= 0) { Alert.alert('금액을 올바르게 입력해주세요'); return; }
+                  saveGoal(amount);
+                  setEditingGoal(false);
+                }}
+              >
+                <Text style={goalModal.saveText}>저장</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* 플로팅 버튼 */}
-      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 88 }]} activeOpacity={0.85}>
+      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 88 }]} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
         <Text style={styles.fabText}>＋</Text>
       </TouchableOpacity>
     </View>
@@ -407,3 +465,23 @@ const styles = StyleSheet.create({
   },
   fabText: { fontSize: 24, color: '#fff', fontWeight: '300', lineHeight: 28 },
 });
+
+const goalModal = StyleSheet.create({
+  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)', padding: 24 },
+  sheet: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%' },
+  title: { fontSize: 17, fontWeight: '800', color: '#1A1A2E', marginBottom: 16, textAlign: 'center' },
+  input: {
+    backgroundColor: '#F8F8FF', borderRadius: 12,
+    borderWidth: 1.5, borderColor: '#E8E4FF',
+    paddingHorizontal: 14, paddingVertical: 14,
+    fontSize: 20, fontWeight: '700', color: '#1A1A2E', textAlign: 'center',
+    marginBottom: 8,
+  },
+  hint: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginBottom: 20 },
+  btnRow: { flexDirection: 'row', gap: 10 },
+  cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#F3F4F6', alignItems: 'center' },
+  cancelText: { fontSize: 15, fontWeight: '700', color: '#6B7280' },
+  saveBtn: { flex: 2, paddingVertical: 14, borderRadius: 12, backgroundColor: '#6C63FF', alignItems: 'center' },
+  saveText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+});
+

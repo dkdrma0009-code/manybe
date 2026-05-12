@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../hooks/useAuth';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
@@ -10,6 +11,11 @@ import TabNavigator from './TabNavigator';
 import TaxCalculatorScreen from '../screens/tax/TaxCalculatorScreen';
 import MediaKitSlugScreen from '../screens/settings/MediaKitSlugScreen';
 import YouTubeConnectScreen from '../screens/settings/YouTubeConnectScreen';
+import AEExportScreen from '../screens/export/AEExportScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
+import InquiryScreen from '../screens/inquiries/InquiryScreen';
+import MediaKitEditScreen from '../screens/settings/MediaKitEditScreen';
+import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import { colors } from '../constants/colors';
 
 // 개발 중 인증 우회 — 배포 전 false로 변경
@@ -25,6 +31,10 @@ export type RootStackParamList = {
   TaxCalculator: undefined;
   MediaKitSlug: undefined;
   YouTubeConnect: undefined;
+  AEExport: undefined;
+  Profile: undefined;
+  Inquiries: undefined;
+  MediaKitEdit: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -58,14 +68,41 @@ function MainNavigator() {
         component={YouTubeConnectScreen}
         options={{ presentation: 'card' }}
       />
+      <RootStack.Screen
+        name="AEExport"
+        component={AEExportScreen}
+        options={{ presentation: 'card' }}
+      />
+      <RootStack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ presentation: 'card' }}
+      />
+      <RootStack.Screen
+        name="Inquiries"
+        component={InquiryScreen}
+        options={{ presentation: 'card' }}
+      />
+      <RootStack.Screen
+        name="MediaKitEdit"
+        component={MediaKitEditScreen}
+        options={{ presentation: 'card' }}
+      />
     </RootStack.Navigator>
   );
 }
 
 export default function AppNavigator() {
   const { session, loading } = useAuth();
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
-  if (!DEV_BYPASS_AUTH && loading) {
+  useEffect(() => {
+    AsyncStorage.getItem('onboarding_complete').then((val) => {
+      setOnboardingDone(val === 'true');
+    });
+  }, []);
+
+  if (onboardingDone === null || (!DEV_BYPASS_AUTH && loading)) {
     return (
       <SafeAreaProvider>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
@@ -75,10 +112,18 @@ export default function AppNavigator() {
     );
   }
 
+  const isAuthed = DEV_BYPASS_AUTH || !!session;
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        {DEV_BYPASS_AUTH || session ? <MainNavigator /> : <AuthNavigator />}
+        {!onboardingDone ? (
+          <OnboardingScreen onComplete={() => setOnboardingDone(true)} />
+        ) : !isAuthed ? (
+          <AuthNavigator />
+        ) : (
+          <MainNavigator />
+        )}
       </NavigationContainer>
     </SafeAreaProvider>
   );

@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { colors } from '../../constants/colors';
+import { supabase } from '../../api/supabase';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 
 interface MenuRow {
@@ -154,7 +156,7 @@ export default function SettingsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* 프로필 카드 */}
-        <TouchableOpacity style={styles.profileCard} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.profileCard} onPress={() => navigation.navigate('Profile')} activeOpacity={0.85}>
           <View style={styles.profileAvatar}>
             <Text style={styles.profileInitial}>{initial}</Text>
           </View>
@@ -171,7 +173,7 @@ export default function SettingsScreen() {
             <Text style={styles.planLabel}>현재 플랜</Text>
             <Text style={styles.planName}>무료 플랜</Text>
           </View>
-          <TouchableOpacity style={styles.planUpgradeBtn} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.planUpgradeBtn} onPress={() => Linking.openURL('https://manybe-web.vercel.app/premium')} activeOpacity={0.85}>
             <Text style={styles.planUpgradeText}>Pro 업그레이드</Text>
           </TouchableOpacity>
         </View>
@@ -181,26 +183,28 @@ export default function SettingsScreen() {
           items={[
             { icon: '📺', label: 'YouTube 채널 연동', onPress: () => navigation.navigate('YouTubeConnect') },
             { icon: '🔗', label: '미디어 키트 URL', onPress: () => navigation.navigate('MediaKitSlug') },
-            { icon: '🏦', label: '정산 계좌 관리', onPress: () => {} },
+            { icon: '✏️', label: '미디어 키트 편집', onPress: () => navigation.navigate('MediaKitEdit') },
+            { icon: '🏦', label: '정산 계좌 관리', onPress: () => Linking.openURL('mailto:help@manybe.app?subject=정산 계좌 등록 요청') },
             { icon: '📄', label: '세금 계산기', onPress: () => navigation.navigate('TaxCalculator') },
+            { icon: '📊', label: 'AE 모드 (CSV 내보내기)', onPress: () => navigation.navigate('AEExport') },
           ]}
         />
 
         <Section
           title="앱 설정"
           items={[
-            { icon: '🔔', label: '알림 설정', onPress: () => {} },
+            { icon: '🔔', label: '알림 설정', onPress: () => Linking.openSettings() },
             { icon: '🌐', label: '언어', value: '한국어' },
-            { icon: '🔒', label: '보안 / 비밀번호 변경', onPress: () => {} },
+            { icon: '🔒', label: '보안 / 비밀번호 변경', onPress: () => Alert.alert('비밀번호 변경', '가입하신 이메일로 비밀번호 재설정 메일을 보내드릴까요?', [{ text: '취소', style: 'cancel' }, { text: '보내기', onPress: () => { if (user?.email) supabase.auth.resetPasswordForEmail(user.email).then(() => Alert.alert('발송 완료', '이메일을 확인해주세요.')); } }]) },
           ]}
         />
 
         <Section
           title="지원"
           items={[
-            { icon: '💬', label: '고객 문의', onPress: () => {} },
-            { icon: '📋', label: '이용약관', onPress: () => {} },
-            { icon: '🛡️', label: '개인정보 처리방침', onPress: () => {} },
+            { icon: '💬', label: '고객 문의', onPress: () => Linking.openURL('mailto:help@manybe.app?subject=매니비 문의') },
+            { icon: '📋', label: '이용약관', onPress: () => Linking.openURL('https://manybe-web.vercel.app/terms') },
+            { icon: '🛡️', label: '개인정보 처리방침', onPress: () => Linking.openURL('https://manybe-web.vercel.app/privacy') },
             { icon: 'ℹ️', label: '앱 버전', value: '1.0.0' },
           ]}
         />

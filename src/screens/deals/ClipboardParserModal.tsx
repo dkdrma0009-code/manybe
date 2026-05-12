@@ -57,6 +57,14 @@ export default function ClipboardParserModal({ visible, parsed, userId, onClose,
         source: 'clipboard',
       });
       if (err) throw err;
+      if (deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline.trim())) {
+        await supabase.from('schedules').insert({
+          user_id: userId,
+          title: `[${brand.trim()}] 협찬 마감`,
+          type: 'deadline',
+          start_time: new Date(`${deadline.trim()}T09:00:00`).toISOString(),
+        });
+      }
       onSuccess();
     } catch (e: any) {
       setError(e.message ?? '저장에 실패했습니다');

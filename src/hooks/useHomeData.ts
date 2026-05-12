@@ -22,6 +22,18 @@ export interface HomeDeal {
   initBg: string;
 }
 
+
+export interface ActionItem {
+  id: string;
+  type: 'deal_deadline_today' | 'deal_deadline_week' | 'schedule_today' | 'unsettled';
+  title: string;
+  subtitle: string;
+  icon: string;
+  color: string;
+  bg: string;
+  urgent: boolean;
+}
+
 export interface HomeData {
   totalRevenue: number;
   prevMonthRevenue: number;
@@ -31,6 +43,7 @@ export interface HomeData {
   pendingSettlement: number;
   estimatedTax: number;
   barData: number[];
+  actionItems: ActionItem[];
 }
 
 const CATEGORY_CONFIG: Record<string, Omit<CategoryStat, 'amount'>> = {
@@ -64,6 +77,7 @@ const DEFAULT_DATA: HomeData = {
   pendingSettlement: 0,
   estimatedTax: 0,
   barData: [0, 0, 0, 0, 0, 0, 0],
+  actionItems: [],
 };
 
 // DEV_BYPASS_AUTH 모드에서 보여줄 샘플 데이터
@@ -84,6 +98,11 @@ const DEV_DATA: HomeData = {
   pendingSettlement: 1200000,
   estimatedTax: 142560,
   barData: [2400000, 3200000, 1800000, 3600000, 2800000, 3400000, 4320000],
+  actionItems: [
+    { id: 'a1', type: 'deal_deadline_today', title: '나이키 협찬 마감 D-0', subtitle: '러닝화 협찬 콘텐츠 · 오늘까지', icon: '🔔', color: '#DC2626', bg: '#FEE2E2', urgent: true },
+    { id: 'a2', type: 'deal_deadline_week',  title: '삼성전자 협찬 마감 D-3', subtitle: '갤럭시 언박싱 · 6월 1일', icon: '⏰', color: '#D97706', bg: '#FEF3C7', urgent: false },
+    { id: 'a3', type: 'unsettled',            title: '정산 대기 150만원', subtitle: '올리브영 협찬 완료 후 미정산', icon: '💳', color: '#059669', bg: '#D1FAE5', urgent: false },
+  ],
 };
 
 export function useHomeData(userId: string | undefined) {
@@ -112,7 +131,15 @@ export function useHomeData(userId: string | undefined) {
       day7Start.setDate(now.getDate() - 6);
       const day7StartStr = day7Start.toISOString().split('T')[0];
 
-      const [revenueRes, prevRevenueRes, dealsRes, barRes] = await Promise.all([
+      const todayStr = now.toISOString().split('T')[0];
+      const weekLater = new Date(now);
+      weekLater.setDate(now.getDate() + 7);
+      const weekLaterStr = weekLater.toISOString().split('T')[0];
+      const tomorrowStr = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+
+      const [revenueRes, prevRevenueRes, dealsRes, barRes, deadlineRes, scheduleRes] = await Promise.all([
         supabase
           .from('revenue')
           .select('amount, category')
@@ -136,12 +163,29 @@ export function useHomeData(userId: string | undefined) {
           .eq('user_id', userId)
           .gte('date', day7StartStr)
           .lte('date', now.toISOString().split('T')[0]),
+        supabase
+          .from('deals')
+          .select('id, brand, title, end_date, amount, status')
+          .eq('user_id', userId)
+          .in('status', ['pending', 'in_progress'])
+          .gte('end_date', todayStr)
+          .lte('end_date', weekLaterStr)
+          .order('end_date', { ascending: true }),
+        supabase
+          .from('schedules')
+          .select('id, title, type, start_time')
+          .eq('user_id', userId)
+          .gte('start_time', todayStart)
+          .lte('start_time', todayEnd)
+          .order('start_time', { ascending: true }),
       ]);
 
       if (revenueRes.error) throw revenueRes.error;
       if (prevRevenueRes.error) throw prevRevenueRes.error;
       if (dealsRes.error) throw dealsRes.error;
       if (barRes.error) throw barRes.error;
+      if (deadlineRes.error) throw deadlineRes.error;
+      if (scheduleRes.error) throw scheduleRes.error;
 
       // Total and category breakdown
       const revenues: Pick<Revenue, 'amount' | 'category'>[] = revenueRes.data ?? [];
@@ -196,6 +240,54 @@ export function useHomeData(userId: string | undefined) {
         barData.push(dayTotals[key] ?? 0);
       }
 
+      // Build action items
+      const actionItems: ActionItem[] = [];
+
+      for (const d of deadlineRes.data ?? []) {
+        const endDate = d.end_date?.slice(0, 10) ?? '';
+        const isToday = endDate === todayStr;
+        const daysLeft = Math.ceil((new Date(endDate).getTime() - new Date(todayStr).getTime()) / 86400000);
+        actionItems.push({
+          id: d.id,
+          type: isToday ? 'deal_deadline_today' : 'deal_deadline_week',
+          title: `${d.brand} 마감 ${isToday ? 'D-0' : `D-${daysLeft}`}`,
+          subtitle: `${d.title}`,
+          icon: isToday ? '🔔' : '⏰',
+          color: isToday ? '#DC2626' : '#D97706',
+          bg: isToday ? '#FEE2E2' : '#FEF3C7',
+          urgent: isToday,
+        });
+      }
+
+      const TYPE_ICON: Record<string, string> = { content: '📤', deadline: '🔔', meeting: '📋', other: '💡' };
+      for (const s of scheduleRes.data ?? []) {
+        const t = new Date(s.start_time);
+        const timeStr = `${t.getHours() >= 12 ? '오후' : '오전'} ${t.getHours() > 12 ? t.getHours() - 12 : t.getHours()}시`;
+        actionItems.push({
+          id: s.id,
+          type: 'schedule_today',
+          title: s.title,
+          subtitle: `오늘 ${timeStr}`,
+          icon: TYPE_ICON[s.type] ?? '📌',
+          color: '#2563EB',
+          bg: '#DBEAFE',
+          urgent: false,
+        });
+      }
+
+      if (pendingSettlement > 0) {
+        actionItems.push({
+          id: 'unsettled',
+          type: 'unsettled',
+          title: `정산 대기 ${pendingSettlement.toLocaleString('ko-KR')}원`,
+          subtitle: '협상 중인 협찬의 예상 수령액',
+          icon: '💳',
+          color: '#059669',
+          bg: '#D1FAE5',
+          urgent: false,
+        });
+      }
+
       setData({
         totalRevenue,
         prevMonthRevenue,
@@ -205,6 +297,7 @@ export function useHomeData(userId: string | undefined) {
         pendingSettlement,
         estimatedTax,
         barData,
+        actionItems,
       });
     } catch (e: any) {
       setError(e.message ?? '데이터를 불러오지 못했습니다');

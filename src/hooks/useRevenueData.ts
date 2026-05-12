@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../api/supabase';
 
 export interface DonutSegment {
@@ -77,6 +78,8 @@ const DEV_DATA: RevenueData = {
   ],
 };
 
+const GOAL_STORAGE_KEY = 'revenue_goal';
+
 export function useRevenueData(
   userId: string | undefined,
   year: number,
@@ -85,6 +88,19 @@ export function useRevenueData(
   const [data, setData] = useState<RevenueData>(__DEV__ ? DEV_DATA : DEFAULT_DATA);
   const [loading, setLoading] = useState(!!userId);
   const [error, setError] = useState<string | null>(null);
+  const [goal, setGoalState] = useState<number>(DEFAULT_GOAL);
+
+  useEffect(() => {
+    AsyncStorage.getItem(GOAL_STORAGE_KEY).then((val) => {
+      if (val) setGoalState(parseInt(val, 10));
+    });
+  }, []);
+
+  const saveGoal = useCallback(async (amount: number) => {
+    setGoalState(amount);
+    await AsyncStorage.setItem(GOAL_STORAGE_KEY, String(amount));
+    setData((prev) => ({ ...prev, goal: amount }));
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!userId) {
@@ -176,7 +192,7 @@ export function useRevenueData(
         };
       });
 
-      setData({ total, tax, net: total - tax, goal: DEFAULT_GOAL, segments, barData, transactions });
+      setData({ total, tax, net: total - tax, goal, segments, barData, transactions });
     } catch (e: any) {
       setError(e.message ?? '데이터를 불러오지 못했습니다');
     } finally {
@@ -186,5 +202,5 @@ export function useRevenueData(
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  return { data, loading, error, refetch: fetchData };
+  return { data, loading, error, refetch: fetchData, saveGoal };
 }

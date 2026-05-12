@@ -15,6 +15,13 @@ import { useDealsData, DisplayStatus, DealItem } from '../../hooks/useDealsData'
 import { colors } from '../../constants/colors';
 import { parseClipboardText, ParsedDeal } from '../../utils/parseClipboard';
 import ClipboardParserModal from './ClipboardParserModal';
+import AddDealModal from './AddDealModal';
+import { usePlan } from '../../hooks/usePlan';
+import FomoBanner from '../../components/FomoBanner';
+import DealDetailModal, { DealDetailData } from './DealDetailModal';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 // ─── 상태 설정 ──────────────────────────────────────────────
 
@@ -88,9 +95,9 @@ const badge = StyleSheet.create({
   text:    { fontSize: 11, fontWeight: '700' },
 });
 
-function DealCard({ deal }: { deal: DealItem }) {
+function DealCard({ deal, onPress }: { deal: DealItem; onPress: () => void }) {
   return (
-    <TouchableOpacity style={card.wrapper} activeOpacity={0.82}>
+    <TouchableOpacity style={card.wrapper} onPress={onPress} activeOpacity={0.82}>
       <View style={[card.avatar, { backgroundColor: deal.avatarColor }]}>
         <Text style={card.avatarText}>{deal.brand[0]}</Text>
       </View>
@@ -142,10 +149,14 @@ const card = StyleSheet.create({
 
 export default function DealsScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const { data, loading, refetch } = useDealsData(user?.id);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('전체');
   const [parsedDeal, setParsedDeal] = useState<ParsedDeal | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<DealDetailData | null>(null);
+  const { isPro } = usePlan(user?.id);
 
   async function handleClipboard() {
     const text = await Clipboard.getStringAsync();
@@ -166,13 +177,18 @@ export default function DealsScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.title}>협찬 관리</Text>
+        <View>
+          <Text style={styles.title}>협찬 관리</Text>
+        </View>
         <View style={styles.headerBtns}>
+          <TouchableOpacity style={styles.inboxBtn} onPress={() => navigation.navigate('Inquiries')} activeOpacity={0.85}>
+            <Text style={styles.inboxBtnText}>📬 문의함</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.clipBtn} onPress={handleClipboard} activeOpacity={0.85}>
             <Text style={styles.clipBtnText}>📋 붙여넣기</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.addBtn} activeOpacity={0.85}>
-            <Text style={styles.addBtnText}>＋ 새 협찬</Text>
+          <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
+            <Text style={styles.addBtnText}>＋</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -224,17 +240,43 @@ export default function DealsScreen() {
               <Text style={styles.emptyText}>해당 상태의 협찬이 없습니다</Text>
             </View>
           ) : (
-            filtered.map((deal) => <DealCard key={deal.id} deal={deal} />)
+            filtered.map((deal) => <DealCard key={deal.id} deal={deal} onPress={() => setSelectedDeal(deal)} />)
           )}
         </View>
+
+        {/* FOMO 페이월 배너 - 무료 유저만 */}
+        {!isPro && <FomoBanner variant="deals" />}
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* 플로팅 버튼 */}
-      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 88 }]} activeOpacity={0.85}>
+      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 88 }]} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
         <Text style={styles.fabText}>＋</Text>
       </TouchableOpacity>
+
+      {/* 딜 상세/편집 모달 */}
+      {selectedDeal && (
+        <DealDetailModal
+          visible={!!selectedDeal}
+          deal={selectedDeal}
+          onClose={() => setSelectedDeal(null)}
+          onSuccess={() => { setSelectedDeal(null); refetch(); }}
+        />
+      )}
+
+      {/* 새 협찬 추가 모달 */}
+      {user && (
+        <AddDealModal
+          visible={showAddModal}
+          userId={user.id}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => {
+            setShowAddModal(false);
+            refetch();
+          }}
+        />
+      )}
 
       {/* 클립보드 파서 모달 */}
       {parsedDeal && user && (
@@ -264,6 +306,15 @@ const styles = StyleSheet.create({
   },
   title:  { fontSize: 22, fontWeight: '800', color: '#1A1A2E', letterSpacing: -0.4 },
   headerBtns: { flexDirection: 'row', gap: 8 },
+  inboxBtn: {
+    backgroundColor: '#FFF7ED',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  inboxBtnText: { color: '#EA580C', fontSize: 12, fontWeight: '700' },
   clipBtn: {
     backgroundColor: '#F0EFFE',
     paddingHorizontal: 12,

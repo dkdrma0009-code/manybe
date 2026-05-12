@@ -10,6 +10,7 @@ export interface DealItem {
   title: string;
   amount: number;
   deadline: string;
+  endDate: string;
   status: DisplayStatus;
   avatarColor: string;
 }
@@ -51,10 +52,10 @@ const DEFAULT_DATA: DealsData = {
 
 const DEV_DATA: DealsData = {
   deals: [
-    { id: '1', brand: '나이키',    title: '러닝화 협찬 콘텐츠', amount: 3000000, deadline: '5월 15일', status: '협상중',   avatarColor: '#1A1A2E' },
-    { id: '2', brand: '올리브영',  title: '스킨케어 리뷰',       amount: 1500000, deadline: '5월 22일', status: '계약완료', avatarColor: '#6C63FF' },
-    { id: '3', brand: '삼성전자',  title: '갤럭시 언박싱',       amount: 5000000, deadline: '6월 1일',  status: '검토중',   avatarColor: '#2563EB' },
-    { id: '4', brand: '다이슨',    title: '에어랩 리뷰',         amount: 2000000, deadline: '6월 10일', status: '협상중',   avatarColor: '#6C63FF' },
+    { id: '1', brand: '나이키',    title: '러닝화 협찬 콘텐츠', amount: 3000000, deadline: '5월 15일', endDate: '', status: '협상중',   avatarColor: '#1A1A2E' },
+    { id: '2', brand: '올리브영',  title: '스킨케어 리뷰',       amount: 1500000, deadline: '5월 22일', endDate: '', status: '계약완료', avatarColor: '#6C63FF' },
+    { id: '3', brand: '삼성전자',  title: '갤럭시 언박싱',       amount: 5000000, deadline: '6월 1일',  endDate: '', status: '검토중',   avatarColor: '#2563EB' },
+    { id: '4', brand: '다이슨',    title: '에어랩 리뷰',         amount: 2000000, deadline: '6월 10일', endDate: '', status: '협상중',   avatarColor: '#6C63FF' },
   ],
   totalAmount: 11500000,
   inProgressCount: 3,
@@ -90,6 +91,7 @@ export function useDealsData(userId: string | undefined) {
         title: r.title,
         amount: r.amount,
         deadline: formatDeadline(r.end_date),
+        endDate: r.end_date ?? '',
         status: STATUS_MAP[r.status as Deal['status']] ?? '검토중',
         avatarColor: avatarColor(r.brand),
       }));
