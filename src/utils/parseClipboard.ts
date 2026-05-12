@@ -8,6 +8,9 @@ export interface ParsedDeal {
 
 // ─── 금액 파싱 ───────────────────────────────────────────────
 function parseAmount(text: string): number {
+  const normalized = text.trim().replace(/,/g, '');
+  if (/^\d+$/.test(normalized)) return parseInt(normalized);
+
   // "300만원", "300만", "3,000,000원", "300만 원"
   const manMatch = text.match(/(\d+(?:\.\d+)?)\s*만\s*원?/);
   if (manMatch) return Math.round(parseFloat(manMatch[1]) * 10000);
@@ -37,7 +40,7 @@ function parseDeadline(text: string): string {
   }
 
   // "2026-06-15", "2026/06/15"
-  const isoMatch = text.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  const isoMatch = text.match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
   if (isoMatch) {
     const m = isoMatch[2].padStart(2, '0');
     const d = isoMatch[3].padStart(2, '0');
@@ -53,6 +56,54 @@ function parseDeadline(text: string): string {
   }
 
   return '';
+}
+
+function splitSpreadsheetLine(line: string): string[] {
+  const delimiter = line.includes('\t') ? '\t' : ',';
+  return line.split(delimiter).map((cell) => cell.trim().replace(/^"|"$/g, ''));
+}
+
+function headerIndex(headers: string[], candidates: string[]): number {
+  return headers.findIndex((header) =>
+    candidates.some((candidate) => header.toLowerCase().replace(/\s/g, '').includes(candidate))
+  );
+}
+
+function parseSpreadsheetText(text: string): ParsedDeal | null {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0 || !lines.some((line) => line.includes('\t') || line.includes(','))) return null;
+
+  const firstCells = splitSpreadsheetLine(lines[0]);
+  if (firstCells.length < 2) return null;
+
+  const headers = firstCells.map((cell) => cell.toLowerCase().replace(/\s/g, ''));
+  const brandHeader = headerIndex(headers, ['브랜드', '브랜드명', 'brand']);
+  const titleHeader = headerIndex(headers, ['제목', '콘텐츠', '내용', 'title']);
+  const amountHeader = headerIndex(headers, ['금액', '단가', 'amount', 'price']);
+  const deadlineHeader = headerIndex(headers, ['마감', '마감일', 'deadline', 'date']);
+  const hasHeader = brandHeader >= 0 || titleHeader >= 0 || amountHeader >= 0 || deadlineHeader >= 0;
+
+  const cells = splitSpreadsheetLine(hasHeader ? lines[1] ?? '' : lines[0]);
+  if (cells.length < 2) return null;
+
+  const brand = cells[hasHeader && brandHeader >= 0 ? brandHeader : 0]?.trim() ?? '';
+  const title = cells[hasHeader && titleHeader >= 0 ? titleHeader : 1]?.trim() ?? '협찬 제안';
+  const amountText = cells[hasHeader && amountHeader >= 0 ? amountHeader : 2] ?? '';
+  const deadlineText = cells[hasHeader && deadlineHeader >= 0 ? deadlineHeader : 3] ?? '';
+
+  if (!brand && !title) return null;
+
+  return {
+    brand,
+    title: title || '협찬 제안',
+    amount: parseAmount(amountText),
+    deadline: parseDeadline(deadlineText),
+    memo: text.trim().slice(0, 500),
+  };
 }
 
 // ─── 브랜드명 추출 ────────────────────────────────────────────
@@ -94,6 +145,9 @@ function parseTitle(text: string): string {
 // ─── 메인 파서 ────────────────────────────────────────────────
 export function parseClipboardText(text: string): ParsedDeal | null {
   if (!text || text.trim().length < 5) return null;
+
+  const spreadsheetResult = parseSpreadsheetText(text);
+  if (spreadsheetResult) return spreadsheetResult;
 
   const SPONSORSHIP_KEYWORDS = ['협찬', '광고', '제안', '콜라보', '단가', '리뷰', '콘텐츠', '마케팅', '브랜드'];
   const hasSponsorshipKeyword = SPONSORSHIP_KEYWORDS.some((kw) => text.includes(kw));

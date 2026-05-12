@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
+import { usePlan } from '../../hooks/usePlan';
 import { colors } from '../../constants/colors';
 import { supabase } from '../../api/supabase';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -134,6 +135,7 @@ const section = StyleSheet.create({
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
+  const { plan } = usePlan(user?.id);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const userName = user?.user_metadata?.full_name ?? '크리에이터';
@@ -171,11 +173,13 @@ export default function SettingsScreen() {
         <View style={styles.planBanner}>
           <View>
             <Text style={styles.planLabel}>현재 플랜</Text>
-            <Text style={styles.planName}>무료 플랜</Text>
+            <Text style={styles.planName}>{plan === 'premium' ? '프리미엄' : '무료 플랜'}</Text>
           </View>
-          <TouchableOpacity style={styles.planUpgradeBtn} onPress={() => Linking.openURL('https://manybe-web.vercel.app/premium')} activeOpacity={0.85}>
-            <Text style={styles.planUpgradeText}>Pro 업그레이드</Text>
-          </TouchableOpacity>
+          {plan === 'free' && (
+            <TouchableOpacity style={styles.planUpgradeBtn} onPress={() => Linking.openURL('https://manybe-web.vercel.app/premium')} activeOpacity={0.85}>
+              <Text style={styles.planUpgradeText}>프리미엄 업그레이드</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <Section

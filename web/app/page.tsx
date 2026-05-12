@@ -234,7 +234,7 @@ export default function LandingPage() {
                   {[
                     "소셜 채널 자동 연동",
                     "수익 대시보드",
-                    "협찬 CRM (10건)",
+                    "협찬 CRM 무제한",
                     "캘린더 일정 관리",
                     "세금 예상액 시뮬레이터",
                     "미디어 키트 URL",
@@ -266,7 +266,7 @@ export default function LandingPage() {
                     "무료 플랜 모든 기능",
                     "인바운드 문의 폼 활성화",
                     "미디어 키트 방문자 통계",
-                    "협찬 CRM 무제한",
+                    "문의 폼 → CRM 자동 등록",
                     "PDF 리포트 내보내기",
                     "데이터 무제한 보관",
                   ].map((item) => (
@@ -276,9 +276,9 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <a href="/premium" className="block w-full text-center bg-white text-[#6C63FF] font-semibold py-3 rounded-xl hover:bg-purple-50 transition-colors">
+                <Link href="/premium" className="block w-full text-center bg-white text-[#6C63FF] font-semibold py-3 rounded-xl hover:bg-purple-50 transition-colors">
                   프리미엄 시작하기
-                </a>
+                </Link>
               </div>
             </div>
           </div>
@@ -327,8 +327,8 @@ export default function LandingPage() {
             <span className="font-bold text-white">매니비</span>
           </div>
           <div className="flex gap-6 text-sm text-gray-500">
-            <a href="/terms" className="hover:text-gray-300 transition-colors">이용약관</a>
-            <a href="/privacy" className="hover:text-gray-300 transition-colors">개인정보처리방침</a>
+            <Link href="/terms" className="hover:text-gray-300 transition-colors">이용약관</Link>
+            <Link href="/privacy" className="hover:text-gray-300 transition-colors">개인정보처리방침</Link>
             <a href="mailto:dkdrma0009@gmail.com" className="hover:text-gray-300 transition-colors">문의하기</a>
           </div>
           <p className="text-gray-600 text-sm">© 2026 매니비. All rights reserved.</p>

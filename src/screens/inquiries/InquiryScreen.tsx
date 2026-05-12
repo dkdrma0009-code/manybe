@@ -86,7 +86,7 @@ export default function InquiryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user } = useAuth();
-  const { isPro } = usePlan(user?.id);
+  const { isPremium } = usePlan(user?.id);
   const [inquiries, setInquiries] = useState<InquiryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -157,7 +157,7 @@ export default function InquiryScreen() {
                 미디어 키트를 공개하고{'\n'}브랜드의 인바운드 문의를 받아보세요.
               </Text>
             </View>
-            {!isPro && <FomoBanner variant="deals" />}
+            {!isPremium && <FomoBanner variant="deals" />}
           </>
         ) : (
           <>
@@ -168,7 +168,7 @@ export default function InquiryScreen() {
                 onPress={() => handleOpen(inquiry)}
               />
             ))}
-            {!isPro && <FomoBanner variant="deals" />}
+            {!isPremium && <FomoBanner variant="deals" />}
           </>
         )}
 

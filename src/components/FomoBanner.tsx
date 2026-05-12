@@ -46,7 +46,7 @@ export default function FomoBanner({ variant = 'home' }: Props) {
       {/* 헤더 */}
       <View style={styles.header}>
         <View style={styles.proBadge}>
-          <Text style={styles.proBadgeText}>PRO</Text>
+          <Text style={styles.proBadgeText}>PREMIUM</Text>
         </View>
         <Text style={styles.title}>{title}</Text>
       </View>
@@ -58,7 +58,7 @@ export default function FomoBanner({ variant = 'home' }: Props) {
         ))}
         <View style={styles.lockOverlay}>
           <Text style={styles.lockIcon}>🔒</Text>
-          <Text style={styles.lockText}>Pro에서 실제 문의를 확인하세요</Text>
+          <Text style={styles.lockText}>프리미엄에서 실제 문의를 확인하세요</Text>
         </View>
       </View>
 
@@ -71,7 +71,7 @@ export default function FomoBanner({ variant = 'home' }: Props) {
         onPress={() => Linking.openURL('https://manybe-web.vercel.app/premium')}
         activeOpacity={0.88}
       >
-        <Text style={styles.ctaText}>✨ Pro 플랜 시작하기</Text>
+        <Text style={styles.ctaText}>✨ 프리미엄 시작하기</Text>
         <Text style={styles.ctaSub}>월 9,900원 · 언제든 해지 가능</Text>
       </TouchableOpacity>
     </View>

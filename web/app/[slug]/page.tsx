@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+import { getSupabase } from "@/lib/supabase";
 import type { Metadata } from "next";
 
 interface MediaKit {
@@ -27,6 +28,8 @@ interface Profile {
 }
 
 async function getMediaKit(slug: string) {
+  const supabase = getSupabase();
+
   const { data: kit } = await supabase
     .from("media_kits")
     .select("*")
@@ -83,8 +86,6 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
   const { kit, channels, profile } = data;
   const creatorName = profile?.full_name ?? slug;
   const initial = creatorName.charAt(0).toUpperCase();
-  const youtube = channels.find((c) => c.platform === "youtube");
-
   const PRICING_LABELS: Record<string, string> = {
     short_form: "숏폼 (60초 이하)",
     long_form:  "롱폼 (10분 이상)",
@@ -224,9 +225,9 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
       <footer className="text-center py-8 text-xs text-gray-400">
         <p>
           Powered by{" "}
-          <a href="/" className="text-[#6C63FF] font-semibold hover:underline">
+          <Link href="/" className="text-[#6C63FF] font-semibold hover:underline">
             매니비
-          </a>
+          </Link>
         </p>
       </footer>
     </div>

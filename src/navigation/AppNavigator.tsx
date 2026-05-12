@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,7 +17,10 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 import InquiryScreen from '../screens/inquiries/InquiryScreen';
 import MediaKitEditScreen from '../screens/settings/MediaKitEditScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
+import SearchScreen from '../screens/search/SearchScreen';
+import { useNotifications } from '../hooks/useNotifications';
 import { colors } from '../constants/colors';
+import type { TabParamList } from './TabNavigator';
 
 // 개발 중 인증 우회 — 배포 전 false로 변경
 const DEV_BYPASS_AUTH = false;
@@ -27,7 +31,7 @@ export type AuthStackParamList = {
 };
 
 export type RootStackParamList = {
-  Main: undefined;
+  Main: NavigatorScreenParams<TabParamList> | undefined;
   TaxCalculator: undefined;
   MediaKitSlug: undefined;
   YouTubeConnect: undefined;
@@ -35,6 +39,7 @@ export type RootStackParamList = {
   Profile: undefined;
   Inquiries: undefined;
   MediaKitEdit: undefined;
+  Search: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -88,6 +93,11 @@ function MainNavigator() {
         component={MediaKitEditScreen}
         options={{ presentation: 'card' }}
       />
+      <RootStack.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{ presentation: 'card' }}
+      />
     </RootStack.Navigator>
   );
 }
@@ -95,6 +105,7 @@ function MainNavigator() {
 export default function AppNavigator() {
   const { session, loading } = useAuth();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  useNotifications(session?.user?.id);
 
   useEffect(() => {
     AsyncStorage.getItem('onboarding_complete').then((val) => {

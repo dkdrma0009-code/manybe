@@ -173,9 +173,9 @@ export default function InquiryPage() {
       <footer className="text-center py-8 text-xs text-gray-400">
         <p>
           Powered by{" "}
-          <a href="/" className="text-[#6C63FF] font-semibold hover:underline">
+          <Link href="/" className="text-[#6C63FF] font-semibold hover:underline">
             매니비
-          </a>
+          </Link>
         </p>
       </footer>
     </div>

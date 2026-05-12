@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
@@ -173,8 +174,7 @@ export default function ScheduleScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
-        refreshing={false}
-        onRefresh={refetch}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
       >
         {/* 달력 */}
         <View style={styles.calendarCard}>

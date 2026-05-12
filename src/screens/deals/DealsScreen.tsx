@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -156,7 +157,7 @@ export default function DealsScreen() {
   const [parsedDeal, setParsedDeal] = useState<ParsedDeal | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<DealDetailData | null>(null);
-  const { isPro } = usePlan(user?.id);
+  const { isPremium } = usePlan(user?.id);
 
   async function handleClipboard() {
     const text = await Clipboard.getStringAsync();
@@ -196,8 +197,7 @@ export default function DealsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
-        refreshing={loading}
-        onRefresh={refetch}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
       >
         {/* 요약 카드 */}
         <SummaryCard
@@ -245,7 +245,7 @@ export default function DealsScreen() {
         </View>
 
         {/* FOMO 페이월 배너 - 무료 유저만 */}
-        {!isPro && <FomoBanner variant="deals" />}
+        {!isPremium && <FomoBanner variant="deals" />}
 
         <View style={{ height: 100 }} />
       </ScrollView>

@@ -59,9 +59,8 @@ export default function ProfileScreen() {
   }, [user?.id]);
 
   const PLAN_LABEL: Record<string, { label: string; color: string; bg: string }> = {
-    free:  { label: '무료 플랜', color: '#6B7280', bg: '#F3F4F6' },
-    basic: { label: 'Basic',    color: '#2563EB', bg: '#DBEAFE' },
-    pro:   { label: 'Pro ✨',   color: '#7C3AED', bg: '#EDE9FE' },
+    free:    { label: '무료 플랜', color: '#6B7280', bg: '#F3F4F6' },
+    premium: { label: '프리미엄', color: '#7C3AED', bg: '#EDE9FE' },
   };
   const planInfo = PLAN_LABEL[plan] ?? PLAN_LABEL.free;
 

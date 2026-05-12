@@ -12,6 +12,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import Svg, { Path, G } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -194,8 +195,7 @@ export default function RevenueScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
-        refreshing={loading}
-        onRefresh={refetch}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
       >
         {/* 헤더 */}
         <View style={styles.header}>

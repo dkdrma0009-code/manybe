@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { usePlan } from '../../hooks/usePlan';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -34,6 +35,7 @@ function validateSlug(slug: string): string | null {
 export default function MediaKitSlugScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { isPremium } = usePlan(user?.id);
 
   const [slug, setSlug] = useState('');
   const [originalSlug, setOriginalSlug] = useState('');
@@ -134,6 +136,10 @@ export default function MediaKitSlugScreen({ navigation }: Props) {
 
   function handleCopyInquiry() {
     if (!originalSlug) return;
+    if (!isPremium) {
+      Alert.alert('프리미엄 기능', '인바운드 문의 폼은 프리미엄에서 활성화할 수 있습니다.');
+      return;
+    }
     Clipboard.setStringAsync(`${WEB_BASE_URL}/${originalSlug}/inquiry`);
     setInquiryCopied(true);
     setTimeout(() => setInquiryCopied(false), 2000);

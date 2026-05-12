@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -104,10 +105,10 @@ const action = StyleSheet.create({
 });
 
 export default function HomeScreen() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { data, loading, refetch } = useHomeData(user?.id);
   const { channels, formatCount } = useSocialChannels(user?.id);
-  const { isPro } = usePlan(user?.id);
+  const { isPremium } = usePlan(user?.id);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const userName =
@@ -120,8 +121,7 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
-        onRefresh={refetch}
-        refreshing={loading}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
       >
         {/* 헤더 */}
         <View style={styles.header}>
@@ -130,8 +130,8 @@ export default function HomeScreen() {
             <Text style={styles.greetingSub}>오늘도 좋은 하루 되세요</Text>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Inquiries')}>
-              <Text style={styles.iconBtnText}>📬</Text>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Search')}>
+              <Text style={styles.iconBtnText}>🔎</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.avatar} onPress={() => navigation.navigate('Profile')} activeOpacity={0.85}>
               <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
@@ -324,7 +324,7 @@ export default function HomeScreen() {
         </View>
 
         {/* FOMO 페이월 배너 - 무료 유저만 */}
-        {!isPro && <FomoBanner variant="home" />}
+        {!isPremium && <FomoBanner variant="home" />}
 
         <View style={{ height: 24 }} />
       </ScrollView>

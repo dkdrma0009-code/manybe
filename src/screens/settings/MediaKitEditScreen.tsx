@@ -8,6 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { usePlan } from '../../hooks/usePlan';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -28,6 +29,7 @@ type PricingKey = typeof PRICING_KEYS[number]['key'];
 export default function MediaKitEditScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { isPremium } = usePlan(user?.id);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,7 +87,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
           bio: bio.trim() || null,
           pricing: Object.keys(pricingObj).length > 0 ? pricingObj : null,
           past_brands: pastBrands.length > 0 ? pastBrands : null,
-          is_form_enabled: isFormEnabled,
+          is_form_enabled: isPremium ? isFormEnabled : false,
         })
         .eq('user_id', user!.id);
 
@@ -238,13 +240,25 @@ export default function MediaKitEditScreen({ navigation }: Props) {
                 <Text style={styles.sectionDesc}>브랜드가 미디어 키트에서 직접 협찬을 제안할 수 있어요</Text>
               </View>
               <Switch
-                value={isFormEnabled}
-                onValueChange={setIsFormEnabled}
+                value={isPremium && isFormEnabled}
+                onValueChange={(value) => {
+                  if (!isPremium) {
+                    Alert.alert('프리미엄 기능', '인바운드 문의 폼은 프리미엄에서 활성화할 수 있습니다.');
+                    return;
+                  }
+                  setIsFormEnabled(value);
+                }}
                 trackColor={{ false: '#E5E7EB', true: colors.primary }}
                 thumbColor="#fff"
               />
             </View>
-            {isFormEnabled && (
+            {!isPremium ? (
+              <View style={styles.premiumNotice}>
+                <Text style={styles.premiumNoticeText}>
+                  잠든 사이에도 들어오는 협찬 문의를 놓치지 마세요. 폼을 통해 접수된 문의는 CRM에 자동 등록됩니다.
+                </Text>
+              </View>
+            ) : isFormEnabled && (
               <View style={styles.formEnabledBadge}>
                 <Text style={styles.formEnabledText}>✓ 문의 폼이 활성화된 상태입니다. 브랜드가 문의를 보낼 수 있어요.</Text>
               </View>
@@ -338,4 +352,8 @@ const styles = StyleSheet.create({
     marginTop: 12, backgroundColor: '#D1FAE5', borderRadius: 10, padding: 10,
   },
   formEnabledText: { fontSize: 12, color: '#059669', fontWeight: '500', lineHeight: 18 },
+  premiumNotice: {
+    marginTop: 12, backgroundColor: '#F0EFFE', borderRadius: 10, padding: 10,
+  },
+  premiumNoticeText: { fontSize: 12, color: '#7C6FCD', fontWeight: '600', lineHeight: 18 },
 });

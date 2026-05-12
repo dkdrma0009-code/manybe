@@ -2,10 +2,16 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const adminSupabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getAdminSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Supabase admin environment variables are required.");
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey);
+}
 
 const PERSONAL_DOMAINS = new Set([
   "gmail.com", "naver.com", "kakao.com", "daum.net",
@@ -19,6 +25,7 @@ function isPersonalEmail(email: string): boolean {
 }
 
 export async function submitInquiry(formData: FormData): Promise<{ error?: string }> {
+  const adminSupabase = getAdminSupabase();
   const slug = formData.get("slug") as string;
   const brand_name = (formData.get("brand_name") as string)?.trim();
   const business_number = (formData.get("business_number") as string)?.trim() || null;
@@ -28,6 +35,7 @@ export async function submitInquiry(formData: FormData): Promise<{ error?: strin
   const deadline = (formData.get("deadline") as string) || null;
 
   if (!brand_name) return { error: "브랜드명을 입력해주세요." };
+  if (!business_number) return { error: "사업자등록번호를 입력해주세요." };
   if (!contact_email) return { error: "이메일을 입력해주세요." };
   if (isPersonalEmail(contact_email)) {
     return { error: "기업 이메일만 허용됩니다. (Gmail, Naver 등 개인 이메일 불가)" };
@@ -35,12 +43,13 @@ export async function submitInquiry(formData: FormData): Promise<{ error?: strin
 
   const { data: kits } = await adminSupabase
     .from("media_kits")
-    .select("id, user_id")
+    .select("id, user_id, is_form_enabled")
     .eq("slug", slug)
     .limit(1);
 
   const kit = kits?.[0] ?? null;
   if (!kit) return { error: "미디어 키트를 찾을 수 없습니다." };
+  if (!kit.is_form_enabled) return { error: "현재 협찬 문의 폼이 비활성화되어 있습니다." };
 
   const { error: inquiryError, data: inquiryData } = await adminSupabase
     .from("media_kit_inquiries")
@@ -64,11 +73,12 @@ export async function submitInquiry(formData: FormData): Promise<{ error?: strin
     .insert({
       user_id: kit.user_id,
       brand: brand_name,
-      status: "reviewing",
+      title: proposal?.substring(0, 60) || "인바운드 협찬 문의",
+      status: "pending",
       source: "media_kit",
       amount: budget,
       notes: proposal,
-      deadline,
+      end_date: deadline,
     })
     .select("id");
 

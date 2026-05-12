@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../api/supabase';
 
-export type Plan = 'free' | 'basic' | 'pro';
+export type Plan = 'free' | 'premium';
+
+function normalizePlan(plan: unknown): Plan {
+  return plan === 'premium' || plan === 'pro' || plan === 'basic' ? 'premium' : 'free';
+}
 
 export function usePlan(userId: string | undefined) {
   const [plan, setPlan] = useState<Plan>('free');
@@ -15,11 +19,11 @@ export function usePlan(userId: string | undefined) {
       .eq('id', userId)
       .limit(1)
       .then(({ data }) => {
-        setPlan((data?.[0]?.plan as Plan) ?? 'free');
+        setPlan(normalizePlan(data?.[0]?.plan));
         setLoading(false);
       });
   }, [userId]);
 
-  const isPro = plan === 'pro' || plan === 'basic';
-  return { plan, isPro, loading };
+  const isPremium = plan === 'premium';
+  return { plan, isPremium, isPro: isPremium, loading };
 }

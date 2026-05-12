@@ -61,7 +61,7 @@ export interface TaxRecord {
 export interface Subscription {
   id: string;
   user_id: string;
-  plan: 'free' | 'basic' | 'pro';
+  plan: 'free' | 'premium';
   status: 'active' | 'cancelled' | 'expired';
   started_at: string;
   expires_at?: string;
