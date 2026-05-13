@@ -45,7 +45,7 @@ export default function AddRevenueModal({ visible, userId, defaultDate, onClose,
     }
     setSaving(true);
     setError('');
-    const { error: err } = await supabase.from('revenue').insert({
+    const { error: err } = await supabase.from('revenues').insert({
       user_id: userId,
       amount: parsed,
       category,

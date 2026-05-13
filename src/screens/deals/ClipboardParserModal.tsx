@@ -31,7 +31,6 @@ export default function ClipboardParserModal({ visible, parsed, userId, onClose,
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // parsed가 바뀌면 (새로 파싱할 때) 필드 초기화
   React.useEffect(() => {
     setBrand(parsed.brand);
     setTitle(parsed.title);
@@ -39,6 +38,14 @@ export default function ClipboardParserModal({ visible, parsed, userId, onClose,
     setDeadline(parsed.deadline);
     setError('');
   }, [parsed]);
+
+  const detected = {
+    brand: parsed.brand.length > 0,
+    title: parsed.title.length > 0 && parsed.title !== '협찬 제안',
+    amount: parsed.amount > 0,
+    deadline: parsed.deadline.length > 0,
+  };
+  const detectedCount = Object.values(detected).filter(Boolean).length;
 
   async function handleSave() {
     if (!brand.trim()) { setError('브랜드명을 입력해주세요'); return; }
@@ -80,12 +87,16 @@ export default function ClipboardParserModal({ visible, parsed, userId, onClose,
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.sheet}>
-          {/* 핸들 */}
           <View style={styles.handle} />
 
           {/* 헤더 */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>협찬 문의 감지됨 📋</Text>
+            <View style={styles.headerTop}>
+              <Text style={styles.headerTitle}>협찬 문의 감지됨 📋</Text>
+              <View style={styles.detectBadge}>
+                <Text style={styles.detectBadgeText}>{detectedCount}개 자동 감지</Text>
+              </View>
+            </View>
             <Text style={styles.headerSub}>내용을 확인하고 CRM에 추가하세요</Text>
           </View>
 
@@ -98,11 +109,22 @@ export default function ClipboardParserModal({ visible, parsed, userId, onClose,
 
             <View style={styles.divider} />
 
-            {/* 추출된 정보 */}
             <Text style={styles.sectionTitle}>추출된 정보</Text>
 
-            <Field label="브랜드명 *" value={brand} onChangeText={setBrand} placeholder="예: 삼성전자" />
-            <Field label="제목 *" value={title} onChangeText={setTitle} placeholder="예: 갤럭시 리뷰 협찬" />
+            <Field
+              label="브랜드명 *"
+              value={brand}
+              onChangeText={setBrand}
+              placeholder="예: 삼성전자"
+              detected={detected.brand}
+            />
+            <Field
+              label="제목 *"
+              value={title}
+              onChangeText={setTitle}
+              placeholder="예: 갤럭시 리뷰 협찬"
+              detected={detected.title}
+            />
             <Field
               label="금액 (원)"
               value={amount}
@@ -110,17 +132,18 @@ export default function ClipboardParserModal({ visible, parsed, userId, onClose,
               placeholder="예: 3000000"
               keyboardType="numeric"
               hint={amount ? `${Number(amount.replace(/[^0-9]/g, '') || 0).toLocaleString('ko-KR')}원` : ''}
+              detected={detected.amount}
             />
             <Field
               label="마감일"
               value={deadline}
               onChangeText={setDeadline}
               placeholder="예: 2026-06-15"
+              detected={detected.deadline}
             />
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            {/* 버튼 */}
             <View style={styles.btnRow}>
               <TouchableOpacity style={styles.cancelBtn} onPress={onClose} activeOpacity={0.8}>
                 <Text style={styles.cancelBtnText}>취소</Text>
@@ -147,7 +170,7 @@ export default function ClipboardParserModal({ visible, parsed, userId, onClose,
 }
 
 function Field({
-  label, value, onChangeText, placeholder, keyboardType, hint,
+  label, value, onChangeText, placeholder, keyboardType, hint, detected,
 }: {
   label: string;
   value: string;
@@ -155,12 +178,20 @@ function Field({
   placeholder?: string;
   keyboardType?: 'default' | 'numeric';
   hint?: string;
+  detected?: boolean;
 }) {
   return (
     <View style={field.wrapper}>
-      <Text style={field.label}>{label}</Text>
+      <View style={field.labelRow}>
+        <Text style={field.label}>{label}</Text>
+        {detected && (
+          <View style={field.autoTag}>
+            <Text style={field.autoTagText}>✓ 자동 감지</Text>
+          </View>
+        )}
+      </View>
       <TextInput
-        style={field.input}
+        style={[field.input, detected && field.inputDetected]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -174,8 +205,16 @@ function Field({
 
 const field = StyleSheet.create({
   wrapper: { marginBottom: 14 },
-  label:   { fontSize: 12, fontWeight: '600', color: '#7C6FCD', marginBottom: 6 },
-  input:   {
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  label: { fontSize: 12, fontWeight: '600', color: '#7C6FCD' },
+  autoTag: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  autoTagText: { fontSize: 10, fontWeight: '700', color: '#059669' },
+  input: {
     backgroundColor: '#F8F8FF',
     borderRadius: 12,
     borderWidth: 1.5,
@@ -184,6 +223,10 @@ const field = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: '#1A1A2E',
+  },
+  inputDetected: {
+    borderColor: '#A7F3D0',
+    backgroundColor: '#F0FDF4',
   },
   hint: { fontSize: 11, color: colors.primary, marginTop: 4, marginLeft: 4 },
 });
@@ -208,9 +251,17 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 12, marginBottom: 20,
   },
-  header:     { marginBottom: 16 },
-  headerTitle:{ fontSize: 18, fontWeight: '800', color: '#1A1A2E' },
-  headerSub:  { fontSize: 13, color: '#7C6FCD', marginTop: 4 },
+  header: { marginBottom: 16 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#1A1A2E' },
+  detectBadge: {
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  detectBadgeText: { fontSize: 11, fontWeight: '700', color: '#7C3AED' },
+  headerSub: { fontSize: 13, color: '#7C6FCD' },
   preview: {
     backgroundColor: '#F8F8FF',
     borderRadius: 12,
@@ -218,12 +269,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   previewLabel: { fontSize: 11, fontWeight: '600', color: '#9CA3AF', marginBottom: 6 },
-  previewText:  { fontSize: 13, color: '#4B5563', lineHeight: 20 },
-  divider:     { height: 1, backgroundColor: '#F0EFFE', marginBottom: 16 },
-  sectionTitle:{ fontSize: 14, fontWeight: '700', color: '#1A1A2E', marginBottom: 14 },
-  error:       { fontSize: 13, color: '#DC2626', marginBottom: 12, textAlign: 'center' },
-  btnRow:      { flexDirection: 'row', gap: 10, marginTop: 8 },
-  cancelBtn:   {
+  previewText: { fontSize: 13, color: '#4B5563', lineHeight: 20 },
+  divider: { height: 1, backgroundColor: '#F0EFFE', marginBottom: 16 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#1A1A2E', marginBottom: 14 },
+  error: { fontSize: 13, color: '#DC2626', marginBottom: 12, textAlign: 'center' },
+  btnRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  cancelBtn: {
     flex: 1, paddingVertical: 14, borderRadius: 14,
     backgroundColor: '#F3F4F6', alignItems: 'center',
   },

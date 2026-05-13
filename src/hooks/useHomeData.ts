@@ -141,13 +141,13 @@ export function useHomeData(userId: string | undefined) {
 
       const [revenueRes, prevRevenueRes, dealsRes, barRes, deadlineRes, scheduleRes] = await Promise.all([
         supabase
-          .from('revenue')
+          .from('revenues')
           .select('amount, category')
           .eq('user_id', userId)
           .gte('date', monthStart)
           .lte('date', monthEnd),
         supabase
-          .from('revenue')
+          .from('revenues')
           .select('amount')
           .eq('user_id', userId)
           .gte('date', prevMonthStart)
@@ -158,7 +158,7 @@ export function useHomeData(userId: string | undefined) {
           .eq('user_id', userId)
           .in('status', ['pending', 'in_progress']),
         supabase
-          .from('revenue')
+          .from('revenues')
           .select('amount, date')
           .eq('user_id', userId)
           .gte('date', day7StartStr)

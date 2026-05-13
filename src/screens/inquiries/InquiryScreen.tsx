@@ -10,6 +10,7 @@ import { usePlan } from '../../hooks/usePlan';
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
 import FomoBanner from '../../components/FomoBanner';
+import PremiumPaywallModal from '../../components/PremiumPaywallModal';
 import InquiryDetailModal, { InquiryItem } from './InquiryDetailModal';
 
 function formatRelative(dateStr: string): string {
@@ -91,6 +92,7 @@ export default function InquiryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedInquiry, setSelectedInquiry] = useState<InquiryItem | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const fetchInquiries = useCallback(async () => {
     if (!user?.id) { setLoading(false); return; }
@@ -109,6 +111,10 @@ export default function InquiryScreen() {
   useEffect(() => { fetchInquiries(); }, [fetchInquiries]);
 
   async function handleOpen(inquiry: InquiryItem) {
+    if (!isPremium) {
+      setShowPaywall(true);
+      return;
+    }
     setSelectedInquiry(inquiry);
     if (!inquiry.is_read) {
       await supabase.from('media_kit_inquiries').update({ is_read: true }).eq('id', inquiry.id);

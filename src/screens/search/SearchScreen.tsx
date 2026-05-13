@@ -86,7 +86,7 @@ export default function SearchScreen() {
       const pattern = `%${term}%`;
       const [revenueRes, dealsRes, schedulesRes] = await Promise.all([
         supabase
-          .from('revenue')
+          .from('revenues')
           .select('id, amount, category, description, date')
           .eq('user_id', user.id)
           .or(`description.ilike.${pattern},category.ilike.${pattern}`)

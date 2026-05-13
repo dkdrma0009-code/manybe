@@ -99,7 +99,7 @@ async function exportDeals(userId: string, completedOnly: boolean) {
 
 async function exportRevenue(userId: string, thisMonthOnly: boolean) {
   const query = supabase
-    .from('revenue')
+    .from('revenues')
     .select('date, category, description, amount')
     .eq('user_id', userId)
     .order('date', { ascending: false });

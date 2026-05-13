@@ -119,19 +119,19 @@ export function useRevenueData(
 
       const [monthRes, barRes, txRes] = await Promise.all([
         supabase
-          .from('revenue')
+          .from('revenues')
           .select('amount, category')
           .eq('user_id', userId)
           .gte('date', monthStart)
           .lte('date', monthEnd),
         supabase
-          .from('revenue')
+          .from('revenues')
           .select('amount, date')
           .eq('user_id', userId)
           .gte('date', barStart)
           .lte('date', monthEnd),
         supabase
-          .from('revenue')
+          .from('revenues')
           .select('id, amount, category, description, date')
           .eq('user_id', userId)
           .gte('date', monthStart)

@@ -45,7 +45,7 @@ export default function ProfileScreen() {
     if (!user?.id) { setLoadingStats(false); return; }
     Promise.all([
       supabase.from('deals').select('id, status, amount').eq('user_id', user.id),
-      supabase.from('revenue').select('amount').eq('user_id', user.id),
+      supabase.from('revenues').select('amount').eq('user_id', user.id),
     ]).then(([dealsRes, revRes]) => {
       const deals = dealsRes.data ?? [];
       const totalRevenue = (revRes.data ?? []).reduce((s, r) => s + r.amount, 0);
@@ -179,7 +179,7 @@ export default function ProfileScreen() {
                           try {
                             await Promise.all([
                               supabase.from('deals').delete().eq('user_id', user.id),
-                              supabase.from('revenue').delete().eq('user_id', user.id),
+                              supabase.from('revenues').delete().eq('user_id', user.id),
                               supabase.from('media_kits').delete().eq('user_id', user.id),
                               supabase.from('social_channels').delete().eq('user_id', user.id),
                               supabase.from('schedules').delete().eq('user_id', user.id),
