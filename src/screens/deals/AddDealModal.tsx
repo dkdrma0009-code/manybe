@@ -6,6 +6,8 @@ import {
 } from 'react-native';
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
+import PipelineStepper from '../../components/PipelineStepper';
+import { PIPELINE_STAGES, STAGE_CONFIG } from '../../constants/dealStatus';
 
 interface Props {
   visible: boolean;
@@ -14,24 +16,19 @@ interface Props {
   onSuccess: () => void;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'pending',     label: '검토중',   bg: '#F3F4F6', color: '#4B5563' },
-  { value: 'in_progress', label: '협상중',   bg: '#FEF3C7', color: '#D97706' },
-  { value: 'completed',   label: '계약완료', bg: '#D1FAE5', color: '#059669' },
-];
-
 export default function AddDealModal({ visible, userId, onClose, onSuccess }: Props) {
   const [brand, setBrand]     = useState('');
   const [title, setTitle]     = useState('');
   const [amount, setAmount]   = useState('');
-  const [status, setStatus]   = useState('pending');
+  const [status, setStatus]   = useState('inquiry');
   const [deadline, setDeadline] = useState('');
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
+  const [saved, setSaved]     = useState(false);
 
   function reset() {
     setBrand(''); setTitle(''); setAmount('');
-    setStatus('pending'); setDeadline(''); setError('');
+    setStatus('inquiry'); setDeadline(''); setError(''); setSaved(false);
   }
 
   async function handleSave() {
@@ -39,6 +36,7 @@ export default function AddDealModal({ visible, userId, onClose, onSuccess }: Pr
     if (!title.trim()) { setError('제목을 입력해주세요'); return; }
     setSaving(true);
     setError('');
+    // PLAN_GATE: unlimited sponsorship workflows — free tier: check active (non-settled) deal count < 3 before insert
     const { error: err } = await supabase.from('deals').insert({
       user_id: userId,
       brand: brand.trim(),
@@ -49,7 +47,8 @@ export default function AddDealModal({ visible, userId, onClose, onSuccess }: Pr
     });
     setSaving(false);
     if (err) { setError(err.message); return; }
-    if (deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline.trim())) {
+    const hasDeadline = !!(deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline.trim()));
+    if (hasDeadline) {
       await supabase.from('schedules').insert({
         user_id: userId,
         title: `[${brand.trim()}] 협찬 마감`,
@@ -57,8 +56,8 @@ export default function AddDealModal({ visible, userId, onClose, onSuccess }: Pr
         start_time: new Date(`${deadline.trim()}T09:00:00`).toISOString(),
       });
     }
-    reset();
-    onSuccess();
+    setSaved(true);
+    setTimeout(() => { reset(); onSuccess(); }, 1300);
   }
 
   return (
@@ -88,22 +87,8 @@ export default function AddDealModal({ visible, userId, onClose, onSuccess }: Pr
             />
             <Field label="마감일" value={deadline} onChangeText={setDeadline} placeholder="예: 2026-06-15" />
 
-            {/* 상태 선택 */}
-            <Text style={styles.fieldLabel}>상태</Text>
-            <View style={styles.statusRow}>
-              {STATUS_OPTIONS.map((s) => (
-                <TouchableOpacity
-                  key={s.value}
-                  style={[styles.statusBtn, { backgroundColor: s.bg }, status === s.value && styles.statusBtnActive]}
-                  onPress={() => setStatus(s.value)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.statusBtnText, { color: s.color }, status === s.value && styles.statusBtnTextActive]}>
-                    {s.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Text style={styles.fieldLabel}>협찬 현재 단계</Text>
+            <PipelineStepper status={status} onChange={setStatus} />
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -124,6 +109,23 @@ export default function AddDealModal({ visible, userId, onClose, onSuccess }: Pr
             </View>
             <View style={{ height: 32 }} />
           </ScrollView>
+          {saved && (
+            <View style={styles.successOverlay}>
+              <View style={[styles.successBadge, { backgroundColor: STAGE_CONFIG[status]?.bg ?? '#EAE3FF' }]}>
+                <Text style={[styles.successCheck, { color: STAGE_CONFIG[status]?.color ?? '#6E56F0' }]}>✓</Text>
+              </View>
+              <Text style={styles.successTitle}>파이프라인에 추가됐어요</Text>
+              <Text style={styles.successBrand}>{brand}</Text>
+              <View style={[styles.successStagePill, { backgroundColor: STAGE_CONFIG[status]?.bg ?? '#EAE3FF' }]}>
+                <Text style={[styles.successStageText, { color: STAGE_CONFIG[status]?.color ?? '#6E56F0' }]}>
+                  {PIPELINE_STAGES.find((s) => s.value === status)?.short}
+                </Text>
+              </View>
+              {deadline !== '' && (
+                <Text style={styles.successHint}>📅 마감 일정도 자동으로 추가됐어요</Text>
+              )}
+            </View>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -159,20 +161,29 @@ const styles = StyleSheet.create({
   fieldGroup: { marginBottom: 14 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: '#7C6FCD', marginBottom: 6 },
   input: {
-    backgroundColor: '#F8F8FF', borderRadius: 12,
+    backgroundColor: '#F4F0FF', borderRadius: 12,
     borderWidth: 1.5, borderColor: '#E8E4FF',
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#1A1A2E',
+    fontSize: 15, color: '#15131E',
   },
-  statusRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  statusBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
-  statusBtnActive: { borderColor: colors.primary },
-  statusBtnText: { fontSize: 13, fontWeight: '600' },
-  statusBtnTextActive: { fontWeight: '800' },
   error:   { fontSize: 13, color: '#DC2626', marginBottom: 12, textAlign: 'center' },
   btnRow:  { flexDirection: 'row', gap: 10, marginTop: 8 },
   cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center' },
   cancelText: { fontSize: 15, fontWeight: '700', color: '#6B7280' },
   saveBtn:   { flex: 2, paddingVertical: 14, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center' },
   saveText:  { fontSize: 15, fontWeight: '800', color: '#fff' },
+  successOverlay: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    alignItems: 'center', justifyContent: 'center', gap: 12,
+    paddingHorizontal: 32,
+  },
+  successBadge:     { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
+  successCheck:     { fontSize: 30, fontWeight: '800' },
+  successTitle:     { fontSize: 20, fontWeight: '800', color: '#1A1A2E' },
+  successBrand:     { fontSize: 15, color: '#6B7280', fontWeight: '600' },
+  successStagePill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20 },
+  successStageText: { fontSize: 13, fontWeight: '700' },
+  successHint:      { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
 });

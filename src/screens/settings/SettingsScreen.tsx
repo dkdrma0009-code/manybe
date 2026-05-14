@@ -12,7 +12,6 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
-import { usePlan } from '../../hooks/usePlan';
 import { colors } from '../../constants/colors';
 import { supabase } from '../../api/supabase';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -130,16 +129,13 @@ const section = StyleSheet.create({
   },
 });
 
-// ─── 메인 화면 ──────────────────────────────────────────────
-
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
-  const { plan } = usePlan(user?.id);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const userName = user?.user_metadata?.full_name ?? '크리에이터';
-  const userEmail = user?.email ?? 'dev@manybe.app';
+  const userEmail = user?.email ?? '';
   const initial = userName.charAt(0).toUpperCase();
 
   const handleSignOut = () => {
@@ -157,7 +153,6 @@ export default function SettingsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* 프로필 카드 */}
         <TouchableOpacity style={styles.profileCard} onPress={() => navigation.navigate('Profile')} activeOpacity={0.85}>
           <View style={styles.profileAvatar}>
             <Text style={styles.profileInitial}>{initial}</Text>
@@ -169,28 +164,12 @@ export default function SettingsScreen() {
           <Text style={styles.profileChevron}>›</Text>
         </TouchableOpacity>
 
-        {/* 구독 배너 */}
-        <View style={styles.planBanner}>
-          <View>
-            <Text style={styles.planLabel}>현재 플랜</Text>
-            <Text style={styles.planName}>{plan === 'premium' ? '프리미엄' : '무료 플랜'}</Text>
-          </View>
-          {plan === 'free' && (
-            <TouchableOpacity style={styles.planUpgradeBtn} onPress={() => Linking.openURL('https://manybe-web.vercel.app/premium')} activeOpacity={0.85}>
-              <Text style={styles.planUpgradeText}>프리미엄 업그레이드</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
         <Section
           title="비즈니스"
           items={[
             { icon: '📺', label: 'YouTube 채널 연동', onPress: () => navigation.navigate('YouTubeConnect') },
             { icon: '🔗', label: '미디어 키트 URL', onPress: () => navigation.navigate('MediaKitSlug') },
             { icon: '✏️', label: '미디어 키트 편집', onPress: () => navigation.navigate('MediaKitEdit') },
-            { icon: '🏦', label: '정산 계좌 관리', onPress: () => Linking.openURL('mailto:help@manybe.app?subject=정산 계좌 등록 요청') },
-            { icon: '📄', label: '세금 계산기', onPress: () => navigation.navigate('TaxCalculator') },
-            { icon: '📊', label: 'AE 모드 (CSV 내보내기)', onPress: () => navigation.navigate('AEExport') },
           ]}
         />
 
@@ -199,7 +178,17 @@ export default function SettingsScreen() {
           items={[
             { icon: '🔔', label: '알림 설정', onPress: () => Linking.openSettings() },
             { icon: '🌐', label: '언어', value: '한국어' },
-            { icon: '🔒', label: '보안 / 비밀번호 변경', onPress: () => Alert.alert('비밀번호 변경', '가입하신 이메일로 비밀번호 재설정 메일을 보내드릴까요?', [{ text: '취소', style: 'cancel' }, { text: '보내기', onPress: () => { if (user?.email) supabase.auth.resetPasswordForEmail(user.email).then(() => Alert.alert('발송 완료', '이메일을 확인해주세요.')); } }]) },
+            {
+              icon: '🔒',
+              label: '비밀번호 변경',
+              onPress: () => Alert.alert('비밀번호 변경', '가입하신 이메일로 재설정 메일을 보내드릴까요?', [
+                { text: '취소', style: 'cancel' },
+                { text: '보내기', onPress: () => {
+                  if (user?.email) supabase.auth.resetPasswordForEmail(user.email)
+                    .then(() => Alert.alert('발송 완료', '이메일을 확인해주세요.'));
+                }},
+              ]),
+            },
           ]}
         />
 
@@ -229,7 +218,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F8FF',
+    backgroundColor: '#F5F3EF',
   },
   header: {
     paddingHorizontal: 20,
@@ -250,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 24,
     gap: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -285,36 +274,5 @@ const styles = StyleSheet.create({
   profileChevron: {
     fontSize: 22,
     color: '#D1D5DB',
-  },
-  planBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#1A1A2E',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    marginBottom: 24,
-  },
-  planLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 3,
-  },
-  planName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  planUpgradeBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  planUpgradeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#fff',
   },
 });

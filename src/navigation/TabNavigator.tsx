@@ -11,9 +11,9 @@ import { colors } from '../constants/colors';
 
 export type TabParamList = {
   홈: undefined;
-  수익: undefined;
   협찬: undefined;
   캘린더: undefined;
+  수익: undefined;
   설정: undefined;
 };
 
@@ -21,12 +21,11 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 const TAB_ICONS: Record<string, string> = {
   홈: '🏠',
-  수익: '💰',
   협찬: '🤝',
   캘린더: '📅',
+  수익: '💰',
   설정: '⚙️',
 };
-
 
 export default function TabNavigator() {
   const insets = useSafeAreaInsets();
@@ -65,9 +64,9 @@ export default function TabNavigator() {
       })}
     >
       <Tab.Screen name="홈" component={HomeScreen} />
-      <Tab.Screen name="수익" component={RevenueScreen} />
       <Tab.Screen name="협찬" component={DealsScreen} />
       <Tab.Screen name="캘린더" component={ScheduleScreen} />
+      <Tab.Screen name="수익" component={RevenueScreen} />
       <Tab.Screen name="설정" component={SettingsScreen} />
     </Tab.Navigator>
   );
@@ -75,19 +74,10 @@ export default function TabNavigator() {
 
 const tabIconStyle = StyleSheet.create({
   wrapper: {
-    width: 32,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
+    width: 32, height: 28, alignItems: 'center',
+    justifyContent: 'center', borderRadius: 8,
   },
-  wrapperActive: {
-    backgroundColor: '#EDE9FE',
-  },
-  icon: {
-    fontSize: 20,
-  },
-  iconInactive: {
-    opacity: 0.5,
-  },
+  wrapperActive: { backgroundColor: '#EDE9FE' },
+  icon:          { fontSize: 20 },
+  iconInactive:  { opacity: 0.5 },
 });

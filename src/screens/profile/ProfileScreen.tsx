@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../hooks/useAuth';
-import { usePlan } from '../../hooks/usePlan';
 import { useSocialChannels } from '../../hooks/useSocialChannels';
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
@@ -23,7 +22,6 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user } = useAuth();
-  const { plan } = usePlan(user?.id);
   const { channels, formatCount } = useSocialChannels(user?.id);
   const [stats, setStats] = useState<Stats>({ dealCount: 0, totalRevenue: 0, completedDeals: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
@@ -51,18 +49,12 @@ export default function ProfileScreen() {
       const totalRevenue = (revRes.data ?? []).reduce((s, r) => s + r.amount, 0);
       setStats({
         dealCount: deals.length,
-        completedDeals: deals.filter((d) => d.status === 'completed').length,
+        completedDeals: deals.filter((d) => d.status === 'settled').length,
         totalRevenue,
       });
       setLoadingStats(false);
     });
   }, [user?.id]);
-
-  const PLAN_LABEL: Record<string, { label: string; color: string; bg: string }> = {
-    free:    { label: '무료 플랜', color: '#6B7280', bg: '#F3F4F6' },
-    premium: { label: '프리미엄', color: '#7C3AED', bg: '#EDE9FE' },
-  };
-  const planInfo = PLAN_LABEL[plan] ?? PLAN_LABEL.free;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -86,9 +78,6 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{displayName}</Text>
           <Text style={styles.email}>{userEmail}</Text>
           {joinedDate ? <Text style={styles.joined}>{joinedDate} 가입</Text> : null}
-          <View style={[styles.planBadge, { backgroundColor: planInfo.bg }]}>
-            <Text style={[styles.planBadgeText, { color: planInfo.color }]}>{planInfo.label}</Text>
-          </View>
         </View>
 
         {/* 활동 통계 */}
@@ -223,7 +212,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F8FF' },
+  container: { flex: 1, backgroundColor: '#F5F3EF' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 14,
@@ -247,8 +236,6 @@ const styles = StyleSheet.create({
   name:   { fontSize: 20, fontWeight: '800', color: '#1A1A2E' },
   email:  { fontSize: 13, color: '#9CA3AF' },
   joined: { fontSize: 12, color: '#C4C4C4' },
-  planBadge: { marginTop: 4, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  planBadgeText: { fontSize: 13, fontWeight: '700' },
   statsCard: {
     backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 24,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },

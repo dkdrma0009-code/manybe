@@ -22,7 +22,7 @@ export interface Deal {
   title: string;
   brand: string;
   amount: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'inquiry' | 'reviewing' | 'in_progress' | 'uploaded' | 'settled';
   start_date?: string;
   end_date?: string;
   created_at: string;

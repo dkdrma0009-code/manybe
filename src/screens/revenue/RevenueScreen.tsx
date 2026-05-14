@@ -288,7 +288,9 @@ export default function RevenueScreen() {
           </View>
           {data.transactions.length === 0 ? (
             <View style={styles.emptyTx}>
-              <Text style={styles.emptyTxText}>수익 내역이 없습니다</Text>
+              <Text style={styles.emptyTxIcon}>💳</Text>
+              <Text style={styles.emptyTxText}>이달 수익 내역이 없어요</Text>
+              <Text style={styles.emptyTxSub}>협찬 정산 후 ＋ 버튼으로 기록해두세요</Text>
             </View>
           ) : (
             data.transactions.map((tx, i) => (
@@ -356,7 +358,7 @@ export default function RevenueScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* 플로팅 버튼 */}
+      {/* PLAN_GATE: settlement management — revenue logging and settlement tracking is a paid feature */}
       <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 88 }]} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
         <Text style={styles.fabText}>＋</Text>
       </TouchableOpacity>
@@ -365,7 +367,7 @@ export default function RevenueScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F8FF' },
+  container: { flex: 1, backgroundColor: '#F5F3EF' },
   scroll:    { paddingHorizontal: 20 },
   header: {
     flexDirection: 'row',
@@ -416,10 +418,10 @@ const styles = StyleSheet.create({
   summaryRight:  { alignItems: 'flex-end' },
   summaryGoalLabel: { fontSize: 12, color: '#7C6FCD', marginBottom: 4 },
   summaryPct:    { fontSize: 22, fontWeight: '800', color: colors.primary },
-  progressTrack: { height: 8, backgroundColor: 'rgba(108,99,255,0.2)', borderRadius: 4, marginBottom: 6, overflow: 'hidden' },
+  progressTrack: { height: 8, backgroundColor: 'rgba(110,86,240,0.2)', borderRadius: 4, marginBottom: 6, overflow: 'hidden' },
   progressFill:  { height: '100%', backgroundColor: colors.primary, borderRadius: 4 },
   progressCaption: { fontSize: 12, color: '#7C6FCD', marginBottom: 14 },
-  summaryDivider: { height: 1, backgroundColor: 'rgba(108,99,255,0.15)', marginBottom: 14 },
+  summaryDivider: { height: 1, backgroundColor: 'rgba(110,86,240,0.15)', marginBottom: 14 },
   summaryBottom:      { flexDirection: 'row', justifyContent: 'space-between' },
   summaryBottomRight: { alignItems: 'flex-end' },
   summarySubLabel: { fontSize: 12, color: '#7C6FCD', marginBottom: 3 },
@@ -438,8 +440,10 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle:  { fontSize: 15, fontWeight: '700', color: '#1A1A2E', marginBottom: 16 },
-  emptyTx:     { alignItems: 'center', paddingVertical: 20 },
-  emptyTxText: { fontSize: 13, color: '#9CA3AF' },
+  emptyTx:     { alignItems: 'center', paddingVertical: 20, gap: 6 },
+  emptyTxIcon: { fontSize: 28 },
+  emptyTxText: { fontSize: 13, fontWeight: '600', color: '#374151' },
+  emptyTxSub:  { fontSize: 12, color: '#9CA3AF' },
   txRow:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 },
   txRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   txIconBg: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#F5F3FF', alignItems: 'center', justifyContent: 'center' },
@@ -471,7 +475,7 @@ const goalModal = StyleSheet.create({
   sheet: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%' },
   title: { fontSize: 17, fontWeight: '800', color: '#1A1A2E', marginBottom: 16, textAlign: 'center' },
   input: {
-    backgroundColor: '#F8F8FF', borderRadius: 12,
+    backgroundColor: '#F5F3EF', borderRadius: 12,
     borderWidth: 1.5, borderColor: '#E8E4FF',
     paddingHorizontal: 14, paddingVertical: 14,
     fontSize: 20, fontWeight: '700', color: '#1A1A2E', textAlign: 'center',
@@ -481,7 +485,7 @@ const goalModal = StyleSheet.create({
   btnRow: { flexDirection: 'row', gap: 10 },
   cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#F3F4F6', alignItems: 'center' },
   cancelText: { fontSize: 15, fontWeight: '700', color: '#6B7280' },
-  saveBtn: { flex: 2, paddingVertical: 14, borderRadius: 12, backgroundColor: '#6C63FF', alignItems: 'center' },
+  saveBtn: { flex: 2, paddingVertical: 14, borderRadius: 12, backgroundColor: '#6E56F0', alignItems: 'center' },
   saveText: { fontSize: 15, fontWeight: '800', color: '#fff' },
 });
 

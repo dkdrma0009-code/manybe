@@ -35,7 +35,6 @@ export async function submitInquiry(formData: FormData): Promise<{ error?: strin
   const deadline = (formData.get("deadline") as string) || null;
 
   if (!brand_name) return { error: "브랜드명을 입력해주세요." };
-  if (!business_number) return { error: "사업자등록번호를 입력해주세요." };
   if (!contact_email) return { error: "이메일을 입력해주세요." };
   if (isPersonalEmail(contact_email)) {
     return { error: "기업 이메일만 허용됩니다. (Gmail, Naver 등 개인 이메일 불가)" };
@@ -74,7 +73,7 @@ export async function submitInquiry(formData: FormData): Promise<{ error?: strin
       user_id: kit.user_id,
       brand: brand_name,
       title: proposal?.substring(0, 60) || "인바운드 협찬 문의",
-      status: "pending",
+      status: "inquiry",
       source: "media_kit",
       amount: budget,
       notes: proposal,

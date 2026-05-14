@@ -37,7 +37,7 @@ const DEFAULT_GOAL = 5_000_000;
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   platform:    { label: '플랫폼 광고', color: '#EF4444', icon: '📱' },
-  sponsorship: { label: '브랜드 협찬', color: '#6C63FF', icon: '🤝' },
+  sponsorship: { label: '브랜드 협찬', color: '#6E56F0', icon: '🤝' },
   affiliate:   { label: '제휴 수익',   color: '#F97316', icon: '🔗' },
   other:       { label: '기타',        color: '#9CA3AF', icon: '💡' },
 };
@@ -52,31 +52,6 @@ const DEFAULT_DATA: RevenueData = {
   transactions: [],
 };
 
-const DEV_DATA: RevenueData = {
-  total: 4320000,
-  tax: 142560,
-  net: 4177440,
-  goal: DEFAULT_GOAL,
-  segments: [
-    { label: '플랫폼 광고', pct: 41, amount: 1800000, color: '#EF4444' },
-    { label: '브랜드 협찬', pct: 47, amount: 2000000, color: '#6C63FF' },
-    { label: '제휴 수익',   pct:  7, amount:  320000, color: '#F97316' },
-    { label: '기타',        pct:  5, amount:  200000, color: '#9CA3AF' },
-  ],
-  barData: [
-    { month: '12월', value: 2800000 },
-    { month: '1월',  value: 3200000 },
-    { month: '2월',  value: 2600000 },
-    { month: '3월',  value: 3800000 },
-    { month: '4월',  value: 3500000 },
-    { month: '5월',  value: 4320000 },
-  ],
-  transactions: [
-    { id: '1', date: '05.12', desc: '애드센스 수익',  amount: 1800000, icon: '📱' },
-    { id: '2', date: '05.08', desc: '올리브영 협찬',  amount: 1500000, icon: '🤝' },
-    { id: '3', date: '05.03', desc: '쿠팡파트너스',  amount:  320000, icon: '🔗' },
-  ],
-};
 
 const GOAL_STORAGE_KEY = 'revenue_goal';
 
@@ -85,7 +60,7 @@ export function useRevenueData(
   year: number,
   month: number,
 ) {
-  const [data, setData] = useState<RevenueData>(__DEV__ ? DEV_DATA : DEFAULT_DATA);
+  const [data, setData] = useState<RevenueData>(DEFAULT_DATA);
   const [loading, setLoading] = useState(!!userId);
   const [error, setError] = useState<string | null>(null);
   const [goal, setGoalState] = useState<number>(DEFAULT_GOAL);
@@ -104,7 +79,6 @@ export function useRevenueData(
 
   const fetchData = useCallback(async () => {
     if (!userId) {
-      setData(DEV_DATA);
       setLoading(false);
       return;
     }

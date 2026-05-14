@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../api/supabase';
 import { Revenue, Deal } from '../types';
+import { STAGE_CONFIG } from '../constants/dealStatus';
 
 export interface CategoryStat {
   label: string;
@@ -25,7 +26,7 @@ export interface HomeDeal {
 
 export interface ActionItem {
   id: string;
-  type: 'deal_deadline_today' | 'deal_deadline_week' | 'schedule_today' | 'unsettled';
+  type: 'new_inquiry' | 'inquiry_pipeline' | 'deal_deadline_today' | 'deal_deadline_week' | 'schedule_today' | 'unsettled';
   title: string;
   subtitle: string;
   icon: string;
@@ -44,23 +45,25 @@ export interface HomeData {
   estimatedTax: number;
   barData: number[];
   actionItems: ActionItem[];
+  newInquiryCount: number;
 }
 
 const CATEGORY_CONFIG: Record<string, Omit<CategoryStat, 'amount'>> = {
   platform:    { label: '플랫폼 광고', icon: '📱', cardBg: '#FFF1F0', iconBg: '#FECACA', textColor: '#DC2626' },
-  sponsorship: { label: '브랜드 협찬', icon: '🤝', cardBg: '#F5F3FF', iconBg: '#DDD6FE', textColor: '#7C3AED' },
+  sponsorship: { label: '브랜드 협찬', icon: '🤝', cardBg: '#EAE3FF', iconBg: '#C4B0F8', textColor: '#6E56F0' },
   affiliate:   { label: '제휴 수익',   icon: '🔗', cardBg: '#FFF7ED', iconBg: '#FED7AA', textColor: '#EA580C' },
   other:       { label: '기타',        icon: '💡', cardBg: '#F3F4F6', iconBg: '#E5E7EB', textColor: '#4B5563' },
 };
 
 const DEAL_STATUS_CONFIG: Record<Deal['status'], { label: string; color: string; bg: string }> = {
-  pending:    { label: '검토중',   color: '#F59E0B', bg: '#FEF3C7' },
-  in_progress:{ label: '협상중',   color: '#7C3AED', bg: '#F5F3FF' },
-  completed:  { label: '계약완료', color: '#059669', bg: '#D1FAE5' },
-  cancelled:  { label: '취소됨',   color: '#9CA3AF', bg: '#F3F4F6' },
+  inquiry:     { label: '문의',     ...STAGE_CONFIG.inquiry },
+  reviewing:   { label: '검토중',   ...STAGE_CONFIG.reviewing },
+  in_progress: { label: '진행중',   ...STAGE_CONFIG.in_progress },
+  uploaded:    { label: '업로드됨', ...STAGE_CONFIG.uploaded },
+  settled:     { label: '정산완료', ...STAGE_CONFIG.settled },
 };
 
-const AVATAR_COLORS = ['#1A1A2E', '#6C63FF', '#059669', '#2563EB', '#EA580C', '#DC2626'];
+const AVATAR_COLORS = ['#1A1A2E', '#6E56F0', '#2E8C5D', '#3B6FD9', '#EA580C', '#C13C3C'];
 
 function avatarColor(brand: string) {
   let hash = 0;
@@ -78,41 +81,18 @@ const DEFAULT_DATA: HomeData = {
   estimatedTax: 0,
   barData: [0, 0, 0, 0, 0, 0, 0],
   actionItems: [],
+  newInquiryCount: 0,
 };
 
-// DEV_BYPASS_AUTH 모드에서 보여줄 샘플 데이터
-const DEV_DATA: HomeData = {
-  totalRevenue: 4320000,
-  prevMonthRevenue: 3857143,
-  categoryStats: [
-    { ...CATEGORY_CONFIG.platform,    amount: 1800000 },
-    { ...CATEGORY_CONFIG.sponsorship, amount: 2000000 },
-    { ...CATEGORY_CONFIG.affiliate,   amount: 320000 },
-    { ...CATEGORY_CONFIG.other,       amount: 200000 },
-  ],
-  activeDeals: [
-    { id: '1', brand: '나이키',   amount: 3000000, statusLabel: '협상중',   statusColor: '#7C3AED', statusBg: '#F5F3FF', initial: '나', initBg: '#1A1A2E' },
-    { id: '2', brand: '올리브영', amount: 1500000, statusLabel: '계약완료', statusColor: '#059669', statusBg: '#D1FAE5', initial: '올', initBg: '#6C63FF' },
-  ],
-  dealCount: 5,
-  pendingSettlement: 1200000,
-  estimatedTax: 142560,
-  barData: [2400000, 3200000, 1800000, 3600000, 2800000, 3400000, 4320000],
-  actionItems: [
-    { id: 'a1', type: 'deal_deadline_today', title: '나이키 협찬 마감 D-0', subtitle: '러닝화 협찬 콘텐츠 · 오늘까지', icon: '🔔', color: '#DC2626', bg: '#FEE2E2', urgent: true },
-    { id: 'a2', type: 'deal_deadline_week',  title: '삼성전자 협찬 마감 D-3', subtitle: '갤럭시 언박싱 · 6월 1일', icon: '⏰', color: '#D97706', bg: '#FEF3C7', urgent: false },
-    { id: 'a3', type: 'unsettled',            title: '정산 대기 150만원', subtitle: '올리브영 협찬 완료 후 미정산', icon: '💳', color: '#059669', bg: '#D1FAE5', urgent: false },
-  ],
-};
-
+// PLAN_GATE: creator business analytics — avg views per video, upload frequency, sponsorship activity,
+//   collaboration frequency, response speed, workflow performance metrics
 export function useHomeData(userId: string | undefined) {
-  const [data, setData] = useState<HomeData>(__DEV__ ? DEV_DATA : DEFAULT_DATA);
+  const [data, setData] = useState<HomeData>(DEFAULT_DATA);
   const [loading, setLoading] = useState(!!userId);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!userId) {
-      setData(DEV_DATA);
       setLoading(false);
       return;
     }
@@ -139,7 +119,7 @@ export function useHomeData(userId: string | undefined) {
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
 
-      const [revenueRes, prevRevenueRes, dealsRes, barRes, deadlineRes, scheduleRes] = await Promise.all([
+      const [revenueRes, prevRevenueRes, dealsRes, barRes, deadlineRes, scheduleRes, inquiryRes] = await Promise.all([
         supabase
           .from('revenues')
           .select('amount, category')
@@ -156,7 +136,7 @@ export function useHomeData(userId: string | undefined) {
           .from('deals')
           .select('id, brand, amount, status')
           .eq('user_id', userId)
-          .in('status', ['pending', 'in_progress']),
+          .in('status', ['inquiry', 'reviewing', 'in_progress', 'uploaded']),
         supabase
           .from('revenues')
           .select('amount, date')
@@ -167,7 +147,7 @@ export function useHomeData(userId: string | undefined) {
           .from('deals')
           .select('id, brand, title, end_date, amount, status')
           .eq('user_id', userId)
-          .in('status', ['pending', 'in_progress'])
+          .in('status', ['inquiry', 'reviewing', 'in_progress', 'uploaded'])
           .gte('end_date', todayStr)
           .lte('end_date', weekLaterStr)
           .order('end_date', { ascending: true }),
@@ -178,6 +158,11 @@ export function useHomeData(userId: string | undefined) {
           .gte('start_time', todayStart)
           .lte('start_time', todayEnd)
           .order('start_time', { ascending: true }),
+        supabase
+          .from('media_kit_inquiries')
+          .select('id, media_kits!inner(user_id)', { count: 'exact', head: true })
+          .eq('media_kits.user_id', userId)
+          .eq('is_read', false),
       ]);
 
       if (revenueRes.error) throw revenueRes.error;
@@ -186,6 +171,7 @@ export function useHomeData(userId: string | undefined) {
       if (barRes.error) throw barRes.error;
       if (deadlineRes.error) throw deadlineRes.error;
       if (scheduleRes.error) throw scheduleRes.error;
+      const newInquiryCount = inquiryRes.count ?? 0;
 
       // Total and category breakdown
       const revenues: Pick<Revenue, 'amount' | 'category'>[] = revenueRes.data ?? [];
@@ -222,8 +208,9 @@ export function useHomeData(userId: string | undefined) {
 
       const dealCount = deals.length;
       const pendingSettlement = deals
-        .filter((d) => d.status === 'in_progress')
+        .filter((d) => d.status === 'uploaded')
         .reduce((sum, d) => sum + d.amount, 0);
+      const inquiryPipelineCount = deals.filter((d) => d.status === 'inquiry').length;
       const estimatedTax = Math.round(totalRevenue * 0.033);
 
       // Bar chart: sum revenue per day for last 7 days
@@ -243,6 +230,32 @@ export function useHomeData(userId: string | undefined) {
       // Build action items
       const actionItems: ActionItem[] = [];
 
+      if (newInquiryCount > 0) {
+        actionItems.push({
+          id: 'new_inquiry',
+          type: 'new_inquiry',
+          title: `새 협찬 문의 ${newInquiryCount}건`,
+          subtitle: '브랜드에서 협찬 제안이 도착했어요',
+          icon: '📬',
+          color: '#6E56F0',
+          bg: '#EAE3FF',
+          urgent: true,
+        });
+      }
+
+      if (inquiryPipelineCount > 0) {
+        actionItems.push({
+          id: 'inquiry_pipeline',
+          type: 'inquiry_pipeline',
+          title: `답변 대기 협찬 ${inquiryPipelineCount}건`,
+          subtitle: '검토 단계로 이동하거나 거절하세요',
+          icon: '💬',
+          color: '#6E56F0',
+          bg: '#EAE3FF',
+          urgent: false,
+        });
+      }
+
       for (const d of deadlineRes.data ?? []) {
         const endDate = d.end_date?.slice(0, 10) ?? '';
         const isToday = endDate === todayStr;
@@ -253,8 +266,8 @@ export function useHomeData(userId: string | undefined) {
           title: `${d.brand} 마감 ${isToday ? 'D-0' : `D-${daysLeft}`}`,
           subtitle: `${d.title}`,
           icon: isToday ? '🔔' : '⏰',
-          color: isToday ? '#DC2626' : '#D97706',
-          bg: isToday ? '#FEE2E2' : '#FEF3C7',
+          color: isToday ? '#C13C3C' : '#C68318',
+          bg: isToday ? '#FBE5E5' : '#FBF1DC',
           urgent: isToday,
         });
       }
@@ -269,8 +282,8 @@ export function useHomeData(userId: string | undefined) {
           title: s.title,
           subtitle: `오늘 ${timeStr}`,
           icon: TYPE_ICON[s.type] ?? '📌',
-          color: '#2563EB',
-          bg: '#DBEAFE',
+          color: '#3B6FD9',
+          bg: '#E3ECFB',
           urgent: false,
         });
       }
@@ -280,10 +293,10 @@ export function useHomeData(userId: string | undefined) {
           id: 'unsettled',
           type: 'unsettled',
           title: `정산 대기 ${pendingSettlement.toLocaleString('ko-KR')}원`,
-          subtitle: '협상 중인 협찬의 예상 수령액',
+          subtitle: '업로드 완료 후 미정산 협찬',
           icon: '💳',
-          color: '#059669',
-          bg: '#D1FAE5',
+          color: '#2E8C5D',
+          bg: '#DEEFE5',
           urgent: false,
         });
       }
@@ -298,6 +311,7 @@ export function useHomeData(userId: string | undefined) {
         estimatedTax,
         barData,
         actionItems,
+        newInquiryCount,
       });
     } catch (e: any) {
       setError(e.message ?? '데이터를 불러오지 못했습니다');

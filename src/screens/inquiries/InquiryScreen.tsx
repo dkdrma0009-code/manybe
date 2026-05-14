@@ -5,12 +5,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
-import { usePlan } from '../../hooks/usePlan';
+import { RootStackParamList } from '../../navigation/AppNavigator';
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
-import FomoBanner from '../../components/FomoBanner';
-import PremiumPaywallModal from '../../components/PremiumPaywallModal';
+import { tokens } from '../../constants/tokens';
+import { typography } from '../../constants/typography';
+import { shadows } from '../../constants/shadows';
 import InquiryDetailModal, { InquiryItem } from './InquiryDetailModal';
 
 function formatRelative(dateStr: string): string {
@@ -32,14 +34,23 @@ function InquiryCard({ inquiry, onPress }: { inquiry: InquiryItem; onPress: () =
       activeOpacity={0.82}
     >
       <View style={card.row}>
-        <View style={card.avatar}>
-          <Text style={card.avatarText}>{inquiry.brand_name.charAt(0)}</Text>
+        <View style={[card.avatar, !inquiry.is_read && card.avatarUnread]}>
+          <Text style={[card.avatarText, !inquiry.is_read && card.avatarTextUnread]}>
+            {inquiry.brand_name.charAt(0)}
+          </Text>
         </View>
         <View style={card.content}>
           <View style={card.topRow}>
-            <Text style={[card.brandName, !inquiry.is_read && card.brandNameUnread]}>
-              {inquiry.brand_name}
-            </Text>
+            <View style={card.nameRow}>
+              <Text style={[card.brandName, !inquiry.is_read && card.brandNameUnread]}>
+                {inquiry.brand_name}
+              </Text>
+              {!inquiry.is_read && (
+                <View style={card.newBadge}>
+                  <Text style={card.newBadgeText}>NEW</Text>
+                </View>
+              )}
+            </View>
             <Text style={card.time}>{formatRelative(inquiry.created_at)}</Text>
           </View>
           {inquiry.budget != null && (
@@ -51,7 +62,6 @@ function InquiryCard({ inquiry, onPress }: { inquiry: InquiryItem; onPress: () =
             <Text style={card.preview} numberOfLines={2}>{inquiry.proposal}</Text>
           ) : null}
         </View>
-        {!inquiry.is_read && <View style={card.dot} />}
       </View>
     </TouchableOpacity>
   );
@@ -60,46 +70,48 @@ function InquiryCard({ inquiry, onPress }: { inquiry: InquiryItem; onPress: () =
 const card = StyleSheet.create({
   wrapper: {
     backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    ...shadows.card,
   },
   unread: {
-    borderLeftWidth: 3, borderLeftColor: colors.primary,
+    borderLeftWidth: 3, borderLeftColor: tokens.primary,
+    backgroundColor: tokens.primarySofter,
   },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  row:     { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   avatar: {
     width: 44, height: 44, borderRadius: 12,
-    backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: tokens.primarySoft, alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
-  avatarText: { fontSize: 18, fontWeight: '800', color: colors.primary },
-  content: { flex: 1, gap: 3 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  brandName: { fontSize: 14, fontWeight: '700', color: '#374151' },
-  brandNameUnread: { color: '#1A1A2E', fontWeight: '800' },
-  budget: { fontSize: 13, fontWeight: '700', color: colors.primary },
-  preview: { fontSize: 12, color: '#9CA3AF', lineHeight: 18 },
-  time: { fontSize: 11, color: '#C4C4C4' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, marginTop: 4, flexShrink: 0 },
+  avatarUnread:     { backgroundColor: tokens.primary },
+  avatarText:       { fontSize: 18, fontWeight: '800', color: tokens.primary },
+  avatarTextUnread: { color: '#fff' },
+  content:  { flex: 1, gap: 3 },
+  topRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  nameRow:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  brandName:       { ...typography.bodyStrong, color: tokens.ink2 },
+  brandNameUnread: { ...typography.bodyStrong, color: tokens.ink, fontWeight: '800' },
+  newBadge:     { backgroundColor: tokens.primary, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  newBadgeText: { ...typography.caption, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  budget:  { ...typography.cardSubtitle, fontWeight: '700', color: tokens.primary },
+  preview: { ...typography.hint, color: tokens.ink4 },
+  time:    { ...typography.caption, color: tokens.ink4 },
 });
 
 export default function InquiryScreen() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
-  const { isPremium } = usePlan(user?.id);
   const [inquiries, setInquiries] = useState<InquiryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedInquiry, setSelectedInquiry] = useState<InquiryItem | null>(null);
-  const [showPaywall, setShowPaywall] = useState(false);
 
   const fetchInquiries = useCallback(async () => {
     if (!user?.id) { setLoading(false); return; }
 
     const { data } = await supabase
       .from('media_kit_inquiries')
-      .select('*, media_kits!inner(user_id)')
+      .select('*, media_kits!inner(user_id), deal_id')
       .eq('media_kits.user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -111,10 +123,6 @@ export default function InquiryScreen() {
   useEffect(() => { fetchInquiries(); }, [fetchInquiries]);
 
   async function handleOpen(inquiry: InquiryItem) {
-    if (!isPremium) {
-      setShowPaywall(true);
-      return;
-    }
     setSelectedInquiry(inquiry);
     if (!inquiry.is_read) {
       await supabase.from('media_kit_inquiries').update({ is_read: true }).eq('id', inquiry.id);
@@ -140,12 +148,34 @@ export default function InquiryScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* 안내 배너 */}
-      <View style={styles.infoBanner}>
-        <Text style={styles.infoText}>
-          📬 미디어 키트 페이지의 문의 폼을 통해 브랜드가 직접 연락한 내역입니다.
-        </Text>
-      </View>
+      {/* 상태 배너 */}
+      {unreadCount > 0 ? (
+        <View style={styles.urgentBanner}>
+          <Text style={styles.urgentBannerIcon}>📬</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.urgentBannerTitle}>
+              브랜드에서 새 협찬 제안이 도착했어요
+            </Text>
+            <Text style={styles.urgentBannerSub}>
+              {unreadCount}건의 미확인 문의가 있어요 · 지금 확인하세요
+            </Text>
+          </View>
+          <View style={styles.urgentBannerBadge}>
+            <Text style={styles.urgentBannerBadgeText}>{unreadCount}</Text>
+          </View>
+        </View>
+      ) : inquiries.length > 0 ? (
+        <View style={styles.allReadBanner}>
+          <Text style={styles.allReadIcon}>✓</Text>
+          <Text style={styles.allReadText}>모든 문의를 확인했어요</Text>
+        </View>
+      ) : (
+        <View style={styles.infoBanner}>
+          <Text style={styles.infoText}>
+            미디어 키트 문의 폼을 통해 브랜드가 직접 연락한 내역입니다.
+          </Text>
+        </View>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -163,7 +193,6 @@ export default function InquiryScreen() {
                 미디어 키트를 공개하고{'\n'}브랜드의 인바운드 문의를 받아보세요.
               </Text>
             </View>
-            {!isPremium && <FomoBanner variant="deals" />}
           </>
         ) : (
           <>
@@ -174,7 +203,6 @@ export default function InquiryScreen() {
                 onPress={() => handleOpen(inquiry)}
               />
             ))}
-            {!isPremium && <FomoBanner variant="deals" />}
           </>
         )}
 
@@ -187,28 +215,50 @@ export default function InquiryScreen() {
           inquiry={selectedInquiry}
           userId={user.id}
           onClose={() => setSelectedInquiry(null)}
-          onConverted={() => { setSelectedInquiry(null); fetchInquiries(); }}
+          onConverted={() => {
+          setSelectedInquiry(null);
+          fetchInquiries();
+          navigation.navigate('Main', { screen: '협찬' } as any);
+        }}
         />
       )}
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F8FF' },
+  container: { flex: 1, backgroundColor: tokens.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 14,
   },
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  backArrow: { fontSize: 28, color: '#374151', lineHeight: 32 },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#1A1A2E', textAlign: 'center' },
-  headerSub: { fontSize: 12, color: colors.primary, fontWeight: '600', textAlign: 'center', marginTop: 2 },
-  infoBanner: { marginHorizontal: 20, marginBottom: 12, backgroundColor: '#F0EFFE', borderRadius: 12, padding: 12 },
-  infoText: { fontSize: 12, color: '#7C6FCD', lineHeight: 18 },
+  backArrow: { fontSize: 28, color: tokens.ink2, lineHeight: 32 },
+  headerTitle: { ...typography.navTitle, color: tokens.ink, textAlign: 'center' },
+  headerSub: { ...typography.label, color: tokens.primary, textAlign: 'center', marginTop: 2 },
+  infoBanner: { marginHorizontal: 20, marginBottom: 12, backgroundColor: tokens.primarySoft, borderRadius: 12, padding: 12 },
+  infoText: { ...typography.hint, color: tokens.primaryDeep },
+  allReadBanner: {
+    marginHorizontal: 20, marginBottom: 12, backgroundColor: '#F0FDF4',
+    borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: '#BBF7D0',
+  },
+  allReadIcon: { fontSize: 14, color: '#059669', fontWeight: '800' },
+  allReadText: { fontSize: 12, color: '#059669', fontWeight: '600' },
+  urgentBanner: {
+    marginHorizontal: 20, marginBottom: 12, backgroundColor: '#EDE9FE',
+    borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 1.5, borderColor: '#C4B5FD',
+  },
+  urgentBannerIcon:      { fontSize: 22 },
+  urgentBannerTitle:     { ...typography.bodyStrong, fontWeight: '800', color: tokens.ink, marginBottom: 2 },
+  urgentBannerSub:       { ...typography.caption, color: tokens.primary },
+  urgentBannerBadge:     { backgroundColor: tokens.primary, borderRadius: 12, minWidth: 26, height: 26, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  urgentBannerBadgeText: { ...typography.cardSubtitle, fontWeight: '800', color: '#fff' },
   scroll: { paddingHorizontal: 20 },
   empty: { alignItems: 'center', paddingVertical: 48, gap: 10 },
   emptyIcon: { fontSize: 48 },
-  emptyTitle: { fontSize: 16, fontWeight: '800', color: '#1A1A2E' },
-  emptyDesc: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { ...typography.sectionTitle, color: tokens.ink },
+  emptyDesc: { ...typography.metadata, color: tokens.ink4, textAlign: 'center', lineHeight: 20 },
 });

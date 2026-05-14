@@ -17,7 +17,7 @@ interface Props {
 
 const CATEGORY_OPTIONS = [
   { value: 'platform',    label: '플랫폼 광고', icon: '📱', bg: '#FEE2E2', color: '#EF4444' },
-  { value: 'sponsorship', label: '브랜드 협찬', icon: '🤝', bg: '#EDE9FE', color: '#6C63FF' },
+  { value: 'sponsorship', label: '브랜드 협찬', icon: '🤝', bg: '#EAE3FF', color: '#6E56F0' },
   { value: 'affiliate',   label: '제휴 수익',   icon: '🔗', bg: '#FFEDD5', color: '#F97316' },
   { value: 'other',       label: '기타',        icon: '💡', bg: '#F3F4F6', color: '#6B7280' },
 ];
@@ -164,13 +164,13 @@ const styles = StyleSheet.create({
   fieldGroup: { marginBottom: 14 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: '#7C6FCD', marginBottom: 6 },
   amountInput: {
-    backgroundColor: '#F8F8FF', borderRadius: 12,
+    backgroundColor: '#F4F0FF', borderRadius: 12,
     borderWidth: 1.5, borderColor: '#E8E4FF',
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 22, fontWeight: '800', color: '#1A1A2E', textAlign: 'right',
   },
   input: {
-    backgroundColor: '#F8F8FF', borderRadius: 12,
+    backgroundColor: '#F4F0FF', borderRadius: 12,
     borderWidth: 1.5, borderColor: '#E8E4FF',
     paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 15, color: '#1A1A2E',

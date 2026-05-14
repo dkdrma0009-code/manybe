@@ -9,6 +9,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -29,7 +31,7 @@ async function registerPushToken(userId: string) {
       name: '매니비 알림',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#6C63FF',
+      lightColor: '#6E56F0',
     });
   }
 
@@ -55,7 +57,7 @@ async function scheduleDealDeadlineNotifications(userId: string) {
     .from('deals')
     .select('id, brand, title, end_date')
     .eq('user_id', userId)
-    .in('status', ['pending', 'negotiating', 'contracted', 'in_progress'])
+    .in('status', ['inquiry', 'reviewing', 'in_progress'])
     .gte('end_date', now.toISOString().split('T')[0])
     .lte('end_date', inSevenDays.toISOString().split('T')[0]);
 

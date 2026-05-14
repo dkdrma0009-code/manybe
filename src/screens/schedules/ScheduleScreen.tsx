@@ -15,6 +15,9 @@ import { useScheduleData, ScheduleItem } from '../../hooks/useScheduleData';
 import AddScheduleModal from './AddScheduleModal';
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
+import { tokens } from '../../constants/tokens';
+import { typography } from '../../constants/typography';
+import { shadows } from '../../constants/shadows';
 
 const { width } = Dimensions.get('window');
 const DAY_SIZE = Math.floor((width - 40) / 7);
@@ -109,14 +112,14 @@ function ScheduleCard({ item, onDelete }: { item: ScheduleItem; onDelete: () => 
 }
 
 const schedCard = StyleSheet.create({
-  wrapper:   { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  wrapper:   { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, gap: 12, ...shadows.card },
   iconBg:    { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   icon:      { fontSize: 20 },
   body:      { flex: 1, gap: 3 },
-  type:      { fontSize: 11, fontWeight: '700' },
-  title:     { fontSize: 14, fontWeight: '600', color: '#1A1A2E' },
+  type:      { ...typography.status },
+  title:     { ...typography.bodyStrong, color: tokens.ink },
   timeBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  time:      { fontSize: 12, fontWeight: '600' },
+  time:      { ...typography.metadata, fontWeight: '600' },
 });
 
 // ─── 메인 화면 ──────────────────────────────────────────────
@@ -166,6 +169,7 @@ export default function ScheduleScreen() {
             <Text style={styles.navArrow}>›</Text>
           </TouchableOpacity>
         </View>
+        {/* PLAN_GATE: schedule management — full calendar/schedule tracking is a paid feature */}
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
           <Text style={styles.addBtnText}>＋ 일정 추가</Text>
         </TouchableOpacity>
@@ -212,7 +216,11 @@ export default function ScheduleScreen() {
         {schedules.length === 0 ? (
           <View style={styles.emptySchedule}>
             <Text style={styles.emptyIcon}>📅</Text>
-            <Text style={styles.emptyText}>일정이 없습니다</Text>
+            <Text style={styles.emptyText}>이 날 등록된 일정이 없어요</Text>
+            <Text style={styles.emptySubText}>협찬 마감, 업로드, 미팅 일정을 추가해보세요</Text>
+            <TouchableOpacity style={styles.emptyAddBtn} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
+              <Text style={styles.emptyAddBtnText}>일정 추가하기</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           schedules.map((item) => (
@@ -260,30 +268,33 @@ export default function ScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F8FF' },
+  container: { flex: 1, backgroundColor: tokens.bg },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
   monthNav:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navBtn:     { width: 32, height: 32, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 },
-  navArrow:   { fontSize: 22, color: '#374151', lineHeight: 26 },
-  monthTitle: { fontSize: 17, fontWeight: '800', color: '#1A1A2E', minWidth: 100, textAlign: 'center' },
+  navBtn:     { width: 32, height: 32, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...shadows.subtle },
+  navArrow:   { fontSize: 22, color: tokens.ink2, lineHeight: 26 },
+  monthTitle: { ...typography.navTitle, color: tokens.ink, minWidth: 100, textAlign: 'center' },
   addBtn:     { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
-  addBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  addBtnText: { ...typography.buttonSm, color: '#fff' },
   scroll:     { paddingHorizontal: 20 },
-  calendarCard: { backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
+  calendarCard: { backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 20, ...shadows.card },
   weekRow:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
-  weekday:    { fontSize: 12, fontWeight: '600', color: '#9CA3AF', paddingVertical: 6 },
+  weekday:    { ...typography.label, color: tokens.ink4, paddingVertical: 6 },
   weekdaySun: { color: '#EF4444' },
   weekdaySat: { color: '#3B82F6' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  sectionTitle:  { fontSize: 16, fontWeight: '700', color: '#1A1A2E' },
-  sectionCountInline: { fontSize: 16, fontWeight: '700', color: colors.primary },
-  emptySchedule: { alignItems: 'center', paddingVertical: 28, backgroundColor: '#fff', borderRadius: 14, marginBottom: 20, gap: 8 },
-  emptyIcon:  { fontSize: 32 },
-  emptyText:  { fontSize: 13, color: '#9CA3AF' },
+  sectionTitle:  { ...typography.sectionTitle, color: tokens.ink },
+  sectionCountInline: { ...typography.sectionTitle, color: colors.primary },
+  emptySchedule: { alignItems: 'center', paddingVertical: 28, backgroundColor: '#fff', borderRadius: 14, marginBottom: 20, gap: 6 },
+  emptyIcon:    { fontSize: 32 },
+  emptyText:    { ...typography.bodyStrong, color: tokens.ink2 },
+  emptySubText: { ...typography.metadata, color: tokens.ink4, textAlign: 'center' },
+  emptyAddBtn:  { marginTop: 8, backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
+  emptyAddBtnText: { ...typography.buttonSm, color: '#fff' },
   weekSummary: { flexDirection: 'row', gap: 10, marginBottom: 8 },
   weekItem:   { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', gap: 4 },
   weekCount:  { fontSize: 20, fontWeight: '800' },
-  weekLabel:  { fontSize: 11, fontWeight: '600' },
+  weekLabel:  { ...typography.status },
   fab: { position: 'absolute', right: 20, width: 52, height: 52, borderRadius: 26, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
   fabText: { fontSize: 24, color: '#fff', fontWeight: '300', lineHeight: 28 },
 });

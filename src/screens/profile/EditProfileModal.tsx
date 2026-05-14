@@ -34,10 +34,10 @@ export default function EditProfileModal({ visible, currentName, onClose, onSucc
       return;
     }
 
-    // users 테이블도 동기화
+    // profiles 테이블도 동기화
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from('users').upsert({ id: user.id, full_name: trimmed }, { onConflict: 'id' });
+      await supabase.from('profiles').upsert({ id: user.id, full_name: trimmed }, { onConflict: 'id' });
     }
 
     setSaving(false);
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   fieldGroup: { marginBottom: 14 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: '#7C6FCD', marginBottom: 6 },
   input: {
-    backgroundColor: '#F8F8FF', borderRadius: 12,
+    backgroundColor: '#F4F0FF', borderRadius: 12,
     borderWidth: 1.5, borderColor: '#E8E4FF',
     paddingHorizontal: 14, paddingVertical: 14,
     fontSize: 16, color: '#1A1A2E',

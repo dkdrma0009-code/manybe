@@ -27,9 +27,9 @@ export interface ScheduleData {
 }
 
 const TYPE_CONFIG: Record<Schedule['type'], { label: DisplayType; color: string; iconBg: string; dotColor: string }> = {
-  content:  { label: '업로드 예정', color: '#6C63FF', iconBg: '#EDE9FE', dotColor: '#6C63FF' },
-  deadline: { label: '협찬 마감',   color: '#D97706', iconBg: '#FEF3C7', dotColor: '#F59E0B' },
-  meeting:  { label: '미팅',        color: '#2563EB', iconBg: '#DBEAFE', dotColor: '#3B82F6' },
+  content:  { label: '업로드 예정', color: '#6E56F0', iconBg: '#EAE3FF', dotColor: '#6E56F0' },
+  deadline: { label: '협찬 마감',   color: '#C68318', iconBg: '#FBF1DC', dotColor: '#C68318' },
+  meeting:  { label: '미팅',        color: '#3B6FD9', iconBg: '#E3ECFB', dotColor: '#3B6FD9' },
   other:    { label: '기타',        color: '#10B981', iconBg: '#D1FAE5', dotColor: '#10B981' },
 };
 
@@ -48,42 +48,17 @@ const DEFAULT_DATA: ScheduleData = {
   weekSummary: [],
 };
 
-const DEV_DATA: ScheduleData = {
-  dotEvents: {
-    5:  [{ color: '#6C63FF' }],
-    12: [{ color: '#6C63FF' }],
-    15: [{ color: '#10B981' }],
-    19: [{ color: '#6C63FF' }],
-    20: [{ color: '#F59E0B' }],
-    22: [{ color: '#10B981' }],
-    26: [{ color: '#6C63FF' }],
-    31: [{ color: '#F59E0B' }],
-  },
-  schedulesByDate: {
-    15: [
-      { id: 's1', type: '협찬 마감',   title: '나이키 러닝화 협찬',    time: '오후 6시', color: '#D97706', iconBg: '#FEF3C7' },
-      { id: 's2', type: '업로드 예정', title: '주간 브이로그 업로드',   time: '오후 3시', color: '#6C63FF', iconBg: '#EDE9FE' },
-    ],
-  },
-  weekSummary: [
-    { label: '업로드 예정', count: 2, color: '#6C63FF', bg: '#F0EFFE' },
-    { label: '협찬 마감',   count: 1, color: '#10B981', bg: '#D1FAE5' },
-    { label: '기타',        count: 1, color: '#D97706', bg: '#FEF3C7' },
-  ],
-};
-
 export function useScheduleData(
   userId: string | undefined,
   year: number,
   month: number,
 ) {
-  const [data, setData] = useState<ScheduleData>(__DEV__ ? DEV_DATA : DEFAULT_DATA);
+  const [data, setData] = useState<ScheduleData>(DEFAULT_DATA);
   const [loading, setLoading] = useState(!!userId);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!userId) {
-      setData(DEV_DATA);
       setLoading(false);
       return;
     }
@@ -146,9 +121,9 @@ export function useScheduleData(
       }
 
       const SUMMARY_CONFIG: { label: DisplayType; color: string; bg: string }[] = [
-        { label: '업로드 예정', color: '#6C63FF', bg: '#F0EFFE' },
-        { label: '협찬 마감',   color: '#D97706', bg: '#FEF3C7' },
-        { label: '미팅',        color: '#2563EB', bg: '#DBEAFE' },
+        { label: '업로드 예정', color: '#6E56F0', bg: '#EAE3FF' },
+        { label: '협찬 마감',   color: '#C68318', bg: '#FBF1DC' },
+        { label: '미팅',        color: '#3B6FD9', bg: '#E3ECFB' },
         { label: '기타',        color: '#10B981', bg: '#D1FAE5' },
       ];
       const weekSummary: WeekSummaryItem[] = SUMMARY_CONFIG

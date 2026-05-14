@@ -1,13 +1,15 @@
+import { tokens } from './tokens';
+
 export const colors = {
-  primary: '#6C63FF',
-  primaryLight: '#9B95FF',
-  primaryDark: '#4B44CC',
-  background: '#F8F8FF',
-  surface: '#FFFFFF',
-  text: '#1A1A2E',
-  textSecondary: '#6B7280',
-  border: '#E5E7EB',
-  error: '#EF4444',
-  success: '#10B981',
-  warning: '#F59E0B',
+  primary:       tokens.primary,
+  primaryLight:  tokens.primarySoft,
+  primaryDark:   tokens.primaryDeep,
+  background:    tokens.bg,
+  surface:       tokens.surface,
+  text:          tokens.ink,
+  textSecondary: tokens.ink3,
+  border:        tokens.border,
+  error:         tokens.urgent,
+  success:       tokens.uploaded,
+  warning:       tokens.reviewing,
 };

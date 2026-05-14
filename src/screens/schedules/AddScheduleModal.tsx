@@ -16,9 +16,9 @@ interface Props {
 }
 
 const TYPE_OPTIONS = [
-  { value: 'content',  label: '업로드 예정', bg: '#EDE9FE', color: '#6C63FF' },
-  { value: 'deadline', label: '협찬 마감',   bg: '#FEF3C7', color: '#D97706' },
-  { value: 'meeting',  label: '미팅',        bg: '#DBEAFE', color: '#2563EB' },
+  { value: 'content',  label: '업로드 예정', bg: '#EAE3FF', color: '#6E56F0' },
+  { value: 'deadline', label: '협찬 마감',   bg: '#FBF1DC', color: '#C68318' },
+  { value: 'meeting',  label: '미팅',        bg: '#E3ECFB', color: '#3B6FD9' },
   { value: 'other',    label: '기타',        bg: '#D1FAE5', color: '#10B981' },
 ];
 
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   fieldGroup: { marginBottom: 14 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: '#7C6FCD', marginBottom: 6 },
   input: {
-    backgroundColor: '#F8F8FF', borderRadius: 12,
+    backgroundColor: '#F4F0FF', borderRadius: 12,
     borderWidth: 1.5, borderColor: '#E8E4FF',
     paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 15, color: '#1A1A2E',

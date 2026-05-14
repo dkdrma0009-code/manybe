@@ -18,7 +18,7 @@ interface SocialChannel {
   platform: string;
   channel_name: string;
   subscriber_count: number;
-  total_view_count: number;
+  view_count: number;
   profile_image_url: string;
 }
 
@@ -143,7 +143,7 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
                         <p className="text-xs text-gray-500">구독자</p>
                       </div>
                       <div>
-                        <p className="text-2xl font-extrabold text-gray-900">{formatK(ch.total_view_count)}</p>
+                        <p className="text-2xl font-extrabold text-gray-900">{formatK(ch.view_count)}</p>
                         <p className="text-xs text-gray-500">총 조회수</p>
                       </div>
                     </div>
@@ -211,15 +211,6 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
           </div>
         )}
 
-        {/* AE 모드 / CSV 다운로드 */}
-        <div className="text-center">
-          <a
-            href={`/${slug}/export`}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
-          >
-            AE 모드 (핵심 지표 텍스트 복사)
-          </a>
-        </div>
       </main>
 
       <footer className="text-center py-8 text-xs text-gray-400">

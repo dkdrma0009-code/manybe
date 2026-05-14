@@ -9,20 +9,15 @@ import { useAuth } from '../hooks/useAuth';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import TabNavigator from './TabNavigator';
-import TaxCalculatorScreen from '../screens/tax/TaxCalculatorScreen';
 import MediaKitSlugScreen from '../screens/settings/MediaKitSlugScreen';
 import YouTubeConnectScreen from '../screens/settings/YouTubeConnectScreen';
-import AEExportScreen from '../screens/export/AEExportScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import InquiryScreen from '../screens/inquiries/InquiryScreen';
 import MediaKitEditScreen from '../screens/settings/MediaKitEditScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
-import SearchScreen from '../screens/search/SearchScreen';
-import { useNotifications } from '../hooks/useNotifications';
 import { colors } from '../constants/colors';
 import type { TabParamList } from './TabNavigator';
 
-// 개발 중 인증 우회 — 배포 전 false로 변경
 const DEV_BYPASS_AUTH = false;
 
 export type AuthStackParamList = {
@@ -32,14 +27,11 @@ export type AuthStackParamList = {
 
 export type RootStackParamList = {
   Main: NavigatorScreenParams<TabParamList> | undefined;
-  TaxCalculator: undefined;
   MediaKitSlug: undefined;
   YouTubeConnect: undefined;
-  AEExport: undefined;
   Profile: undefined;
   Inquiries: undefined;
   MediaKitEdit: undefined;
-  Search: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -59,11 +51,6 @@ function MainNavigator() {
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="Main" component={TabNavigator} />
       <RootStack.Screen
-        name="TaxCalculator"
-        component={TaxCalculatorScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
         name="MediaKitSlug"
         component={MediaKitSlugScreen}
         options={{ presentation: 'card' }}
@@ -71,11 +58,6 @@ function MainNavigator() {
       <RootStack.Screen
         name="YouTubeConnect"
         component={YouTubeConnectScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
-        name="AEExport"
-        component={AEExportScreen}
         options={{ presentation: 'card' }}
       />
       <RootStack.Screen
@@ -93,11 +75,6 @@ function MainNavigator() {
         component={MediaKitEditScreen}
         options={{ presentation: 'card' }}
       />
-      <RootStack.Screen
-        name="Search"
-        component={SearchScreen}
-        options={{ presentation: 'card' }}
-      />
     </RootStack.Navigator>
   );
 }
@@ -105,7 +82,6 @@ function MainNavigator() {
 export default function AppNavigator() {
   const { session, loading } = useAuth();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
-  useNotifications(session?.user?.id);
 
   useEffect(() => {
     AsyncStorage.getItem('onboarding_complete').then((val) => {

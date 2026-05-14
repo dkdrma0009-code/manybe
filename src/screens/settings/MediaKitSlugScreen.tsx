@@ -14,7 +14,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
-import { usePlan } from '../../hooks/usePlan';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -35,7 +34,6 @@ function validateSlug(slug: string): string | null {
 export default function MediaKitSlugScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { isPremium } = usePlan(user?.id);
 
   const [slug, setSlug] = useState('');
   const [originalSlug, setOriginalSlug] = useState('');
@@ -136,10 +134,6 @@ export default function MediaKitSlugScreen({ navigation }: Props) {
 
   function handleCopyInquiry() {
     if (!originalSlug) return;
-    if (!isPremium) {
-      Alert.alert('프리미엄 기능', '인바운드 문의 폼은 프리미엄에서 활성화할 수 있습니다.');
-      return;
-    }
     Clipboard.setStringAsync(`${WEB_BASE_URL}/${originalSlug}/inquiry`);
     setInquiryCopied(true);
     setTimeout(() => setInquiryCopied(false), 2000);
@@ -264,7 +258,7 @@ export default function MediaKitSlugScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F8FF' },
+  container: { flex: 1, backgroundColor: '#F5F3EF' },
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 16, gap: 14,
@@ -298,7 +292,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row', alignItems: 'center',
     borderWidth: 1.5, borderColor: '#E8E4FF', borderRadius: 12,
-    paddingHorizontal: 12, paddingVertical: 12, backgroundColor: '#F8F8FF',
+    paddingHorizontal: 12, paddingVertical: 12, backgroundColor: '#F4F0FF',
   },
   inputError:   { borderColor: '#EF4444' },
   inputSuccess: { borderColor: '#10B981' },
@@ -311,7 +305,7 @@ const styles = StyleSheet.create({
   hintText:    { fontSize: 11, color: '#9CA3AF', marginTop: 6, marginLeft: 2 },
 
   previewBox: {
-    backgroundColor: '#F8F8FF', borderRadius: 10, padding: 12,
+    backgroundColor: '#F4F0FF', borderRadius: 10, padding: 12,
     marginTop: 16, marginBottom: 4,
   },
   previewLabel: { fontSize: 10, fontWeight: '600', color: '#9CA3AF', marginBottom: 4 },
@@ -327,7 +321,7 @@ const styles = StyleSheet.create({
   saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
   urlBox: {
-    backgroundColor: '#F8F8FF', borderRadius: 10, padding: 12, marginBottom: 14,
+    backgroundColor: '#F4F0FF', borderRadius: 10, padding: 12, marginBottom: 14,
   },
   urlText: { fontSize: 13, color: '#374151', fontWeight: '500' },
 

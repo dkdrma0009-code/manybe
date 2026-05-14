@@ -78,11 +78,11 @@ const card = StyleSheet.create({
     backgroundColor: '#F0EFFE', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10,
   },
   syncBtnText: { fontSize: 12, fontWeight: '700', color: colors.primary },
-  stats: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F8FF', borderRadius: 12, padding: 14 },
+  stats: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4F0FF', borderRadius: 12, padding: 14 },
   stat: { flex: 1, alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: '800', color: '#1A1A2E', marginBottom: 2 },
   statLabel: { fontSize: 11, color: '#7C6FCD' },
-  divider: { width: 1, height: 32, backgroundColor: 'rgba(108,99,255,0.15)' },
+  divider: { width: 1, height: 32, backgroundColor: 'rgba(110,86,240,0.15)' },
 });
 
 export default function YouTubeConnectScreen({ navigation }: Props) {
@@ -212,7 +212,7 @@ export default function YouTubeConnectScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F8FF' },
+  container: { flex: 1, backgroundColor: '#F5F3EF' },
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 16, gap: 14,
@@ -238,12 +238,12 @@ const styles = StyleSheet.create({
 
   inputRow: {
     borderWidth: 1.5, borderColor: '#E8E4FF', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#F8F8FF',
+    paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#F4F0FF',
     marginBottom: 12,
   },
   input: { fontSize: 14, color: '#1A1A2E' },
 
-  examples: { backgroundColor: '#F8F8FF', borderRadius: 10, padding: 12, marginBottom: 16 },
+  examples: { backgroundColor: '#F4F0FF', borderRadius: 10, padding: 12, marginBottom: 16 },
   exampleLabel: { fontSize: 11, fontWeight: '600', color: '#9CA3AF', marginBottom: 6 },
   exampleItem:  { fontSize: 12, color: '#6B7280', lineHeight: 20 },
 

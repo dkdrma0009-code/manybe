@@ -8,7 +8,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
-import { usePlan } from '../../hooks/usePlan';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -29,7 +28,6 @@ type PricingKey = typeof PRICING_KEYS[number]['key'];
 export default function MediaKitEditScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { isPremium } = usePlan(user?.id);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,7 +85,8 @@ export default function MediaKitEditScreen({ navigation }: Props) {
           bio: bio.trim() || null,
           pricing: Object.keys(pricingObj).length > 0 ? pricingObj : null,
           past_brands: pastBrands.length > 0 ? pastBrands : null,
-          is_form_enabled: isPremium ? isFormEnabled : false,
+          // PLAN_GATE: unlimited inquiry reception — consider capping monthly inbound inquiry count for free tier
+          is_form_enabled: isFormEnabled,
         })
         .eq('user_id', user!.id);
 
@@ -133,7 +132,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.title}>미디어 키트 편집</Text>
           <Text style={styles.subtitle}>브랜드에게 보여지는 내용</Text>
         </View>
@@ -240,25 +239,13 @@ export default function MediaKitEditScreen({ navigation }: Props) {
                 <Text style={styles.sectionDesc}>브랜드가 미디어 키트에서 직접 협찬을 제안할 수 있어요</Text>
               </View>
               <Switch
-                value={isPremium && isFormEnabled}
-                onValueChange={(value) => {
-                  if (!isPremium) {
-                    Alert.alert('프리미엄 기능', '인바운드 문의 폼은 프리미엄에서 활성화할 수 있습니다.');
-                    return;
-                  }
-                  setIsFormEnabled(value);
-                }}
+                value={isFormEnabled}
+                onValueChange={setIsFormEnabled}
                 trackColor={{ false: '#E5E7EB', true: colors.primary }}
                 thumbColor="#fff"
               />
             </View>
-            {!isPremium ? (
-              <View style={styles.premiumNotice}>
-                <Text style={styles.premiumNoticeText}>
-                  잠든 사이에도 들어오는 협찬 문의를 놓치지 마세요. 폼을 통해 접수된 문의는 CRM에 자동 등록됩니다.
-                </Text>
-              </View>
-            ) : isFormEnabled && (
+            {isFormEnabled && (
               <View style={styles.formEnabledBadge}>
                 <Text style={styles.formEnabledText}>✓ 문의 폼이 활성화된 상태입니다. 브랜드가 문의를 보낼 수 있어요.</Text>
               </View>
@@ -273,7 +260,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: '#F8F8FF' },
+  container:   { flex: 1, backgroundColor: '#F5F3EF' },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center',
@@ -289,7 +276,6 @@ const styles = StyleSheet.create({
   title:    { fontSize: 17, fontWeight: '800', color: '#1A1A2E' },
   subtitle: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
   saveBtn: {
-    marginLeft: 'auto',
     backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8,
     borderRadius: 10, minWidth: 52, alignItems: 'center',
   },
@@ -306,7 +292,7 @@ const styles = StyleSheet.create({
   sectionDesc:  { fontSize: 12, color: '#9CA3AF', marginBottom: 14, lineHeight: 18 },
 
   bioInput: {
-    backgroundColor: '#F8F8FF', borderRadius: 12, borderWidth: 1.5, borderColor: '#E8E4FF',
+    backgroundColor: '#F4F0FF', borderRadius: 12, borderWidth: 1.5, borderColor: '#E8E4FF',
     paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 14, color: '#1A1A2E', lineHeight: 22, minHeight: 100,
   },
@@ -319,7 +305,7 @@ const styles = StyleSheet.create({
   priceLabel:     { fontSize: 13, color: '#374151', flex: 1 },
   priceInputWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   priceInput: {
-    backgroundColor: '#F8F8FF', borderRadius: 8, borderWidth: 1.5, borderColor: '#E8E4FF',
+    backgroundColor: '#F4F0FF', borderRadius: 8, borderWidth: 1.5, borderColor: '#E8E4FF',
     paddingHorizontal: 10, paddingVertical: 7,
     fontSize: 14, fontWeight: '600', color: '#1A1A2E',
     width: 110, textAlign: 'right',
@@ -328,7 +314,7 @@ const styles = StyleSheet.create({
 
   brandInputRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   brandInput: {
-    flex: 1, backgroundColor: '#F8F8FF', borderRadius: 10, borderWidth: 1.5, borderColor: '#E8E4FF',
+    flex: 1, backgroundColor: '#F4F0FF', borderRadius: 10, borderWidth: 1.5, borderColor: '#E8E4FF',
     paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 14, color: '#1A1A2E',
   },
@@ -352,8 +338,4 @@ const styles = StyleSheet.create({
     marginTop: 12, backgroundColor: '#D1FAE5', borderRadius: 10, padding: 10,
   },
   formEnabledText: { fontSize: 12, color: '#059669', fontWeight: '500', lineHeight: 18 },
-  premiumNotice: {
-    marginTop: 12, backgroundColor: '#F0EFFE', borderRadius: 10, padding: 10,
-  },
-  premiumNoticeText: { fontSize: 12, color: '#7C6FCD', fontWeight: '600', lineHeight: 18 },
 });
