@@ -2,6 +2,9 @@ export type ActionType =
   | 'schedule_reminder'
   | 'suppress_notification'
   | 'draft_followup_message'
+  | 'draft_settlement_request'
+  | 'draft_inquiry_response'
+  | 'draft_reengagement_pitch'
   | 'escalate_overdue'
   | 'suggest_calendar_adjust';
 

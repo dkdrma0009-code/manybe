@@ -30,6 +30,7 @@ import { useDecisionEngine } from '../../hooks/useDecisionEngine';
 import { recordEvent } from '../../services/OperationalMemory';
 import { useActivation } from '../../hooks/useActivation';
 import { ActivationChecklist } from '../../components/ActivationChecklist';
+import { useActionCenter } from '../../hooks/useActionCenter';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
 import { typography } from '../../constants/typography';
@@ -115,6 +116,8 @@ export default function HomeScreen() {
   const { focusItems, refetch: decisionRefetch } = useDecisionEngine(user?.id);
   const { dealsVersion, inquiriesVersion } = useRealtime();
   const activation = useActivation();
+  const { pendingCount, load: loadActions } = useActionCenter();
+  React.useEffect(() => { loadActions(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   React.useEffect(() => { refetch(); timelineRefetch(); ctxRefetch(); decisionRefetch(); briefingRefetch(); }, [dealsVersion, inquiriesVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-mark activation milestones as data arrives
@@ -219,6 +222,22 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* AI 액션 센터 진입 */}
+        {pendingCount > 0 && (
+          <TouchableOpacity
+            style={aib.banner}
+            onPress={() => navigation.navigate('ActionCenter')}
+            activeOpacity={0.85}
+          >
+            <Text style={aib.icon}>🤖</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={aib.title}>AI 제안 {pendingCount}개</Text>
+              <Text style={aib.sub}>팔로업·정산 초안을 검토하세요</Text>
+            </View>
+            <Text style={aib.arrow}>›</Text>
+          </TouchableOpacity>
+        )}
 
         {/* 시작 가이드 (activation checklist) */}
         {!loading && !activation.isAllDone && (
@@ -477,6 +496,17 @@ const styles = StyleSheet.create({
   },
   emptyBtnPrimaryText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
+});
+
+const aib = StyleSheet.create({
+  banner: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1A1A2E', borderRadius: 16, padding: 14, marginBottom: 16, gap: 12,
+  },
+  icon:  { fontSize: 22 },
+  title: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  sub:   { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+  arrow: { fontSize: 22, color: 'rgba(255,255,255,0.4)' },
 });
 
 const channelStyle = StyleSheet.create({

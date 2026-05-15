@@ -74,6 +74,16 @@ export async function rejectAction(id: string): Promise<void> {
   await saveQueue(queue.map((a) => a.id === id ? { ...a, status: 'rejected' as const } : a));
 }
 
+export async function getActionHistory(limit = 30): Promise<AutonomousAction[]> {
+  const queue = await loadQueue();
+  return queue
+    .filter((a) => a.status !== 'pending')
+    .sort((a, b) =>
+      (b.executedAt ?? b.createdAt).localeCompare(a.executedAt ?? a.createdAt),
+    )
+    .slice(0, limit);
+}
+
 export async function pruneStaleActions(maxAgeDays = 30): Promise<void> {
   const cutoff = new Date(Date.now() - maxAgeDays * 86_400_000).toISOString();
   const queue  = await loadQueue();

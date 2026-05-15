@@ -170,6 +170,7 @@ export default function SettingsScreen() {
             { icon: '📺', label: 'YouTube 채널 연동', onPress: () => navigation.navigate('YouTubeConnect') },
             { icon: '🔗', label: '미디어 키트 URL', onPress: () => navigation.navigate('MediaKitSlug') },
             { icon: '✏️', label: '미디어 키트 편집', onPress: () => navigation.navigate('MediaKitEdit') },
+            { icon: '👁️', label: '미디어 키트 미리보기', onPress: () => navigation.navigate('MediaKitPreview') },
           ]}
         />
 

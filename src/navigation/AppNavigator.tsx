@@ -28,6 +28,8 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { colors } from '../constants/colors';
 import type { TabParamList } from './TabNavigator';
 import UpgradeScreen from '../screens/paywall/UpgradeScreen';
+import ActionCenterScreen from '../screens/automation/ActionCenterScreen';
+import MediaKitPreviewScreen from '../screens/mediakit/MediaKitPreviewScreen';
 
 const DEV_BYPASS_AUTH = false;
 
@@ -46,6 +48,8 @@ export type RootStackParamList = {
   BrandDetail: { brand: string };
   Notifications: undefined;
   Upgrade: undefined;
+  ActionCenter: undefined;
+  MediaKitPreview: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -108,6 +112,16 @@ function MainNavigator() {
         name="Upgrade"
         component={UpgradeScreen}
         options={{ presentation: 'modal' }}
+      />
+      <RootStack.Screen
+        name="ActionCenter"
+        component={ActionCenterScreen}
+        options={{ presentation: 'card' }}
+      />
+      <RootStack.Screen
+        name="MediaKitPreview"
+        component={MediaKitPreviewScreen}
+        options={{ presentation: 'card' }}
       />
     </RootStack.Navigator>
   );

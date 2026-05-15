@@ -14,12 +14,15 @@ import { EventBus } from './EventBus';
 
 function scoreAction(type: AutonomousAction['type']): Pick<AutonomousAction, 'confidence' | 'risk' | 'requiresApproval'> {
   switch (type) {
-    case 'schedule_reminder':       return { confidence: 90, risk: 'none', requiresApproval: false };
-    case 'suppress_notification':   return { confidence: 95, risk: 'none', requiresApproval: false };
-    case 'draft_followup_message':  return { confidence: 75, risk: 'low',  requiresApproval: false };
-    case 'escalate_overdue':        return { confidence: 85, risk: 'low',  requiresApproval: false };
-    case 'suggest_calendar_adjust': return { confidence: 70, risk: 'low',  requiresApproval: false };
-    default:                        return { confidence: 60, risk: 'medium', requiresApproval: true };
+    case 'schedule_reminder':         return { confidence: 90, risk: 'none', requiresApproval: false };
+    case 'suppress_notification':     return { confidence: 95, risk: 'none', requiresApproval: false };
+    case 'draft_followup_message':    return { confidence: 75, risk: 'low',  requiresApproval: true };
+    case 'draft_settlement_request':  return { confidence: 80, risk: 'low',  requiresApproval: true };
+    case 'draft_inquiry_response':    return { confidence: 70, risk: 'low',  requiresApproval: true };
+    case 'draft_reengagement_pitch':  return { confidence: 65, risk: 'low',  requiresApproval: true };
+    case 'escalate_overdue':          return { confidence: 85, risk: 'low',  requiresApproval: false };
+    case 'suggest_calendar_adjust':   return { confidence: 70, risk: 'low',  requiresApproval: false };
+    default:                          return { confidence: 60, risk: 'medium', requiresApproval: true };
   }
 }
 
@@ -163,6 +166,19 @@ function buildUnreadInquiryChain(inquiry: AutomationInquiry, hoursOld: number): 
   return { id: chainId, trigger: 'unread_inquiry', triggerEntityId: inquiry.id, steps, status: 'running', startedAt: new Date().toISOString() };
 }
 
+function buildSettlementRequestChain(deal: AutomationDeal, daysSinceUpload: number): ActionChain {
+  const chainId = `settlement_chain_${deal.id}`;
+  const steps: AutonomousAction[] = [
+    makeAction(chainId, 1, 'draft_settlement_request', deal.id, 'deal', {
+      brand: deal.brand,
+      title: deal.title,
+      daysSinceUpload,
+      amount: deal.amount,
+    }),
+  ];
+  return { id: chainId, trigger: 'settlement_delayed', triggerEntityId: deal.id, steps, status: 'running', startedAt: new Date().toISOString() };
+}
+
 function buildUploadClusterChain(dealIds: string[], count: number): ActionChain {
   const chainId = `upload_cluster_${dealIds.slice(0, 3).join('_')}`;
   const steps: AutonomousAction[] = [
@@ -201,6 +217,16 @@ export async function runAutonomousEngine(
     const days = Math.floor((now - new Date(last).getTime()) / 86_400_000);
     if (days < 7) continue;
     const result = await executeChain(buildStaleDealChain(deal, days));
+    chains.push(result.chain);
+    executedCount   += result.executedCount;
+    pendingApproval += result.pendingApproval;
+  }
+
+  // ── Settlement request chains (uploaded > 30 days) ────────────────────────
+  for (const deal of deals.filter((d) => d.status === 'uploaded')) {
+    const daysSince = Math.floor((now - new Date(deal.created_at).getTime()) / 86_400_000);
+    if (daysSince < 30) continue;
+    const result = await executeChain(buildSettlementRequestChain(deal, daysSince));
     chains.push(result.chain);
     executedCount   += result.executedCount;
     pendingApproval += result.pendingApproval;

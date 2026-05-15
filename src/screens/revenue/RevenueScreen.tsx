@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useRevenueData } from '../../hooks/useRevenueData';
 import { useRealtime } from '../../context/RealtimeContext';
+import { useFinancialIntelligence } from '../../hooks/useFinancialIntelligence';
 import AddRevenueModal from './AddRevenueModal';
 import { colors } from '../../constants/colors';
 
@@ -191,6 +192,8 @@ export default function RevenueScreen() {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
 
+  const { data: fi, loading: fiLoading } = useFinancialIntelligence(user?.id);
+
   const progressPct = data.goal > 0 ? Math.min(Math.round((data.total / data.goal) * 100), 100) : 0;
 
   return (
@@ -308,6 +311,109 @@ export default function RevenueScreen() {
                 <Text style={styles.txAmount}>+{formatKRW(tx.amount)}</Text>
               </View>
             ))
+          )}
+        </View>
+
+        {/* 재무 인텔리전스 */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>재무 인텔리전스</Text>
+          {fiLoading ? (
+            <ActivityIndicator color={colors.primary} style={{ paddingVertical: 12 }} />
+          ) : (
+            <>
+              {/* 수익 예측 */}
+              <View style={fi_.section}>
+                <Text style={fi_.sectionLabel}>다음 달 수익 예측</Text>
+                <View style={fi_.forecastRow}>
+                  <View style={fi_.forecastCol}>
+                    <Text style={fi_.forecastSub}>최저</Text>
+                    <Text style={fi_.forecastLow}>{formatKRW(fi.forecast.nextMonth.low)}</Text>
+                  </View>
+                  <View style={[fi_.forecastCol, fi_.forecastMidCol]}>
+                    <Text style={fi_.forecastSub}>예측</Text>
+                    <Text style={fi_.forecastMid}>{formatKRW(fi.forecast.nextMonth.mid)}</Text>
+                    <View style={fi_.confidenceBadge}>
+                      <Text style={fi_.confidenceText}>신뢰도 {fi.forecast.forecastConfidence}%</Text>
+                    </View>
+                  </View>
+                  <View style={fi_.forecastCol}>
+                    <Text style={fi_.forecastSub}>최고</Text>
+                    <Text style={fi_.forecastHigh}>{formatKRW(fi.forecast.nextMonth.high)}</Text>
+                  </View>
+                </View>
+                {fi.forecast.trendMoM !== 0 && (
+                  <Text style={[fi_.trendBadge, fi.forecast.trendMoM > 0 ? fi_.trendUp : fi_.trendDown]}>
+                    {fi.forecast.trendMoM > 0 ? '▲' : '▼'} 월별 성장 {Math.abs(fi.forecast.trendMoM).toFixed(1)}%
+                  </Text>
+                )}
+              </View>
+
+              <View style={fi_.divider} />
+
+              {/* 현금 흐름 */}
+              <View style={fi_.section}>
+                <Text style={fi_.sectionLabel}>예상 입금 일정</Text>
+                <View style={fi_.cashRow}>
+                  {fi.cashFlow.payoutSchedule.map((p) => (
+                    <View key={p.yearMonth} style={fi_.cashCol}>
+                      <Text style={fi_.cashMonth}>{p.yearMonth.slice(5)}월</Text>
+                      <Text style={[fi_.cashAmount, p.isConfident ? fi_.cashAmountConfident : fi_.cashAmountLow]}>
+                        {p.expectedAmount > 0 ? `${Math.round(p.expectedAmount / 10000).toLocaleString()}만` : '-'}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={fi_.cashNote}>예측 신뢰도 {fi.cashFlow.predictabilityScore}%</Text>
+              </View>
+
+              <View style={fi_.divider} />
+
+              {/* 정산 안정성 & 수익 다양성 */}
+              <View style={fi_.twoColRow}>
+                <View style={fi_.twoCol}>
+                  <Text style={fi_.metricLabel}>정산 신뢰도</Text>
+                  <Text style={fi_.metricValue}>{fi.settlement.overallScore}</Text>
+                  <Text style={fi_.metricUnit}>/ 100</Text>
+                  {fi.settlement.overdueDeals.length > 0 && (
+                    <Text style={fi_.metricWarn}>연체 {fi.settlement.overdueDeals.length}건</Text>
+                  )}
+                </View>
+                <View style={fi_.twoColSep} />
+                <View style={fi_.twoCol}>
+                  <Text style={fi_.metricLabel}>수익 다양성</Text>
+                  <Text style={fi_.metricValue}>{fi.stability.diversificationScore}</Text>
+                  <Text style={fi_.metricUnit}>/ 100</Text>
+                  <Text style={[fi_.gradeBadge, GRADE_STYLES[fi.stability.stabilityGrade]]}>
+                    {fi.stability.stabilityGrade}등급
+                  </Text>
+                </View>
+              </View>
+
+              <View style={fi_.divider} />
+
+              {/* 세금 요약 */}
+              <View style={fi_.section}>
+                <Text style={fi_.sectionLabel}>세금 요약 (누적)</Text>
+                <View style={fi_.taxRow}>
+                  <View style={fi_.taxCol}>
+                    <Text style={fi_.taxLabel}>총 수익</Text>
+                    <Text style={fi_.taxVal}>{formatKRW(fi.tax.totalGross)}</Text>
+                  </View>
+                  <View style={fi_.taxCol}>
+                    <Text style={fi_.taxLabel}>원천징수 (3.3%)</Text>
+                    <Text style={[fi_.taxVal, fi_.taxRed]}>-{formatKRW(fi.tax.totalWithholding)}</Text>
+                  </View>
+                  <View style={fi_.taxCol}>
+                    <Text style={fi_.taxLabel}>실수령 합계</Text>
+                    <Text style={[fi_.taxVal, fi_.taxGreen]}>{formatKRW(fi.tax.totalNet)}</Text>
+                  </View>
+                </View>
+                <View style={fi_.reserveBox}>
+                  <Text style={fi_.reserveLabel}>권장 세금 예비금</Text>
+                  <Text style={fi_.reserveAmount}>{formatKRW(fi.tax.recommendedReserve)}</Text>
+                </View>
+              </View>
+            </>
           )}
         </View>
 
@@ -472,6 +578,55 @@ const styles = StyleSheet.create({
   },
   fabText: { fontSize: 24, color: '#fff', fontWeight: '300', lineHeight: 28 },
 });
+
+const fi_ = StyleSheet.create({
+  section:    { marginBottom: 4 },
+  sectionLabel: { fontSize: 12, fontWeight: '700', color: '#9CA3AF', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 10 },
+  divider:    { height: 1, backgroundColor: '#F3F4F6', marginVertical: 14 },
+  forecastRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  forecastCol: { flex: 1, alignItems: 'center' },
+  forecastMidCol: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#F3F4F6' },
+  forecastSub: { fontSize: 11, color: '#9CA3AF', marginBottom: 4 },
+  forecastLow: { fontSize: 14, fontWeight: '700', color: '#6B7280' },
+  forecastMid: { fontSize: 16, fontWeight: '800', color: '#1A1A2E', marginBottom: 4 },
+  forecastHigh: { fontSize: 14, fontWeight: '700', color: '#059669' },
+  confidenceBadge: { backgroundColor: '#F0EFFE', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  confidenceText: { fontSize: 11, color: colors.primary, fontWeight: '600' },
+  trendBadge: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  trendUp:    { color: '#059669' },
+  trendDown:  { color: '#EF4444' },
+  cashRow:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  cashCol:    { flex: 1, alignItems: 'center' },
+  cashMonth:  { fontSize: 12, color: '#9CA3AF', marginBottom: 4 },
+  cashAmount: { fontSize: 15, fontWeight: '700' },
+  cashAmountConfident: { color: '#1A1A2E' },
+  cashAmountLow: { color: '#9CA3AF' },
+  cashNote:   { fontSize: 11, color: '#9CA3AF', textAlign: 'right' },
+  twoColRow:  { flexDirection: 'row', alignItems: 'center' },
+  twoCol:     { flex: 1, alignItems: 'center', paddingVertical: 4 },
+  twoColSep:  { width: 1, height: 60, backgroundColor: '#F3F4F6' },
+  metricLabel: { fontSize: 12, color: '#9CA3AF', marginBottom: 4 },
+  metricValue: { fontSize: 26, fontWeight: '800', color: '#1A1A2E' },
+  metricUnit:  { fontSize: 12, color: '#9CA3AF', marginBottom: 4 },
+  metricWarn:  { fontSize: 11, color: '#EF4444', fontWeight: '600' },
+  gradeBadge:  { fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  taxRow:     { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  taxCol:     { flex: 1, alignItems: 'center' },
+  taxLabel:   { fontSize: 11, color: '#9CA3AF', marginBottom: 3 },
+  taxVal:     { fontSize: 13, fontWeight: '700', color: '#1A1A2E' },
+  taxRed:     { color: '#EF4444' },
+  taxGreen:   { color: '#059669' },
+  reserveBox: { backgroundColor: '#FEF3C7', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  reserveLabel:  { fontSize: 12, color: '#92400E', fontWeight: '600' },
+  reserveAmount: { fontSize: 14, fontWeight: '800', color: '#92400E' },
+});
+
+const GRADE_STYLES = {
+  A: { color: '#059669', backgroundColor: '#D1FAE5' },
+  B: { color: '#2563EB', backgroundColor: '#DBEAFE' },
+  C: { color: '#D97706', backgroundColor: '#FEF3C7' },
+  D: { color: '#EF4444', backgroundColor: '#FEE2E2' },
+} as const;
 
 const goalModal = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)', padding: 24 },
