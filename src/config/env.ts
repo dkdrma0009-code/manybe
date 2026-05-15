@@ -48,11 +48,12 @@ export const ENV = {
   APP_SCHEME: 'manybe',
 
   // Web OAuth redirect — window.location.origin is correct for both dev and prod web.
+  // Guard against React Native runtimes where window exists but window.location is undefined.
   // Ensure both origins are registered in Supabase → Auth → URL Configuration.
   //   Dev:  http://localhost:8081 (or exp://...)
   //   Prod: https://app.manybe.site
   WEB_OAUTH_REDIRECT:
-    typeof window !== 'undefined' ? window.location.origin : 'https://app.manybe.site',
+    (typeof window !== 'undefined' && window.location?.origin) || 'https://app.manybe.site',
 
   // Mobile OAuth redirect (used with Linking.createURL — registered natively)
   MOBILE_OAUTH_PATH: 'auth/callback',
