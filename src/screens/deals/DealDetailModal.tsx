@@ -7,6 +7,10 @@ import {
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
 import PipelineStepper from '../../components/PipelineStepper';
+import { BrandHistoryCard } from '../../components/BrandHistoryCard';
+import { DealHealthBadge } from '../../components/DealHealthBadge';
+import { computeDealHealth } from '../../utils/dealHealth';
+import { useBrandHistory } from '../../hooks/useBrandHistory';
 import {
   PIPELINE_STAGES, STAGE_INDEX, STAGE_CONFIG,
   ADVANCE_CTA, SUCCESS_MESSAGES,
@@ -20,6 +24,7 @@ export interface DealDetailData {
   endDate: string;
   status: string;
   avatarColor: string;
+  createdAt: string;
 }
 
 interface Props {
@@ -27,9 +32,10 @@ interface Props {
   deal: DealDetailData;
   onClose: () => void;
   onSuccess: () => void;
+  onNavigateRevenue?: () => void;
+  userId?: string;
+  onNavigateBrand?: (brand: string) => void;
 }
-
-// PLAN_GATE: settlement management — uploaded→settled transition and settlement tracking
 
 const STATUS_LABEL_TO_VALUE: Record<string, string> = {
   '문의': 'inquiry', '검토중': 'reviewing', '진행중': 'in_progress',
@@ -47,20 +53,33 @@ function rawToDisplay(isoOrEmpty: string) {
   return d.toISOString().slice(0, 10);
 }
 
-export default function DealDetailModal({ visible, deal, onClose, onSuccess }: Props) {
-  const [brand, setBrand]     = useState(deal.brand);
-  const [title, setTitle]     = useState(deal.title);
-  const [amount, setAmount]   = useState(formatAmount(deal.amount));
+export default function DealDetailModal({ visible, deal, onClose, onSuccess, onNavigateRevenue, userId, onNavigateBrand }: Props) {
+  const [brand, setBrand]       = useState(deal.brand);
+  const [title, setTitle]       = useState(deal.title);
+  const [amount, setAmount]     = useState(formatAmount(deal.amount));
   const originalStatus = STATUS_LABEL_TO_VALUE[deal.status] ?? deal.status ?? 'reviewing';
-  const [status, setStatus]   = useState(originalStatus);
+  const [status, setStatus]     = useState(originalStatus);
   const [deadline, setDeadline] = useState(rawToDisplay(deal.endDate));
-  const [saving, setSaving]   = useState(false);
+  const [saving, setSaving]     = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError]       = useState('');
+  const [savedStage, setSavedStage] = useState<string | null>(null);
 
   const isAdvancing = (STAGE_INDEX[status] ?? 0) > (STAGE_INDEX[originalStatus] ?? 0);
   const saveBtnLabel = isAdvancing ? (ADVANCE_CTA[status] ?? '저장하기') : '저장하기';
-  const [savedStage, setSavedStage] = useState<string | null>(null);
+
+  const { stats: brandStats } = useBrandHistory(userId, deal.brand);
+  const health = computeDealHealth(
+    { status: originalStatus, endDate: deal.endDate || null, amount: deal.amount, createdAt: deal.createdAt },
+    brandStats,
+  );
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isOverdue = !!deadline && deadline < todayStr && originalStatus !== 'settled';
+  const showSettlement = originalStatus === 'uploaded' || originalStatus === 'settled';
+  const rawAmount = parseInt(amount.replace(/[^0-9]/g, '')) || 0;
+  const taxAmt = Math.round(rawAmount * 0.033);
+  const netAmt = rawAmount - taxAmt;
 
   function handleDelete() {
     Alert.alert('협찬 삭제', `"${deal.brand}" 협찬을 삭제하시겠습니까?`, [
@@ -83,27 +102,62 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess }: P
     if (!title.trim()) { setError('제목을 입력해주세요'); return; }
     setSaving(true);
     setError('');
+
     const { error: err } = await supabase.from('deals').update({
       brand: brand.trim(),
       title: title.trim(),
-      amount: parseInt(amount.replace(/[^0-9]/g, '')) || 0,
+      amount: rawAmount,
       status,
       end_date: deadline || null,
     }).eq('id', deal.id);
+
     setSaving(false);
     if (err) { setError(err.message); return; }
-    const deadlineChanged = deadline !== rawToDisplay(deal.endDate);
-    if (deadlineChanged && deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline.trim())) {
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData.user) {
+
+    // Get user once for all schedule operations
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+
+    if (uid) {
+      // Create deadline schedule if end_date changed
+      const deadlineChanged = deadline !== rawToDisplay(deal.endDate);
+      if (deadlineChanged && deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline.trim())) {
         await supabase.from('schedules').insert({
-          user_id: userData.user.id,
+          user_id: uid,
           title: `[${brand.trim()}] 협찬 마감`,
           type: 'deadline',
           start_time: new Date(`${deadline.trim()}T09:00:00`).toISOString(),
         });
       }
+
+      // Auto-create workflow milestone schedule on stage advance
+      if (isAdvancing) {
+        const nowISO = new Date().toISOString();
+        if (status === 'in_progress') {
+          await supabase.from('schedules').insert({
+            user_id: uid,
+            title: `[${brand.trim()}] 콘텐츠 제작 시작`,
+            type: 'content',
+            start_time: nowISO,
+          });
+        } else if (status === 'uploaded') {
+          await supabase.from('schedules').insert({
+            user_id: uid,
+            title: `[${brand.trim()}] 콘텐츠 업로드 완료`,
+            type: 'content',
+            start_time: nowISO,
+          });
+        } else if (status === 'settled') {
+          await supabase.from('schedules').insert({
+            user_id: uid,
+            title: `[${brand.trim()}] 정산 완료`,
+            type: 'other',
+            start_time: nowISO,
+          });
+        }
+      }
     }
+
     if (isAdvancing) {
       setSavedStage(status);
       setTimeout(() => { setSavedStage(null); onSuccess(); }, 1400);
@@ -133,7 +187,27 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess }: P
             </TouchableOpacity>
           </View>
 
+          {/* Health badge */}
+          {originalStatus !== 'settled' && (
+            <View style={styles.healthRow}>
+              <DealHealthBadge health={health} showInsights={health.insights.length > 0} />
+            </View>
+          )}
+
+          {/* Overdue warning */}
+          {isOverdue && (
+            <View style={styles.overdueBanner}>
+              <Text style={styles.overdueIcon}>⚠</Text>
+              <Text style={styles.overdueText}>마감일이 지났어요 · 진행 단계를 업데이트하거나 일정을 조정하세요</Text>
+            </View>
+          )}
+
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <BrandHistoryCard
+              userId={userId}
+              brand={deal.brand}
+              onViewAll={onNavigateBrand ? () => { onClose(); onNavigateBrand(deal.brand); } : undefined}
+            />
             <Field label="브랜드명 *" value={brand} onChangeText={setBrand} placeholder="예: 삼성전자" />
             <Field label="제목 *" value={title} onChangeText={setTitle} placeholder="예: 갤럭시 리뷰 협찬" />
             <Field
@@ -147,6 +221,25 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess }: P
 
             <Text style={styles.fieldLabel}>협찬 진행 단계</Text>
             <PipelineStepper status={status} onChange={setStatus} />
+
+            {/* Settlement section — shown when deal is uploaded or settled */}
+            {showSettlement && rawAmount > 0 && (
+              <View style={styles.settlementCard}>
+                <Text style={styles.settlementTitle}>정산 예상</Text>
+                <View style={styles.settlementRow}>
+                  <Text style={styles.settlementLabel}>정산 금액</Text>
+                  <Text style={styles.settlementValue}>{rawAmount.toLocaleString('ko-KR')}원</Text>
+                </View>
+                <View style={styles.settlementRow}>
+                  <Text style={styles.settlementLabel}>세금 공제 (3.3%)</Text>
+                  <Text style={styles.settlementTax}>−{taxAmt.toLocaleString('ko-KR')}원</Text>
+                </View>
+                <View style={[styles.settlementRow, styles.settlementNetRow]}>
+                  <Text style={styles.settlementNetLabel}>실수령 예상</Text>
+                  <Text style={styles.settlementNet}>{netAmt.toLocaleString('ko-KR')}원</Text>
+                </View>
+              </View>
+            )}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -174,22 +267,36 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess }: P
             </View>
             <View style={{ height: 32 }} />
           </ScrollView>
-        {savedStage && (
-          <View style={styles.successOverlay}>
-            <View style={[styles.successBadge, { backgroundColor: STAGE_CONFIG[savedStage]?.bg ?? '#F3F4F6' }]}>
-              <Text style={[styles.successCheck, { color: STAGE_CONFIG[savedStage]?.color ?? '#6B7280' }]}>✓</Text>
+
+          {savedStage && (
+            <View style={styles.successOverlay}>
+              <View style={[styles.successBadge, { backgroundColor: STAGE_CONFIG[savedStage]?.bg ?? '#F3F4F6' }]}>
+                <Text style={[styles.successCheck, { color: STAGE_CONFIG[savedStage]?.color ?? '#6B7280' }]}>✓</Text>
+              </View>
+              <Text style={styles.successTitle}>{SUCCESS_MESSAGES[savedStage] ?? '저장됐어요'}</Text>
+              <View style={[styles.successStagePill, { backgroundColor: STAGE_CONFIG[savedStage]?.bg ?? '#F3F4F6' }]}>
+                <Text style={[styles.successStageText, { color: STAGE_CONFIG[savedStage]?.color ?? '#6B7280' }]}>
+                  {PIPELINE_STAGES.find((s) => s.value === savedStage)?.short}
+                </Text>
+              </View>
+              {savedStage === 'settled' ? (
+                <>
+                  <Text style={styles.successHint}>수익 탭에서 정산금액을 기록해두세요</Text>
+                  {onNavigateRevenue && (
+                    <TouchableOpacity
+                      style={styles.revenueBtn}
+                      onPress={() => { setSavedStage(null); onSuccess(); onNavigateRevenue(); }}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.revenueBtnText}>수익 기록하기 →</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : (
+                <Text style={styles.successHint}>캘린더에 자동으로 일정이 추가됐어요</Text>
+              )}
             </View>
-            <Text style={styles.successTitle}>{SUCCESS_MESSAGES[savedStage] ?? '저장됐어요'}</Text>
-            <View style={[styles.successStagePill, { backgroundColor: STAGE_CONFIG[savedStage]?.bg ?? '#F3F4F6' }]}>
-              <Text style={[styles.successStageText, { color: STAGE_CONFIG[savedStage]?.color ?? '#6B7280' }]}>
-                {PIPELINE_STAGES.find((s) => s.value === savedStage)?.short}
-              </Text>
-            </View>
-            {savedStage === 'settled' && (
-              <Text style={styles.successHint}>수익 탭에서 정산금액을 기록해두세요</Text>
-            )}
-          </View>
-        )}
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -219,12 +326,21 @@ const styles = StyleSheet.create({
   overlay:  { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet:    { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, maxHeight: '92%' },
   handle:   { width: 40, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB', alignSelf: 'center', marginTop: 12, marginBottom: 16 },
-  header:   { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
+  header:   { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
   avatar:   { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 15, fontWeight: '800', color: '#fff' },
   headerTitle: { fontSize: 16, fontWeight: '800', color: '#1A1A2E' },
   headerSub:   { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
   closeBtn: { fontSize: 18, color: '#9CA3AF', padding: 4 },
+
+  overdueBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FBE5E5', borderRadius: 12, padding: 12, marginBottom: 14,
+    borderWidth: 1, borderColor: '#FCA5A5',
+  },
+  overdueIcon: { fontSize: 14 },
+  overdueText: { fontSize: 12, fontWeight: '600', color: '#C13C3C', flex: 1, lineHeight: 18 },
+
   fieldGroup: { marginBottom: 14 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: '#7C6FCD', marginBottom: 6 },
   input: {
@@ -233,6 +349,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 15, color: '#15131E',
   },
+
+  settlementCard: {
+    backgroundColor: '#F0FDF4', borderRadius: 14, padding: 14, marginBottom: 14,
+    borderWidth: 1, borderColor: '#BBF7D0', gap: 8,
+  },
+  settlementTitle: { fontSize: 11, fontWeight: '700', color: '#2E8C5D', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  settlementRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  settlementLabel: { fontSize: 13, color: '#4B5563' },
+  settlementValue: { fontSize: 13, fontWeight: '600', color: '#1A1A2E' },
+  settlementTax:   { fontSize: 13, fontWeight: '600', color: '#C13C3C' },
+  settlementNetRow:   { borderTopWidth: 1, borderTopColor: '#BBF7D0', paddingTop: 8, marginTop: 2 },
+  settlementNetLabel: { fontSize: 14, fontWeight: '700', color: '#2E8C5D' },
+  settlementNet:      { fontSize: 16, fontWeight: '800', color: '#2E8C5D' },
+
   successOverlay: {
     position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
     backgroundColor: '#fff',
@@ -245,7 +375,14 @@ const styles = StyleSheet.create({
   successTitle:     { fontSize: 22, fontWeight: '800', color: '#1A1A2E', textAlign: 'center' },
   successStagePill: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
   successStageText: { fontSize: 14, fontWeight: '700' },
-  successHint:      { fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 20, marginTop: 4 },
+  successHint:      { fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 20 },
+  revenueBtn: {
+    backgroundColor: '#2E8C5D', borderRadius: 14,
+    paddingHorizontal: 24, paddingVertical: 13, marginTop: 4,
+  },
+  revenueBtnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+
+  healthRow: { marginBottom: 12 },
   error:   { fontSize: 13, color: '#DC2626', marginBottom: 12, textAlign: 'center' },
   btnRow:  { flexDirection: 'row', gap: 10, marginTop: 8 },
   deleteBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#FEE2E2', alignItems: 'center' },

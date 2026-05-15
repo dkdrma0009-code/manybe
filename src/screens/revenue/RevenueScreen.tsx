@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import Svg, { Path, G } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useRevenueData } from '../../hooks/useRevenueData';
+import { useRealtime } from '../../context/RealtimeContext';
 import AddRevenueModal from './AddRevenueModal';
 import { colors } from '../../constants/colors';
 
@@ -185,6 +186,8 @@ export default function RevenueScreen() {
 
   const selected = MONTHS[selectedIdx];
   const { data, loading, refetch, saveGoal } = useRevenueData(user?.id, selected.year, selected.month);
+  const { revenuesVersion } = useRealtime();
+  useEffect(() => { refetch(); }, [revenuesVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
 

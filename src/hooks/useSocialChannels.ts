@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../api/supabase';
+import { ENV } from '../config/env';
+import { makeLogger } from '../utils/logger';
+
+const log = makeLogger('useSocialChannels');
 
 export interface SocialChannel {
   id: string;
@@ -7,13 +11,14 @@ export interface SocialChannel {
   channel_id: string;
   channel_name: string;
   channel_url: string;
+  handle: string | null;
   subscriber_count: number;
   view_count: number;
   video_count: number;
   updated_at: string;
 }
 
-const YOUTUBE_API_KEY = process.env.EXPO_PUBLIC_YOUTUBE_API_KEY ?? '';
+const YOUTUBE_API_KEY = ENV.YOUTUBE_API_KEY;
 
 function formatCount(n: number): string {
   if (n >= 100000000) return `${(n / 100000000).toFixed(1)}억`;
@@ -42,6 +47,7 @@ export async function fetchYouTubeChannel(input: string): Promise<{
   channel_id: string;
   channel_name: string;
   channel_url: string;
+  handle: string | null;
   subscriber_count: number;
   view_count: number;
   video_count: number;
@@ -50,8 +56,7 @@ export async function fetchYouTubeChannel(input: string): Promise<{
 
   let apiUrl: string;
   if (extracted.startsWith('@')) {
-    // handle 검색
-    const handle = extracted.slice(1);
+    const handle = encodeURIComponent(extracted.slice(1));
     apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${handle}&key=${YOUTUBE_API_KEY}`;
   } else if (extracted.startsWith('UC')) {
     apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${extracted}&key=${YOUTUBE_API_KEY}`;
@@ -62,6 +67,8 @@ export async function fetchYouTubeChannel(input: string): Promise<{
 
   const res = await fetch(apiUrl);
   const json = await res.json();
+
+  log.debug('fetchYouTubeChannel raw response:', JSON.stringify(json, null, 2));
 
   if (json.error) throw new Error(json.error.message);
 
@@ -76,14 +83,21 @@ export async function fetchYouTubeChannel(input: string): Promise<{
   const item = json.items?.[0];
   if (!item) return null;
 
-  return {
+  log.debug('fetchYouTubeChannel raw item:', JSON.stringify(item, null, 2));
+  log.debug('fetchYouTubeChannel statistics:', item.statistics);
+
+  const result = {
     channel_id: item.id,
     channel_name: item.snippet.title,
     channel_url: `https://www.youtube.com/channel/${item.id}`,
-    subscriber_count: parseInt(item.statistics.subscriberCount ?? '0'),
-    view_count: parseInt(item.statistics.viewCount ?? '0'),
-    video_count: parseInt(item.statistics.videoCount ?? '0'),
+    handle: item.snippet.customUrl ?? null,
+    subscriber_count: parseInt(item.statistics?.subscriberCount ?? '0'),
+    view_count: parseInt(item.statistics?.viewCount ?? '0'),
+    video_count: parseInt(item.statistics?.videoCount ?? '0'),
   };
+
+  log.debug('fetchYouTubeChannel mapped result:', result);
+  return result;
 }
 
 export function useSocialChannels(userId: string | undefined) {
@@ -93,11 +107,13 @@ export function useSocialChannels(userId: string | undefined) {
   const fetch = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('social_channels')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
+    log.debug('fetch result:', { userId, count: data?.length });
+    if (error) log.error('fetch error:', error);
     setChannels((data as SocialChannel[]) ?? []);
     setLoading(false);
   }, [userId]);
@@ -110,14 +126,17 @@ export function useSocialChannels(userId: string | undefined) {
       const info = await fetchYouTubeChannel(input);
       if (!info) return '채널을 찾을 수 없습니다';
 
+      const payload = {
+        user_id: userId,
+        platform: 'youtube',
+        ...info,
+        updated_at: new Date().toISOString(),
+      };
+      log.debug('syncChannel upsert payload:', payload);
+
       const { error } = await supabase
         .from('social_channels')
-        .upsert({
-          user_id: userId,
-          platform: 'youtube',
-          ...info,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,platform' });
+        .upsert(payload, { onConflict: 'user_id,platform' });
 
       if (error) throw error;
       await fetch();

@@ -14,6 +14,7 @@ export interface DealItem {
   status: DisplayStatus;
   dbStatus: Deal['status'];
   avatarColor: string;
+  createdAt: string;
 }
 
 export interface DealsData {
@@ -68,7 +69,7 @@ export function useDealsData(userId: string | undefined) {
     try {
       const { data: rows, error: err } = await supabase
         .from('deals')
-        .select('id, brand, title, amount, status, end_date')
+        .select('id, brand, title, amount, status, end_date, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -84,6 +85,7 @@ export function useDealsData(userId: string | undefined) {
         status: STATUS_MAP[r.status as Deal['status']] ?? '검토중',
         dbStatus: r.status as Deal['status'],
         avatarColor: avatarColor(r.brand),
+        createdAt: r.created_at,
       }));
 
       const totalAmount = deals.reduce((s, d) => s + d.amount, 0);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useDealsData, DisplayStatus, DealItem } from '../../hooks/useDealsData';
+import { computeAutoSuggestions, AutoSuggestion } from '../../services/WorkflowAutomation';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
 import { typography } from '../../constants/typography';
@@ -20,6 +21,7 @@ import DealDetailModal, { DealDetailData } from './DealDetailModal';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { useRealtime } from '../../context/RealtimeContext';
 
 const PIPELINE_ORDER: DisplayStatus[] = ['문의', '검토중', '진행중', '업로드됨', '정산완료'];
 
@@ -299,6 +301,86 @@ const sectionHdr = StyleSheet.create({
   hintText:  { ...typography.caption, fontWeight: '600' },
 });
 
+// ─── Auto-suggestion banner ───────────────────────────────────────────────────
+
+function AutoSuggestBanner({
+  suggestions,
+  onPress,
+  onDismiss,
+}: {
+  suggestions: AutoSuggestion[];
+  onPress: (s: AutoSuggestion) => void;
+  onDismiss: (dealId: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (suggestions.length === 0) return null;
+
+  return (
+    <View style={asbStyle.wrapper}>
+      <TouchableOpacity style={asbStyle.header} onPress={() => setExpanded((v) => !v)} activeOpacity={0.8}>
+        <View style={asbStyle.headerLeft}>
+          <View style={asbStyle.badge}>
+            <Text style={asbStyle.badgeText}>{suggestions.length}</Text>
+          </View>
+          <Text style={asbStyle.title}>상태 업데이트 제안</Text>
+        </View>
+        <Text style={asbStyle.chevron}>{expanded ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+      {expanded && suggestions.map((s) => (
+        <View key={s.dealId} style={asbStyle.row}>
+          <View style={asbStyle.rowContent}>
+            <Text style={asbStyle.brand} numberOfLines={1}>{s.brand}</Text>
+            <Text style={asbStyle.reason} numberOfLines={2}>{s.reason}</Text>
+            <View style={asbStyle.statusRow}>
+              <Text style={asbStyle.statusFrom}>{s.currentStatus}</Text>
+              <Text style={asbStyle.arrow}>→</Text>
+              <Text style={asbStyle.statusTo}>{s.suggestedStatus}</Text>
+              {s.confidence === 'high' && (
+                <View style={asbStyle.confidencePill}>
+                  <Text style={asbStyle.confidenceText}>확실</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={asbStyle.actions}>
+            <TouchableOpacity style={asbStyle.applyBtn} onPress={() => onPress(s)} activeOpacity={0.8}>
+              <Text style={asbStyle.applyText}>업데이트</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={asbStyle.dismissBtn} onPress={() => onDismiss(s.dealId)} activeOpacity={0.8}>
+              <Text style={asbStyle.dismissText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const asbStyle = StyleSheet.create({
+  wrapper:       { backgroundColor: '#FFFBEB', borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: '#FDE68A', overflow: 'hidden' },
+  header:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12 },
+  headerLeft:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  badge:         { backgroundColor: '#F59E0B', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  badgeText:     { fontSize: 11, fontWeight: '800', color: '#fff' },
+  title:         { fontSize: 13, fontWeight: '700', color: '#92400E' },
+  chevron:       { fontSize: 11, color: '#B45309' },
+  row:           { paddingHorizontal: 14, paddingBottom: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderTopWidth: 1, borderTopColor: '#FDE68A', paddingTop: 12 },
+  rowContent:    { flex: 1, gap: 4 },
+  brand:         { fontSize: 13, fontWeight: '700', color: '#1A1A2E' },
+  reason:        { fontSize: 12, color: '#6B7280', lineHeight: 18 },
+  statusRow:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  statusFrom:    { fontSize: 11, color: '#6B7280', backgroundColor: '#F3F4F6', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  arrow:         { fontSize: 11, color: '#9CA3AF' },
+  statusTo:      { fontSize: 11, fontWeight: '700', color: '#2E8C5D', backgroundColor: '#DEEFE5', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  confidencePill:{ backgroundColor: '#FDE68A', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  confidenceText:{ fontSize: 10, fontWeight: '700', color: '#92400E' },
+  actions:       { flexDirection: 'column', gap: 6 },
+  applyBtn:      { backgroundColor: '#F59E0B', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, alignItems: 'center' },
+  applyText:     { fontSize: 11, fontWeight: '700', color: '#fff' },
+  dismissBtn:    { paddingHorizontal: 10, paddingVertical: 6, alignItems: 'center' },
+  dismissText:   { fontSize: 13, color: '#9CA3AF' },
+});
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function DealsScreen() {
@@ -306,9 +388,31 @@ export default function DealsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const { data, loading, refetch } = useDealsData(user?.id);
+  const { dealsVersion } = useRealtime();
+  React.useEffect(() => { refetch(); }, [dealsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeFilter, setActiveFilter] = useState<FilterTab>('전체');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<DealDetailData | null>(null);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
+
+  const autoSuggestions = useMemo(() => {
+    if (loading || data.deals.length === 0) return [];
+    const asDeals = data.deals.map((d) => ({
+      id: d.id, brand: d.brand, title: d.title,
+      status: d.dbStatus, end_date: d.endDate || null,
+      amount: d.amount, created_at: d.createdAt,
+    }));
+    return computeAutoSuggestions(asDeals).filter((s) => !dismissedSuggestions.has(s.dealId));
+  }, [data.deals, loading, dismissedSuggestions]);
+
+  function handleSuggestionPress(s: AutoSuggestion) {
+    const deal = data.deals.find((d) => d.id === s.dealId);
+    if (deal) setSelectedDeal(deal);
+  }
+
+  function handleSuggestionDismiss(dealId: string) {
+    setDismissedSuggestions((prev) => new Set([...prev, dealId]));
+  }
 
   const filtered =
     activeFilter === '전체'
@@ -394,6 +498,12 @@ export default function DealsScreen() {
           onSelect={setActiveFilter}
         />
 
+        <AutoSuggestBanner
+          suggestions={autoSuggestions}
+          onPress={handleSuggestionPress}
+          onDismiss={handleSuggestionDismiss}
+        />
+
         <View style={styles.list}>
           {renderDeals()}
         </View>
@@ -415,6 +525,15 @@ export default function DealsScreen() {
           deal={selectedDeal}
           onClose={() => setSelectedDeal(null)}
           onSuccess={() => { setSelectedDeal(null); refetch(); }}
+          onNavigateRevenue={() => {
+            setSelectedDeal(null);
+            navigation.navigate('Main', { screen: '수익' } as any);
+          }}
+          userId={user?.id}
+          onNavigateBrand={(brand) => {
+            setSelectedDeal(null);
+            navigation.navigate('BrandDetail', { brand });
+          }}
         />
       )}
 

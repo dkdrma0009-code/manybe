@@ -1,8 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { supabase } from '../api/supabase';
+import { scheduleDeadlineReminders, DealForNotification } from '../services/NotificationScheduler';
+import { refreshSmartReminders } from '../services/SmartReminderEngine';
+import { NotificationAnalytics } from '../services/NotificationAnalytics';
+import type { NotifCategory } from '../types/notifications';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -46,57 +50,17 @@ async function registerPushToken(userId: string) {
   }
 }
 
-async function scheduleDealDeadlineNotifications(userId: string) {
-  await Notifications.cancelAllScheduledNotificationsAsync();
-
-  const now = new Date();
-  const inSevenDays = new Date(now);
-  inSevenDays.setDate(inSevenDays.getDate() + 7);
-
-  const { data: deals } = await supabase
+async function refreshAll(userId: string): Promise<void> {
+  const { data } = await supabase
     .from('deals')
-    .select('id, brand, title, end_date')
+    .select('id, brand, title, status, end_date, created_at')
     .eq('user_id', userId)
-    .in('status', ['inquiry', 'reviewing', 'in_progress'])
-    .gte('end_date', now.toISOString().split('T')[0])
-    .lte('end_date', inSevenDays.toISOString().split('T')[0]);
+    .neq('status', 'settled');
 
-  if (!deals?.length) return;
-
-  for (const deal of deals) {
-    const deadlineDate = new Date(deal.end_date);
-    deadlineDate.setHours(9, 0, 0, 0);
-
-    const name = deal.brand || deal.title || '협찬';
-
-    // D-3 알림
-    const d3Date = new Date(deadlineDate);
-    d3Date.setDate(d3Date.getDate() - 3);
-    if (d3Date > now) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `⏰ 협찬 마감 D-3`,
-          body: `${name} 협찬 마감 3일 전입니다`,
-          sound: true,
-          data: { dealId: deal.id, type: 'deal_deadline' },
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d3Date },
-      });
-    }
-
-    // D-0 알림 (당일)
-    if (deadlineDate > now) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `🔔 협찬 마감 D-0`,
-          body: `${name} 협찬이 오늘 마감됩니다`,
-          sound: true,
-          data: { dealId: deal.id, type: 'deal_deadline' },
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: deadlineDate },
-      });
-    }
-  }
+  await Promise.allSettled([
+    data?.length ? scheduleDeadlineReminders(data as DealForNotification[]) : Promise.resolve(),
+    refreshSmartReminders(userId),
+  ]);
 }
 
 export function useNotifications(userId: string | undefined) {
@@ -107,12 +71,31 @@ export function useNotifications(userId: string | undefined) {
     if (!userId) return;
 
     registerPushToken(userId);
-    scheduleDealDeadlineNotifications(userId);
+    refreshAll(userId);
 
-    receivedListener.current = Notifications.addNotificationReceivedListener(() => {});
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {});
+    const appStateHandler = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (next === 'active') refreshAll(userId);
+    });
+
+    receivedListener.current = Notifications.addNotificationReceivedListener((notif) => {
+      const data = notif.request.content.data;
+      const category = (data?.type as NotifCategory | undefined) ?? 'unknown';
+      NotificationAnalytics.track('notification_opened', category);
+    });
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      const category = (data?.type as NotifCategory | undefined) ?? 'unknown';
+      const actionId = response.actionIdentifier;
+      if (actionId === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+        NotificationAnalytics.opened(category, data?.dealId as string | undefined);
+      } else {
+        NotificationAnalytics.actioned(category, actionId);
+      }
+    });
 
     return () => {
+      appStateHandler.remove();
       receivedListener.current?.remove();
       responseListener.current?.remove();
     };

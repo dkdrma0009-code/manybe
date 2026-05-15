@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { markMilestone, trackFunnelEvent } from '../../services/ActivationService';
 import { colors } from '../../constants/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -67,10 +68,18 @@ export default function OnboardingScreen({ onComplete }: Props) {
   }
 
   async function handleComplete() {
-    if (platform) await AsyncStorage.setItem('creator_platform', platform);
-    if (scale)    await AsyncStorage.setItem('creator_scale', scale);
+    if (platform)  await AsyncStorage.setItem('creator_platform', platform);
+    if (scale)     await AsyncStorage.setItem('creator_scale', scale);
     if (frequency) await AsyncStorage.setItem('inquiry_frequency', frequency);
     await AsyncStorage.setItem('onboarding_complete', 'true');
+    await Promise.all([
+      markMilestone('onboarding_complete'),
+      trackFunnelEvent('onboarding_completed', {
+        platform: platform ?? 'unknown',
+        scale:    scale    ?? 'unknown',
+        frequency: frequency ?? 'unknown',
+      }),
+    ]);
     onComplete();
   }
 
@@ -407,7 +416,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center',
     shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35, shadowRadius: 12, elevation: 6,
-    marginTop: 'auto',
+    marginTop: 32,
   },
   btnDisabled:    { opacity: 0.45, shadowOpacity: 0 },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },

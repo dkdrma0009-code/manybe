@@ -5,7 +5,11 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../hooks/useAuth';
+import * as Linking from 'expo-linking';
+import { useAuth, handleOAuthCallback } from '../hooks/useAuth';
+import { makeLogger } from '../utils/logger';
+
+const log = makeLogger('DeepLink');
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import TabNavigator from './TabNavigator';
@@ -15,8 +19,15 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 import InquiryScreen from '../screens/inquiries/InquiryScreen';
 import MediaKitEditScreen from '../screens/settings/MediaKitEditScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
+import BrandDetailScreen from '../screens/brands/BrandDetailScreen';
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
+import { RealtimeProvider } from '../context/RealtimeContext';
+import { SubscriptionProvider } from '../context/SubscriptionContext';
+import { useNotifications } from '../hooks/useNotifications';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { colors } from '../constants/colors';
 import type { TabParamList } from './TabNavigator';
+import UpgradeScreen from '../screens/paywall/UpgradeScreen';
 
 const DEV_BYPASS_AUTH = false;
 
@@ -32,6 +43,9 @@ export type RootStackParamList = {
   Profile: undefined;
   Inquiries: undefined;
   MediaKitEdit: undefined;
+  BrandDetail: { brand: string };
+  Notifications: undefined;
+  Upgrade: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -44,6 +58,11 @@ function AuthNavigator() {
       <AuthStack.Screen name="Signup" component={SignupScreen} />
     </AuthStack.Navigator>
   );
+}
+
+function NotificationsInit({ userId }: { userId: string | undefined }) {
+  useNotifications(userId);
+  return null;
 }
 
 function MainNavigator() {
@@ -75,6 +94,21 @@ function MainNavigator() {
         component={MediaKitEditScreen}
         options={{ presentation: 'card' }}
       />
+      <RootStack.Screen
+        name="BrandDetail"
+        component={BrandDetailScreen}
+        options={{ presentation: 'card' }}
+      />
+      <RootStack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ presentation: 'card' }}
+      />
+      <RootStack.Screen
+        name="Upgrade"
+        component={UpgradeScreen}
+        options={{ presentation: 'modal' }}
+      />
     </RootStack.Navigator>
   );
 }
@@ -82,11 +116,30 @@ function MainNavigator() {
 export default function AppNavigator() {
   const { session, loading } = useAuth();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
-
   useEffect(() => {
     AsyncStorage.getItem('onboarding_complete').then((val) => {
       setOnboardingDone(val === 'true');
     });
+  }, []);
+
+  // Fallback: catch OAuth deep link when ASWebAuthenticationSession
+  // fails to intercept exp:// and iOS delivers it as a system deep link.
+  useEffect(() => {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      if (!url.includes('access_token') && !url.includes('auth/callback')) return;
+      log.info('OAuth callback received:', url);
+      handleOAuthCallback(url);
+    });
+
+    // Handle the case where the app was cold-launched via the deep link.
+    Linking.getInitialURL().then((url) => {
+      if (!url) return;
+      if (!url.includes('access_token') && !url.includes('auth/callback')) return;
+      log.info('Initial URL OAuth callback:', url);
+      handleOAuthCallback(url);
+    });
+
+    return () => subscription.remove();
   }, []);
 
   if (onboardingDone === null || (!DEV_BYPASS_AUTH && loading)) {
@@ -103,15 +156,22 @@ export default function AppNavigator() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        {!onboardingDone ? (
-          <OnboardingScreen onComplete={() => setOnboardingDone(true)} />
-        ) : !isAuthed ? (
-          <AuthNavigator />
-        ) : (
-          <MainNavigator />
-        )}
-      </NavigationContainer>
+      <ErrorBoundary>
+        <NavigationContainer>
+          {!onboardingDone ? (
+            <OnboardingScreen onComplete={() => setOnboardingDone(true)} />
+          ) : !isAuthed ? (
+            <AuthNavigator />
+          ) : (
+            <SubscriptionProvider userId={session?.user?.id}>
+              <RealtimeProvider userId={session?.user?.id}>
+                <NotificationsInit userId={session?.user?.id} />
+                <MainNavigator />
+              </RealtimeProvider>
+            </SubscriptionProvider>
+          )}
+        </NavigationContainer>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

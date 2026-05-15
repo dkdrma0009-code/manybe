@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { makeLogger } from '../../utils/logger';
+
+const log = makeLogger('YouTubeConnectScreen');
 import {
   View,
   Text,
@@ -94,6 +97,8 @@ export default function YouTubeConnectScreen({ navigation }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  log.debug('render:', { channelCount: channels.length, loading });
 
   async function handleConnect() {
     if (!input.trim()) return;

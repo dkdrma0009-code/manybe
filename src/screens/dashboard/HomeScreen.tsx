@@ -12,13 +12,30 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
-import { useHomeData, ActionItem } from '../../hooks/useHomeData';
+import { useHomeData } from '../../hooks/useHomeData';
 import { useSocialChannels } from '../../hooks/useSocialChannels';
+import { useTimeline } from '../../hooks/useTimeline';
+import { useAutomation } from '../../hooks/useAutomation';
+import { useOperationalContext } from '../../hooks/useOperationalContext';
+import { useBriefing } from '../../hooks/useBriefing';
+import { MorningBriefing } from '../../components/MorningBriefing';
+import { TimelineFeed } from '../../components/TimelineFeed';
+import { TimelineItem } from '../../types/timeline';
+import { SmartRecommendations } from '../../components/SmartRecommendations';
+import { SmartRecommendation } from '../../types/automation';
+import { DailyDigest } from '../../components/DailyDigest';
+import { FocusCard } from '../../components/FocusCard';
+import { FocusItem } from '../../services/DecisionEngine';
+import { useDecisionEngine } from '../../hooks/useDecisionEngine';
+import { recordEvent } from '../../services/OperationalMemory';
+import { useActivation } from '../../hooks/useActivation';
+import { ActivationChecklist } from '../../components/ActivationChecklist';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
 import { typography } from '../../constants/typography';
 import { shadows } from '../../constants/shadows';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+import { useRealtime } from '../../context/RealtimeContext';
 
 function formatWon(n: number): string {
   if (n >= 100000000) return `${Math.floor(n / 100000000)}억원`;
@@ -84,48 +101,6 @@ const wfs = StyleSheet.create({
   calm:    { fontSize: 16, color: tokens.ink4 },
 });
 
-// ─── Action card ──────────────────────────────────────────────────────────────
-
-function ActionCard({ item, onPress }: { item: ActionItem; onPress: () => void }) {
-  return (
-    <TouchableOpacity
-      style={[
-        action.card,
-        { backgroundColor: item.bg },
-        item.urgent && { borderWidth: 1.5, borderColor: item.color + '66' },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.82}
-    >
-      <View style={[action.iconBg, { backgroundColor: item.urgent ? item.color : item.bg }]}>
-        <Text style={action.icon}>{item.icon}</Text>
-      </View>
-      <View style={action.body}>
-        <Text style={[action.title, { color: item.color }]} numberOfLines={1}>{item.title}</Text>
-        <Text style={action.sub} numberOfLines={1}>{item.subtitle}</Text>
-      </View>
-      {item.urgent && <View style={action.urgentDot} />}
-      <Text style={[action.arrow, { color: item.color }]}>›</Text>
-    </TouchableOpacity>
-  );
-}
-
-const action = StyleSheet.create({
-  card: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderRadius: 14, padding: 14, marginBottom: 8,
-  },
-  iconBg: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', opacity: 0.85,
-  },
-  icon:      { fontSize: 18 },
-  body:      { flex: 1 },
-  title:     { ...typography.bodyStrong, marginBottom: 2 },
-  sub:       { ...typography.metadata, color: tokens.ink3 },
-  urgentDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: tokens.urgent },
-  arrow:     { fontSize: 20, fontWeight: '600' },
-});
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
@@ -133,6 +108,22 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { data, loading, refetch } = useHomeData(user?.id);
   const { channels, formatCount } = useSocialChannels(user?.id);
+  const { groups: timelineGroups, unreadCount, loading: timelineLoading, refetch: timelineRefetch, markRead } = useTimeline(user?.id);
+  const { recommendations, dismissRecommendation } = useAutomation(user?.id);
+  const { snapshot, refetch: ctxRefetch } = useOperationalContext(user?.id);
+  const { briefing, refetch: briefingRefetch } = useBriefing(user?.id);
+  const { focusItems, refetch: decisionRefetch } = useDecisionEngine(user?.id);
+  const { dealsVersion, inquiriesVersion } = useRealtime();
+  const activation = useActivation();
+  React.useEffect(() => { refetch(); timelineRefetch(); ctxRefetch(); decisionRefetch(); briefingRefetch(); }, [dealsVersion, inquiriesVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-mark activation milestones as data arrives
+  React.useEffect(() => {
+    if (loading) return;
+    if (data.dealCount > 0)      activation.mark('first_deal_added');
+    if (data.totalRevenue > 0)   activation.mark('first_revenue_recorded');
+    if (channels.length > 0)     activation.mark('channel_connected');
+  }, [loading, data.dealCount, data.totalRevenue, channels.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const userName =
@@ -141,20 +132,53 @@ export default function HomeScreen() {
   const deadlineCount = data.actionItems.filter(
     (i) => i.type === 'deal_deadline_today' || i.type === 'deal_deadline_week'
   ).length;
-  const totalPipelineValue = data.activeDeals.reduce((sum, d) => sum + d.amount, 0);
   const hasTodayDeadline = data.actionItems.some((i) => i.type === 'deal_deadline_today');
   const hasUrgentItems = hasTodayDeadline || data.newInquiryCount > 0;
 
-  const greetingSub =
-    data.newInquiryCount > 0
-      ? `새 협찬 문의 ${data.newInquiryCount}건이 도착했어요`
-      : hasTodayDeadline
-        ? '오늘 마감 협찬이 있어요'
-        : data.actionItems.length > 0
-          ? `처리할 항목 ${data.actionItems.length}개 있어요`
-          : data.activeDeals.length > 0
-            ? `협찬 ${data.activeDeals.length}건 순조롭게 진행 중`
-            : '새 협찬을 시작해보세요';
+  const greetingSub = snapshot?.summaryText
+    ?? (unreadCount > 0 ? `처리할 항목 ${unreadCount}건 있어요`
+      : hasTodayDeadline ? '오늘 마감 협찬이 있어요'
+      : data.activeDeals.length > 0 ? `협찬 ${data.activeDeals.length}건 순조롭게 진행 중`
+      : '새 협찬을 시작해보세요');
+
+  function handleTimelineItemPress(item: TimelineItem) {
+    if (!item.navigateTo) return;
+    const target = item.navigateTo;
+    if (target.screen === 'deals') navigation.navigate('Main', { screen: '협찬' } as any);
+    else if (target.screen === 'inquiries') navigation.navigate('Inquiries');
+    else if (target.screen === 'calendar') navigation.navigate('Main', { screen: '캘린더' } as any);
+    else if (target.screen === 'revenue') navigation.navigate('Main', { screen: '수익' } as any);
+    else if (target.screen === 'BrandDetail') navigation.navigate('BrandDetail', { brand: target.brand });
+  }
+
+  function handleFocusItemPress(item: FocusItem) {
+    if (item.navigateTo === 'deals')    navigation.navigate('Main', { screen: '협찬' } as any);
+    else if (item.navigateTo === 'revenue')   navigation.navigate('Main', { screen: '수익' } as any);
+    else if (item.navigateTo === 'inquiries') navigation.navigate('Inquiries');
+    else if (item.navigateTo === 'calendar')  navigation.navigate('Main', { screen: '캘린더' } as any);
+  }
+
+  function handleDigestNavigate(target: string) {
+    if (target === 'deals')    navigation.navigate('Main', { screen: '협찬' } as any);
+    else if (target === 'revenue')   navigation.navigate('Main', { screen: '수익' } as any);
+    else if (target === 'inquiries') navigation.navigate('Inquiries');
+    else if (target === 'calendar')  navigation.navigate('Main', { screen: '캘린더' } as any);
+  }
+
+  function handleRecommendationPress(rec: SmartRecommendation) {
+    recordEvent('recommendation_actioned', { entityId: rec.id, metadata: { recommendationType: rec.type } });
+    if (!rec.navigateTo) return;
+    if (rec.navigateTo === 'deals')    navigation.navigate('Main', { screen: '협찬' } as any);
+    else if (rec.navigateTo === 'revenue')   navigation.navigate('Main', { screen: '수익' } as any);
+    else if (rec.navigateTo === 'inquiries') navigation.navigate('Inquiries');
+    else if (rec.navigateTo === 'calendar')  navigation.navigate('Main', { screen: '캘린더' } as any);
+  }
+
+  function handleDismissRecommendation(id: string) {
+    const rec = recommendations.find((r) => r.id === id);
+    if (rec) recordEvent('recommendation_dismissed', { entityId: id, metadata: { recommendationType: rec.type } });
+    dismissRecommendation(id);
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -173,79 +197,90 @@ export default function HomeScreen() {
               </Text>
             )}
           </View>
-          <TouchableOpacity
-            style={styles.avatar}
-            onPress={() => navigation.navigate('Profile')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.bellBtn}
+              onPress={() => navigation.navigate('Notifications')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.bellIcon}>🔔</Text>
+              {unreadCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.avatar}
+              onPress={() => navigation.navigate('Profile')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* 시작 가이드 (activation checklist) */}
+        {!loading && !activation.isAllDone && (
+          <ActivationChecklist
+            state={activation.state}
+            pct={activation.pct}
+            completedCount={activation.completedCount}
+            totalCount={activation.totalCount}
+          />
+        )}
 
         {loading ? (
           <ActivityIndicator color={colors.primary} style={{ paddingVertical: 48 }} />
         ) : (
           <>
-            {/* 협찬 워크플로우 현황 */}
-            <WorkflowSummaryCard
-              activeCount={data.activeDeals.length}
-              deadlineCount={deadlineCount}
-              pendingSettlement={data.pendingSettlement}
-            />
-
-            {/* 오늘 처리할 항목 */}
-            {data.activeDeals.length > 0 && (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, hasUrgentItems && styles.sectionTitleUrgent]}>
-                    {hasUrgentItems ? '지금 처리하세요' : data.actionItems.length > 0 ? '처리할 항목' : '운영 현황'}
-                  </Text>
-                  {data.actionItems.length > 0 && (
-                    <View style={[styles.sectionBadge, hasUrgentItems && styles.sectionBadgeUrgent]}>
-                      <Text style={styles.sectionBadgeText}>{data.actionItems.length}</Text>
-                    </View>
-                  )}
-                </View>
-                {data.actionItems.length === 0 ? (
-                  <View style={styles.allClearCard}>
-                    <View style={styles.allClearIconWrap}>
-                      <Text style={styles.allClearIconText}>✓</Text>
-                    </View>
-                    <View style={styles.allClearBody}>
-                      <Text style={styles.allClearTitle}>처리할 항목이 없어요</Text>
-                      <Text style={styles.allClearSub}>
-                        협찬 {data.activeDeals.length}건
-                        {totalPipelineValue > 0 ? ` · ${formatWon(totalPipelineValue)} 파이프라인 운영 중` : ' 순조롭게 진행 중이에요'}
-                      </Text>
-                    </View>
-                  </View>
-                ) : (
-                  data.actionItems.map((item) => (
-                    <ActionCard
-                      key={item.id}
-                      item={item}
-                      onPress={() => {
-                        if (item.type === 'new_inquiry') {
-                          navigation.navigate('Inquiries');
-                        } else if (item.type === 'inquiry_pipeline') {
-                          navigation.navigate('Main', { screen: '협찬' } as any);
-                        } else if (
-                          item.type === 'deal_deadline_today' ||
-                          item.type === 'deal_deadline_week'
-                        ) {
-                          navigation.navigate('Main', { screen: '협찬' } as any);
-                        } else if (item.type === 'schedule_today') {
-                          navigation.navigate('Main', { screen: '캘린더' } as any);
-                        } else if (item.type === 'unsettled') {
-                          navigation.navigate('Main', { screen: '수익' } as any);
-                        }
-                      }}
-                    />
-                  ))
-                )}
-                <View style={{ height: 16 }} />
-              </>
+            {/* 오늘의 브리핑 */}
+            {briefing ? (
+              <MorningBriefing
+                briefing={briefing}
+                healthScore={snapshot?.healthScore}
+                onNavigate={handleDigestNavigate}
+              />
+            ) : snapshot ? (
+              <DailyDigest snapshot={snapshot} onNavigate={handleDigestNavigate} />
+            ) : (
+              <WorkflowSummaryCard
+                activeCount={data.activeDeals.length}
+                deadlineCount={deadlineCount}
+                pendingSettlement={data.pendingSettlement}
+              />
             )}
+
+            {/* TOP 3 집중 과제 */}
+            <FocusCard items={focusItems} onPress={handleFocusItemPress} />
+
+            {/* 운영 타임라인 */}
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, unreadCount > 0 && styles.sectionTitleUrgent]}>
+                운영 현황
+              </Text>
+              {unreadCount > 0 ? (
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+                  <Text style={styles.sectionMore}>전체 보기</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <TimelineFeed
+              groups={timelineGroups}
+              loading={timelineLoading}
+              maxItems={5}
+              onItemPress={handleTimelineItemPress}
+              onMarkRead={markRead}
+              onViewAll={() => navigation.navigate('Notifications')}
+            />
+            <View style={{ height: 8 }} />
+
+            {/* 스마트 제안 */}
+            <SmartRecommendations
+              recommendations={recommendations}
+              onPress={handleRecommendationPress}
+              onDismiss={handleDismissRecommendation}
+            />
 
             {/* 활성 협찬 */}
             <View style={styles.sectionHeader}>
@@ -389,6 +424,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bellBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#EAE3FF', alignItems: 'center', justifyContent: 'center' },
+  bellIcon: { fontSize: 18 },
+  bellBadge: { position: 'absolute', top: 4, right: 4, backgroundColor: '#C13C3C', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  bellBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
 
   sectionHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -396,13 +436,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { ...typography.sectionTitle, color: tokens.ink },
   sectionMore:  { ...typography.metadata, color: colors.primary, fontWeight: '600' },
-  sectionBadge: {
-    backgroundColor: colors.primary, borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 2,
-  },
-  sectionBadgeUrgent: { backgroundColor: tokens.urgent },
   sectionTitleUrgent: { color: tokens.urgent },
-  sectionBadgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
 
   dealList: { gap: 10, marginBottom: 8 },
   dealCard: {
@@ -443,19 +477,6 @@ const styles = StyleSheet.create({
   },
   emptyBtnPrimaryText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-  allClearCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#F0FDF4', borderRadius: 14, padding: 14, marginBottom: 8,
-    borderWidth: 1, borderColor: '#BBF7D0',
-  },
-  allClearIconWrap: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center',
-  },
-  allClearIconText: { fontSize: 16, color: '#059669', fontWeight: '800' },
-  allClearBody:     { flex: 1 },
-  allClearTitle:    { fontSize: 14, fontWeight: '700', color: '#166534', marginBottom: 2 },
-  allClearSub:      { fontSize: 12, color: '#4B7A5A' },
 });
 
 const channelStyle = StyleSheet.create({

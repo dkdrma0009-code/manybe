@@ -26,7 +26,7 @@ export interface HomeDeal {
 
 export interface ActionItem {
   id: string;
-  type: 'new_inquiry' | 'inquiry_pipeline' | 'deal_deadline_today' | 'deal_deadline_week' | 'schedule_today' | 'unsettled';
+  type: 'new_inquiry' | 'inquiry_pipeline' | 'deal_deadline_today' | 'deal_deadline_week' | 'schedule_today' | 'unsettled' | 'overdue';
   title: string;
   subtitle: string;
   icon: string;
@@ -115,11 +115,10 @@ export function useHomeData(userId: string | undefined) {
       const weekLater = new Date(now);
       weekLater.setDate(now.getDate() + 7);
       const weekLaterStr = weekLater.toISOString().split('T')[0];
-      const tomorrowStr = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
 
-      const [revenueRes, prevRevenueRes, dealsRes, barRes, deadlineRes, scheduleRes, inquiryRes] = await Promise.all([
+      const [revenueRes, prevRevenueRes, dealsRes, barRes, deadlineRes, scheduleRes, inquiryRes, overdueRes] = await Promise.all([
         supabase
           .from('revenues')
           .select('amount, category')
@@ -163,6 +162,13 @@ export function useHomeData(userId: string | undefined) {
           .select('id, media_kits!inner(user_id)', { count: 'exact', head: true })
           .eq('media_kits.user_id', userId)
           .eq('is_read', false),
+        supabase
+          .from('deals')
+          .select('id, brand, title, end_date, status')
+          .eq('user_id', userId)
+          .in('status', ['inquiry', 'reviewing', 'in_progress', 'uploaded'])
+          .lt('end_date', todayStr)
+          .order('end_date', { ascending: true }),
       ]);
 
       if (revenueRes.error) throw revenueRes.error;
@@ -172,6 +178,7 @@ export function useHomeData(userId: string | undefined) {
       if (deadlineRes.error) throw deadlineRes.error;
       if (scheduleRes.error) throw scheduleRes.error;
       const newInquiryCount = inquiryRes.count ?? 0;
+      const overdueDeals = overdueRes.data ?? [];
 
       // Total and category breakdown
       const revenues: Pick<Revenue, 'amount' | 'category'>[] = revenueRes.data ?? [];
@@ -285,6 +292,22 @@ export function useHomeData(userId: string | undefined) {
           color: '#3B6FD9',
           bg: '#E3ECFB',
           urgent: false,
+        });
+      }
+
+      for (const d of overdueDeals) {
+        const daysOver = Math.floor(
+          (new Date(todayStr).getTime() - new Date(d.end_date.slice(0, 10)).getTime()) / 86400000
+        );
+        actionItems.push({
+          id: `overdue_${d.id}`,
+          type: 'overdue',
+          title: `${d.brand} 마감 D+${daysOver}`,
+          subtitle: `${d.title} · 마감일이 지났어요`,
+          icon: '🔴',
+          color: '#C13C3C',
+          bg: '#FBE5E5',
+          urgent: true,
         });
       }
 

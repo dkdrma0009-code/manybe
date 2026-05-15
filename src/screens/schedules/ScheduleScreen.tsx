@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useScheduleData, ScheduleItem } from '../../hooks/useScheduleData';
+import { useRealtime } from '../../context/RealtimeContext';
 import AddScheduleModal from './AddScheduleModal';
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
@@ -134,6 +135,8 @@ export default function ScheduleScreen() {
   const [selectedDay, setSelectedDay] = useState(today.getDate());
 
   const { data, refetch } = useScheduleData(user?.id, year, month);
+  const { schedulesVersion } = useRealtime();
+  useEffect(() => { refetch(); }, [schedulesVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const [showAddModal, setShowAddModal] = useState(false);
 
   async function handleDeleteSchedule(id: string) {

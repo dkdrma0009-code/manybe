@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { supabase } from '../../api/supabase';
+import { useRealtime } from '../../context/RealtimeContext';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
 import { typography } from '../../constants/typography';
@@ -27,34 +28,39 @@ function formatRelative(dateStr: string): string {
 }
 
 function InquiryCard({ inquiry, onPress }: { inquiry: InquiryItem; onPress: () => void }) {
+  const isConverted = !!inquiry.deal_id;
   return (
     <TouchableOpacity
-      style={[card.wrapper, !inquiry.is_read && card.unread]}
+      style={[card.wrapper, !inquiry.is_read && !isConverted && card.unread, isConverted && card.converted]}
       onPress={onPress}
       activeOpacity={0.82}
     >
       <View style={card.row}>
-        <View style={[card.avatar, !inquiry.is_read && card.avatarUnread]}>
-          <Text style={[card.avatarText, !inquiry.is_read && card.avatarTextUnread]}>
+        <View style={[card.avatar, !inquiry.is_read && !isConverted && card.avatarUnread, isConverted && card.avatarConverted]}>
+          <Text style={[card.avatarText, (!inquiry.is_read || isConverted) && card.avatarTextWhite]}>
             {inquiry.brand_name.charAt(0)}
           </Text>
         </View>
         <View style={card.content}>
           <View style={card.topRow}>
             <View style={card.nameRow}>
-              <Text style={[card.brandName, !inquiry.is_read && card.brandNameUnread]}>
+              <Text style={[card.brandName, !inquiry.is_read && !isConverted && card.brandNameUnread]}>
                 {inquiry.brand_name}
               </Text>
-              {!inquiry.is_read && (
+              {isConverted ? (
+                <View style={card.convertedBadge}>
+                  <Text style={card.convertedBadgeText}>전환됨</Text>
+                </View>
+              ) : !inquiry.is_read ? (
                 <View style={card.newBadge}>
                   <Text style={card.newBadgeText}>NEW</Text>
                 </View>
-              )}
+              ) : null}
             </View>
             <Text style={card.time}>{formatRelative(inquiry.created_at)}</Text>
           </View>
           {inquiry.budget != null && (
-            <Text style={card.budget}>
+            <Text style={[card.budget, isConverted && card.budgetConverted]}>
               예산 {inquiry.budget.toLocaleString('ko-KR')}원
             </Text>
           )}
@@ -83,16 +89,21 @@ const card = StyleSheet.create({
     flexShrink: 0,
   },
   avatarUnread:     { backgroundColor: tokens.primary },
+  avatarConverted:  { backgroundColor: '#2E8C5D' },
   avatarText:       { fontSize: 18, fontWeight: '800', color: tokens.primary },
-  avatarTextUnread: { color: '#fff' },
+  avatarTextWhite:  { color: '#fff' },
   content:  { flex: 1, gap: 3 },
   topRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   nameRow:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   brandName:       { ...typography.bodyStrong, color: tokens.ink2 },
   brandNameUnread: { ...typography.bodyStrong, color: tokens.ink, fontWeight: '800' },
-  newBadge:     { backgroundColor: tokens.primary, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  newBadgeText: { ...typography.caption, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
-  budget:  { ...typography.cardSubtitle, fontWeight: '700', color: tokens.primary },
+  newBadge:         { backgroundColor: tokens.primary, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  newBadgeText:     { ...typography.caption, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  convertedBadge:     { backgroundColor: '#D1FAE5', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  convertedBadgeText: { ...typography.caption, fontWeight: '800', color: '#059669', letterSpacing: 0.5 },
+  converted:       { borderLeftWidth: 3, borderLeftColor: '#2E8C5D', backgroundColor: '#F0FDF4' },
+  budget:          { ...typography.cardSubtitle, fontWeight: '700', color: tokens.primary },
+  budgetConverted: { ...typography.cardSubtitle, fontWeight: '700', color: '#2E8C5D' },
   preview: { ...typography.hint, color: tokens.ink4 },
   time:    { ...typography.caption, color: tokens.ink4 },
 });
@@ -101,6 +112,7 @@ export default function InquiryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
+  const { inquiriesVersion, syncUnreadCount } = useRealtime();
   const [inquiries, setInquiries] = useState<InquiryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,12 +127,19 @@ export default function InquiryScreen() {
       .eq('media_kits.user_id', user.id)
       .order('created_at', { ascending: false });
 
-    setInquiries((data ?? []) as InquiryItem[]);
+    const rows = (data ?? []) as InquiryItem[];
+    setInquiries(rows);
     setLoading(false);
     setRefreshing(false);
-  }, [user?.id]);
+
+    // Keep the tab badge in sync with the actual unread count
+    syncUnreadCount(rows.filter((i) => !i.is_read).length);
+  }, [user?.id, syncUnreadCount]);
 
   useEffect(() => { fetchInquiries(); }, [fetchInquiries]);
+
+  // Refetch when a realtime inquiry change arrives
+  useEffect(() => { fetchInquiries(); }, [inquiriesVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleOpen(inquiry: InquiryItem) {
     setSelectedInquiry(inquiry);
@@ -215,11 +234,17 @@ export default function InquiryScreen() {
           inquiry={selectedInquiry}
           userId={user.id}
           onClose={() => setSelectedInquiry(null)}
-          onConverted={() => {
-          setSelectedInquiry(null);
-          fetchInquiries();
-          navigation.navigate('Main', { screen: '협찬' } as any);
-        }}
+          onConverted={(dealId) => {
+            setInquiries((prev) =>
+              prev.map((i) => i.id === selectedInquiry?.id ? { ...i, deal_id: dealId } : i)
+            );
+            setSelectedInquiry(null);
+            navigation.navigate('Main', { screen: '협찬' } as any);
+          }}
+          onNavigateBrand={(brand) => {
+            setSelectedInquiry(null);
+            navigation.navigate('BrandDetail', { brand });
+          }}
         />
       )}
 
