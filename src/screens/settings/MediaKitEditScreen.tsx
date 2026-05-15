@@ -10,6 +10,8 @@ import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+import { computePortfolioIntelligence } from '../../services/PortfolioIntelligence';
+import { generateMediaKitIntelligence } from '../../services/MediaKitGenerator';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MediaKitEdit'>;
@@ -31,6 +33,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generatingBio, setGeneratingBio] = useState(false);
 
   // fields
   const [bio, setBio] = useState('');
@@ -65,6 +68,20 @@ export default function MediaKitEditScreen({ navigation }: Props) {
       setIsFormEnabled(kit.is_form_enabled ?? false);
     }
     setLoading(false);
+  }
+
+  async function handleGenerateBio() {
+    if (!user) return;
+    setGeneratingBio(true);
+    try {
+      const portfolio = await computePortfolioIntelligence(user.id, pastBrands);
+      const intel = await generateMediaKitIntelligence(portfolio);
+      setBio(intel.aiGeneratedBio);
+    } catch {
+      Alert.alert('오류', 'AI 자동완성에 실패했습니다.');
+    } finally {
+      setGeneratingBio(false);
+    }
   }
 
   async function handleSave() {
@@ -158,8 +175,23 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
           {/* 자기소개 */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>자기소개</Text>
-            <Text style={styles.sectionDesc}>브랜드가 가장 먼저 보는 문구예요</Text>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>자기소개</Text>
+                <Text style={styles.sectionDesc}>브랜드가 가장 먼저 보는 문구예요</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.aiBtn, generatingBio && { opacity: 0.6 }]}
+                onPress={handleGenerateBio}
+                disabled={generatingBio}
+                activeOpacity={0.8}
+              >
+                {generatingBio
+                  ? <ActivityIndicator size="small" color={colors.primary} />
+                  : <Text style={styles.aiBtnText}>✨ AI 자동완성</Text>
+                }
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={styles.bioInput}
               value={bio}
@@ -288,8 +320,14 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
+  sectionHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 },
   sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1A1A2E', marginBottom: 4 },
-  sectionDesc:  { fontSize: 12, color: '#9CA3AF', marginBottom: 14, lineHeight: 18 },
+  sectionDesc:  { fontSize: 12, color: '#9CA3AF', lineHeight: 18 },
+  aiBtn: {
+    borderWidth: 1.5, borderColor: colors.primary, borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 6, minWidth: 44, alignItems: 'center',
+  },
+  aiBtnText: { fontSize: 12, fontWeight: '700', color: colors.primary },
 
   bioInput: {
     backgroundColor: '#F4F0FF', borderRadius: 12, borderWidth: 1.5, borderColor: '#E8E4FF',
