@@ -2,33 +2,30 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import HomeScreen from '../screens/dashboard/HomeScreen';
-import RevenueScreen from '../screens/revenue/RevenueScreen';
-import DealsScreen from '../screens/deals/DealsScreen';
+import HomeScreen    from '../screens/dashboard/HomeScreen';
+import StudioScreen  from '../screens/studio/StudioScreen';
 import ScheduleScreen from '../screens/schedules/ScheduleScreen';
-import AnalyticsScreen from '../screens/analytics/AnalyticsScreen';
+import MessagesScreen from '../screens/messages/MessagesScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
-import { colors } from '../constants/colors';
+import { tokens } from '../constants/tokens';
 import { useRealtime } from '../context/RealtimeContext';
 
 export type TabParamList = {
   홈: undefined;
-  협찬: undefined;
+  스튜디오: undefined;
   캘린더: undefined;
-  수익: undefined;
-  인사이트: undefined;
+  메시지: undefined;
   설정: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const TAB_ICONS: Record<string, string> = {
-  홈: '🏠',
-  협찬: '🤝',
-  캘린더: '📅',
-  수익: '💰',
-  인사이트: '📊',
-  설정: '⚙️',
+  홈:      '⊞',
+  스튜디오: '◈',
+  캘린더:  '▦',
+  메시지:  '◻',
+  설정:    '◎',
 };
 
 export default function TabNavigator() {
@@ -41,34 +38,36 @@ export default function TabNavigator() {
         headerShown: false,
         tabBarShowLabel: true,
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 0,
-          height: 68 + insets.bottom,
-          paddingBottom: insets.bottom + 8,
-          paddingTop: 10,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: tokens.borderFaint,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom + 6,
+          paddingTop: 8,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          elevation: 12,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.04,
+          shadowRadius: 8,
+          elevation: 8,
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#C4C4C4',
+        tabBarActiveTintColor: tokens.primary,
+        tabBarInactiveTintColor: tokens.ink4,
         tabBarLabelStyle: {
-          fontSize: 13,
-          fontWeight: 'bold',
+          fontSize: 11,
+          fontWeight: '500',
           marginTop: 2,
+          letterSpacing: 0.1,
         },
         tabBarIcon: ({ focused }) => {
-          const showBadge = route.name === '협찬' && unreadInquiryCount > 0;
+          const showBadge = route.name === '메시지' && unreadInquiryCount > 0;
           return (
-            <View style={[tabIconStyle.wrapper, focused && tabIconStyle.wrapperActive]}>
-              <Text style={[tabIconStyle.icon, !focused && tabIconStyle.iconInactive]}>
+            <View style={[s.wrapper, focused && s.wrapperActive]}>
+              <Text style={[s.icon, { color: focused ? tokens.primary : tokens.ink4 }]}>
                 {TAB_ICONS[route.name]}
               </Text>
               {showBadge && (
-                <View style={tabIconStyle.badge}>
-                  <Text style={tabIconStyle.badgeText}>
+                <View style={s.badge}>
+                  <Text style={s.badgeText}>
                     {unreadInquiryCount > 9 ? '9+' : unreadInquiryCount}
                   </Text>
                 </View>
@@ -78,28 +77,27 @@ export default function TabNavigator() {
         },
       })}
     >
-      <Tab.Screen name="홈" component={HomeScreen} />
-      <Tab.Screen name="협찬" component={DealsScreen} />
-      <Tab.Screen name="캘린더" component={ScheduleScreen} />
-      <Tab.Screen name="수익" component={RevenueScreen} />
-      <Tab.Screen name="인사이트" component={AnalyticsScreen} />
-      <Tab.Screen name="설정" component={SettingsScreen} />
+      <Tab.Screen name="홈"      component={HomeScreen} />
+      <Tab.Screen name="스튜디오" component={StudioScreen} />
+      <Tab.Screen name="캘린더"  component={ScheduleScreen} />
+      <Tab.Screen name="메시지"  component={MessagesScreen} />
+      <Tab.Screen name="설정"    component={SettingsScreen} />
     </Tab.Navigator>
   );
 }
 
-const tabIconStyle = StyleSheet.create({
+const s = StyleSheet.create({
   wrapper: {
-    width: 32, height: 28, alignItems: 'center',
-    justifyContent: 'center', borderRadius: 8,
+    width: 36, height: 28,
+    alignItems: 'center', justifyContent: 'center',
+    borderRadius: 8,
   },
-  wrapperActive: { backgroundColor: '#EDE9FE' },
-  icon:          { fontSize: 20 },
-  iconInactive:  { opacity: 0.5 },
+  wrapperActive: { backgroundColor: tokens.primarySoft },
+  icon: { fontSize: 18 },
   badge: {
     position: 'absolute', top: -4, right: -6,
     minWidth: 16, height: 16, borderRadius: 8,
-    backgroundColor: '#C13C3C',
+    backgroundColor: tokens.energy,
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 3,
   },

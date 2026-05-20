@@ -10,6 +10,7 @@ import { useAuth, handleOAuthCallback } from '../hooks/useAuth';
 import { makeLogger } from '../utils/logger';
 
 const log = makeLogger('DeepLink');
+
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import TabNavigator from './TabNavigator';
@@ -31,161 +32,178 @@ import UpgradeScreen from '../screens/paywall/UpgradeScreen';
 import ActionCenterScreen from '../screens/automation/ActionCenterScreen';
 import MediaKitPreviewScreen from '../screens/mediakit/MediaKitPreviewScreen';
 
-const DEV_BYPASS_AUTH = false;
+/**
+
+* DEVELOPMENT MODE
+* 로그인 우회
+  */
+  const DEV_BYPASS_AUTH = true;
 
 export type AuthStackParamList = {
-  Login: undefined;
-  Signup: undefined;
+Login: undefined;
+Signup: undefined;
 };
 
 export type RootStackParamList = {
-  Main: NavigatorScreenParams<TabParamList> | undefined;
-  MediaKitSlug: undefined;
-  YouTubeConnect: undefined;
-  Profile: undefined;
-  Inquiries: undefined;
-  MediaKitEdit: undefined;
-  BrandDetail: { brand: string };
-  Notifications: undefined;
-  Upgrade: undefined;
-  ActionCenter: undefined;
-  MediaKitPreview: undefined;
+Main: NavigatorScreenParams<TabParamList> | undefined;
+MediaKitSlug: undefined;
+YouTubeConnect: undefined;
+Profile: undefined;
+Inquiries: undefined;
+MediaKitEdit: undefined;
+BrandDetail: { brand: string };
+Notifications: undefined;
+Upgrade: undefined;
+ActionCenter: undefined;
+MediaKitPreview: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 function AuthNavigator() {
-  return (
-    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-      <AuthStack.Screen name="Login" component={LoginScreen} />
-      <AuthStack.Screen name="Signup" component={SignupScreen} />
-    </AuthStack.Navigator>
-  );
+return (
+<AuthStack.Navigator screenOptions={{ headerShown: false }}>
+<AuthStack.Screen name="Login" component={LoginScreen} />
+<AuthStack.Screen name="Signup" component={SignupScreen} />
+</AuthStack.Navigator>
+);
 }
 
 function NotificationsInit({ userId }: { userId: string | undefined }) {
-  useNotifications(userId);
-  return null;
+useNotifications(userId);
+return null;
 }
 
 function MainNavigator() {
-  return (
-    <RootStack.Navigator screenOptions={{ headerShown: false }}>
-      <RootStack.Screen name="Main" component={TabNavigator} />
-      <RootStack.Screen
-        name="MediaKitSlug"
-        component={MediaKitSlugScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
-        name="YouTubeConnect"
-        component={YouTubeConnectScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
-        name="Inquiries"
-        component={InquiryScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
-        name="MediaKitEdit"
-        component={MediaKitEditScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
-        name="BrandDetail"
-        component={BrandDetailScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
-        name="Upgrade"
-        component={UpgradeScreen}
-        options={{ presentation: 'modal' }}
-      />
-      <RootStack.Screen
-        name="ActionCenter"
-        component={ActionCenterScreen}
-        options={{ presentation: 'card' }}
-      />
-      <RootStack.Screen
-        name="MediaKitPreview"
-        component={MediaKitPreviewScreen}
-        options={{ presentation: 'card' }}
-      />
-    </RootStack.Navigator>
-  );
+return (
+<RootStack.Navigator screenOptions={{ headerShown: false }}>
+<RootStack.Screen name="Main" component={TabNavigator} />
+
+```
+  <RootStack.Screen
+    name="MediaKitSlug"
+    component={MediaKitSlugScreen}
+    options={{ presentation: 'card' }}
+  />
+
+  <RootStack.Screen
+    name="YouTubeConnect"
+    component={YouTubeConnectScreen}
+    options={{ presentation: 'card' }}
+  />
+
+  <RootStack.Screen
+    name="Profile"
+    component={ProfileScreen}
+    options={{ presentation: 'card' }}
+  />
+
+  <RootStack.Screen
+    name="Inquiries"
+    component={InquiryScreen}
+    options={{ presentation: 'card' }}
+  />
+
+  <RootStack.Screen
+    name="MediaKitEdit"
+    component={MediaKitEditScreen}
+    options={{ presentation: 'card' }}
+  />
+
+  <RootStack.Screen
+    name="BrandDetail"
+    component={BrandDetailScreen}
+    options={{ presentation: 'card' }}
+  />
+
+  <RootStack.Screen
+    name="Notifications"
+    component={NotificationsScreen}
+    options={{ presentation: 'card' }}
+  />
+
+  <RootStack.Screen
+    name="Upgrade"
+    component={UpgradeScreen}
+    options={{ presentation: 'modal' }}
+  />
+
+  <RootStack.Screen
+    name="ActionCenter"
+    component={ActionCenterScreen}
+    options={{ presentation: 'card' }}
+  />
+
+  <RootStack.Screen
+    name="MediaKitPreview"
+    component={MediaKitPreviewScreen}
+    options={{ presentation: 'card' }}
+  />
+</RootStack.Navigator>
+```
+
+);
 }
 
 export default function AppNavigator() {
-  const { session, loading } = useAuth();
-  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
-  useEffect(() => {
-    AsyncStorage.getItem('onboarding_complete').then((val) => {
-      setOnboardingDone(val === 'true');
-    });
-  }, []);
+const { session, loading } = useAuth();
 
-  // Fallback: catch OAuth deep link when ASWebAuthenticationSession
-  // fails to intercept exp:// and iOS delivers it as a system deep link.
-  useEffect(() => {
-    const subscription = Linking.addEventListener('url', ({ url }) => {
-      if (!url.includes('access_token') && !url.includes('auth/callback')) return;
-      log.info('OAuth callback received:', url);
-      handleOAuthCallback(url);
-    });
+const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
-    // Handle the case where the app was cold-launched via the deep link.
-    Linking.getInitialURL().then((url) => {
-      if (!url) return;
-      if (!url.includes('access_token') && !url.includes('auth/callback')) return;
-      log.info('Initial URL OAuth callback:', url);
-      handleOAuthCallback(url);
-    });
+useEffect(() => {
+AsyncStorage.getItem('onboarding_complete').then((val) => {
+setOnboardingDone(val === 'true');
+});
+}, []);
 
-    return () => subscription.remove();
-  }, []);
+useEffect(() => {
+const subscription = Linking.addEventListener('url', ({ url }) => {
+if (!url.includes('access_token') && !url.includes('auth/callback')) {
+return;
+}
 
-  if (onboardingDone === null || (!DEV_BYPASS_AUTH && loading)) {
-    return (
-      <SafeAreaProvider>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaProvider>
-    );
+```
+  log.info('OAuth callback received:', url);
+  handleOAuthCallback(url);
+});
+
+Linking.getInitialURL().then((url) => {
+  if (!url) return;
+
+  if (!url.includes('access_token') && !url.includes('auth/callback')) {
+    return;
   }
 
-  const isAuthed = DEV_BYPASS_AUTH || !!session;
+  log.info('Initial URL OAuth callback:', url);
+  handleOAuthCallback(url);
+});
 
-  return (
-    <SafeAreaProvider>
-      <ErrorBoundary>
-        <NavigationContainer>
-          {!onboardingDone ? (
-            <OnboardingScreen onComplete={() => setOnboardingDone(true)} />
-          ) : !isAuthed ? (
-            <AuthNavigator />
-          ) : (
-            <SubscriptionProvider userId={session?.user?.id}>
-              <RealtimeProvider userId={session?.user?.id}>
-                <NotificationsInit userId={session?.user?.id} />
-                <MainNavigator />
-              </RealtimeProvider>
-            </SubscriptionProvider>
-          )}
-        </NavigationContainer>
-      </ErrorBoundary>
-    </SafeAreaProvider>
-  );
+return () => subscription.remove();
+```
+
+}, []);
+
+if (onboardingDone === null || (!DEV_BYPASS_AUTH && loading)) {
+return ( <SafeAreaProvider>
+<View
+style={{
+flex: 1,
+justifyContent: 'center',
+alignItems: 'center',
+backgroundColor: colors.background,
+}}
+> <ActivityIndicator size="large" color={colors.primary} /> </View> </SafeAreaProvider>
+);
+}
+
+const isAuthed = DEV_BYPASS_AUTH || !!session;
+
+return ( <SafeAreaProvider> <ErrorBoundary> <NavigationContainer>
+{!onboardingDone ? (
+<OnboardingScreen onComplete={() => setOnboardingDone(true)} />
+) : !isAuthed ? ( <AuthNavigator />
+) : ( <SubscriptionProvider userId={session?.user?.id}> <RealtimeProvider userId={session?.user?.id}> <NotificationsInit userId={session?.user?.id} /> <MainNavigator /> </RealtimeProvider> </SubscriptionProvider>
+)} </NavigationContainer> </ErrorBoundary> </SafeAreaProvider>
+);
 }

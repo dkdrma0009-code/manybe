@@ -31,22 +31,60 @@ import { recordEvent } from '../../services/OperationalMemory';
 import { useActivation } from '../../hooks/useActivation';
 import { ActivationChecklist } from '../../components/ActivationChecklist';
 import { useActionCenter } from '../../hooks/useActionCenter';
-import { colors } from '../../constants/colors';
-import { tokens } from '../../constants/tokens';
-import { typography } from '../../constants/typography';
-import { shadows } from '../../constants/shadows';
+import { AppCard, AppBadge, AppSection } from '../../components/ui';
+import { theme } from '../../constants/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { useRealtime } from '../../context/RealtimeContext';
 
+const { colors, space, radius, shadows, typography } = theme;
+
 function formatWon(n: number): string {
-  if (n >= 100000000) return `${Math.floor(n / 100000000)}억원`;
-  if (n >= 10000) return `${Math.floor(n / 10000)}만원`;
-  return n.toLocaleString('ko-KR') + '원';
+  if (n >= 100_000_000) return `${Math.floor(n / 100_000_000)}억`;
+  if (n >= 10_000) return `${Math.floor(n / 10_000)}만`;
+  return n.toLocaleString('ko-KR');
 }
 
-// ─── Workflow summary ─────────────────────────────────────────────────────────
+// ─── Priority Collab Block — top active deal shown prominently ────────────────
 
-function WorkflowSummaryCard({
+function PriorityCollabBlock({
+  deal,
+  onPress,
+}: {
+  deal: { id: string; brand: string; initial: string; initBg: string; amount: number; statusLabel: string; statusBg: string; statusColor: string };
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity activeOpacity={0.82} onPress={onPress} style={s.priorityWrap}>
+      <View style={s.priorityCard}>
+        <View style={s.priorityLeft}>
+          <View style={[s.priorityAvatar, { backgroundColor: deal.initBg }]}>
+            <Text style={s.priorityAvatarText}>{deal.initial}</Text>
+          </View>
+          <View style={s.priorityInfo}>
+            <Text style={s.priorityEyebrow}>우선 협찬</Text>
+            <Text style={s.priorityBrand} numberOfLines={1}>{deal.brand}</Text>
+            <View style={[s.priorityBadge, { backgroundColor: deal.statusBg }]}>
+              <Text style={[s.priorityBadgeText, { color: deal.statusColor }]}>{deal.statusLabel}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={s.priorityRight}>
+          {deal.amount > 0 && (
+            <>
+              <Text style={s.priorityAmount}>{formatWon(deal.amount)}</Text>
+              <Text style={s.priorityAmountUnit}>원</Text>
+            </>
+          )}
+          <Text style={s.priorityArrow}>›</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Status strip ─────────────────────────────────────────────────────────────
+
+function StatusStrip({
   activeCount,
   deadlineCount,
   pendingSettlement,
@@ -56,52 +94,76 @@ function WorkflowSummaryCard({
   pendingSettlement: number;
 }) {
   return (
-    <View style={wfs.card}>
-      <View style={wfs.row}>
-        <View style={wfs.item}>
-          <Text style={wfs.value}>{activeCount}<Text style={wfs.unit}>건</Text></Text>
-          <Text style={wfs.label}>파이프라인</Text>
-        </View>
-        <View style={wfs.divider} />
-        <View style={wfs.item}>
-          <Text style={[wfs.value, deadlineCount > 0 && wfs.urgent, deadlineCount === 0 && wfs.calm]}>
-            {deadlineCount > 0 ? `${deadlineCount}건` : '없음'}
-          </Text>
-          <Text style={wfs.label}>마감 임박</Text>
-        </View>
-        <View style={wfs.divider} />
-        <View style={[wfs.item, { flex: 1.5 }]}>
-          <Text style={[
-            wfs.value,
-            pendingSettlement > 0 && wfs.pending,
-            pendingSettlement > 0 && { fontSize: 16 },
-            pendingSettlement === 0 && wfs.calm,
-          ]}>
-            {pendingSettlement > 0 ? formatWon(pendingSettlement) : '없음'}
-          </Text>
-          <Text style={wfs.label}>정산 대기</Text>
-        </View>
+    <View style={s.strip}>
+      <View style={s.stripItem}>
+        <Text style={s.stripValue}>{activeCount}</Text>
+        <Text style={s.stripLabel}>진행 중</Text>
+      </View>
+      <View style={s.stripDivider} />
+      <View style={s.stripItem}>
+        <Text style={[s.stripValue, deadlineCount > 0 && s.stripValueUrgent]}>
+          {deadlineCount > 0 ? deadlineCount : '—'}
+        </Text>
+        <Text style={s.stripLabel}>마감 임박</Text>
+      </View>
+      <View style={s.stripDivider} />
+      <View style={[s.stripItem, { flex: 1.5 }]}>
+        <Text style={[s.stripValue, pendingSettlement > 0 && s.stripValuePending, { fontSize: pendingSettlement > 0 ? 15 : 18 }]}>
+          {pendingSettlement > 0 ? `${formatWon(pendingSettlement)}만` : '—'}
+        </Text>
+        <Text style={s.stripLabel}>정산 대기</Text>
       </View>
     </View>
   );
 }
 
-const wfs = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff', borderRadius: 18, padding: 20, marginBottom: 20,
-    ...shadows.card,
-  },
-  row:     { flexDirection: 'row', alignItems: 'center' },
-  item:    { flex: 1, alignItems: 'center' },
-  divider: { width: 1, height: 36, backgroundColor: tokens.bgDeeper },
-  value:   { ...typography.screenTitle, color: tokens.ink, marginBottom: 4 },
-  unit:    { ...typography.cardSubtitle },
-  label:   { ...typography.caption, color: tokens.ink4 },
-  urgent:  { color: tokens.urgent },
-  pending: { color: tokens.uploaded },
-  calm:    { fontSize: 16, color: tokens.ink4 },
-});
+// ─── AI Action Banner ─────────────────────────────────────────────────────────
 
+function AIActionBanner({ count, onPress }: { count: number; onPress: () => void }) {
+  return (
+    <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={s.aiBannerWrap}>
+      <AppCard variant="ai" padding="md" style={s.aiBanner}>
+        <View style={s.aiBannerLeft}>
+          <AppBadge label="AI" variant="ai" size="sm" icon="✦" />
+          <View style={s.aiBannerText}>
+            <Text style={s.aiBannerTitle}>검토할 AI 제안 {count}건</Text>
+            <Text style={s.aiBannerSub}>팔로업 · 정산 초안이 준비됐어요</Text>
+          </View>
+        </View>
+        <Text style={s.aiBannerArrow}>›</Text>
+      </AppCard>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Deal row ─────────────────────────────────────────────────────────────────
+
+function DealRow({
+  deal,
+  onPress,
+}: {
+  deal: { id: string; brand: string; initial: string; initBg: string; amount: number; statusLabel: string; statusBg: string; statusColor: string };
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity activeOpacity={0.82} onPress={onPress}>
+      <AppCard padding={0} style={s.dealCard}>
+        <View style={[s.dealAvatar, { backgroundColor: deal.initBg }]}>
+          <Text style={s.dealAvatarText}>{deal.initial}</Text>
+        </View>
+        <View style={s.dealInfo}>
+          <Text style={s.dealBrand}>{deal.brand}</Text>
+          <Text style={s.dealAmount}>
+            {deal.amount > 0 ? `${formatWon(deal.amount)}원` : '금액 미정'}
+          </Text>
+        </View>
+        <View style={[s.dealStatusPill, { backgroundColor: deal.statusBg }]}>
+          <Text style={[s.dealStatusText, { color: deal.statusColor }]}>{deal.statusLabel}</Text>
+        </View>
+      </AppCard>
+    </TouchableOpacity>
+  );
+}
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
@@ -117,53 +179,55 @@ export default function HomeScreen() {
   const { dealsVersion, inquiriesVersion } = useRealtime();
   const activation = useActivation();
   const { pendingCount, load: loadActions } = useActionCenter();
+
   React.useEffect(() => { loadActions(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   React.useEffect(() => { refetch(); timelineRefetch(); ctxRefetch(); decisionRefetch(); briefingRefetch(); }, [dealsVersion, inquiriesVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-mark activation milestones as data arrives
   React.useEffect(() => {
     if (loading) return;
     if (data.dealCount > 0)      activation.mark('first_deal_added');
     if (data.totalRevenue > 0)   activation.mark('first_revenue_recorded');
     if (channels.length > 0)     activation.mark('channel_connected');
   }, [loading, data.dealCount, data.totalRevenue, channels.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const userName =
-    user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? '크리에이터';
+  const userName = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? '크리에이터';
 
   const deadlineCount = data.actionItems.filter(
-    (i) => i.type === 'deal_deadline_today' || i.type === 'deal_deadline_week'
+    (i) => i.type === 'deal_deadline_today' || i.type === 'deal_deadline_week',
   ).length;
   const hasTodayDeadline = data.actionItems.some((i) => i.type === 'deal_deadline_today');
-  const hasUrgentItems = hasTodayDeadline || data.newInquiryCount > 0;
+  const hasUrgentItems   = hasTodayDeadline || data.newInquiryCount > 0;
 
   const greetingSub = snapshot?.summaryText
     ?? (unreadCount > 0 ? `처리할 항목 ${unreadCount}건 있어요`
       : hasTodayDeadline ? '오늘 마감 협찬이 있어요'
-      : data.activeDeals.length > 0 ? `협찬 ${data.activeDeals.length}건 순조롭게 진행 중`
+      : data.activeDeals.length > 0 ? `협찬 ${data.activeDeals.length}건 진행 중`
       : '새 협찬을 시작해보세요');
+
+  const priorityDeal = data.activeDeals[0] ?? null;
 
   function handleTimelineItemPress(item: TimelineItem) {
     if (!item.navigateTo) return;
-    const target = item.navigateTo;
-    if (target.screen === 'deals') navigation.navigate('Main', { screen: '협찬' } as any);
-    else if (target.screen === 'inquiries') navigation.navigate('Inquiries');
-    else if (target.screen === 'calendar') navigation.navigate('Main', { screen: '캘린더' } as any);
-    else if (target.screen === 'revenue') navigation.navigate('Main', { screen: '수익' } as any);
-    else if (target.screen === 'BrandDetail') navigation.navigate('BrandDetail', { brand: target.brand });
+    const t = item.navigateTo;
+    if (t.screen === 'deals')         navigation.navigate('Main', { screen: '스튜디오' } as any);
+    else if (t.screen === 'inquiries') navigation.navigate('Inquiries');
+    else if (t.screen === 'calendar')  navigation.navigate('Main', { screen: '캘린더' } as any);
+    else if (t.screen === 'revenue')   navigation.navigate('Main', { screen: '스튜디오' } as any);
+    else if (t.screen === 'BrandDetail') navigation.navigate('BrandDetail', { brand: t.brand });
   }
 
   function handleFocusItemPress(item: FocusItem) {
-    if (item.navigateTo === 'deals')    navigation.navigate('Main', { screen: '협찬' } as any);
-    else if (item.navigateTo === 'revenue')   navigation.navigate('Main', { screen: '수익' } as any);
+    if (item.navigateTo === 'deals')        navigation.navigate('Main', { screen: '스튜디오' } as any);
+    else if (item.navigateTo === 'revenue')   navigation.navigate('Main', { screen: '스튜디오' } as any);
     else if (item.navigateTo === 'inquiries') navigation.navigate('Inquiries');
     else if (item.navigateTo === 'calendar')  navigation.navigate('Main', { screen: '캘린더' } as any);
   }
 
   function handleDigestNavigate(target: string) {
-    if (target === 'deals')    navigation.navigate('Main', { screen: '협찬' } as any);
-    else if (target === 'revenue')   navigation.navigate('Main', { screen: '수익' } as any);
+    if (target === 'deals')          navigation.navigate('Main', { screen: '스튜디오' } as any);
+    else if (target === 'revenue')   navigation.navigate('Main', { screen: '스튜디오' } as any);
     else if (target === 'inquiries') navigation.navigate('Inquiries');
     else if (target === 'calendar')  navigation.navigate('Main', { screen: '캘린더' } as any);
   }
@@ -171,8 +235,8 @@ export default function HomeScreen() {
   function handleRecommendationPress(rec: SmartRecommendation) {
     recordEvent('recommendation_actioned', { entityId: rec.id, metadata: { recommendationType: rec.type } });
     if (!rec.navigateTo) return;
-    if (rec.navigateTo === 'deals')    navigation.navigate('Main', { screen: '협찬' } as any);
-    else if (rec.navigateTo === 'revenue')   navigation.navigate('Main', { screen: '수익' } as any);
+    if (rec.navigateTo === 'deals')         navigation.navigate('Main', { screen: '스튜디오' } as any);
+    else if (rec.navigateTo === 'revenue')   navigation.navigate('Main', { screen: '스튜디오' } as any);
     else if (rec.navigateTo === 'inquiries') navigation.navigate('Inquiries');
     else if (rec.navigateTo === 'calendar')  navigation.navigate('Main', { screen: '캘린더' } as any);
   }
@@ -184,62 +248,50 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[s.root, { paddingTop: insets.top }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
+        contentContainerStyle={s.scroll}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor={colors.brand.default} />}
       >
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>안녕하세요, {userName}님 👋</Text>
+        {/* ── 헤더 ─────────────────────────────────────────────────────── */}
+        <View style={s.header}>
+          <View style={s.headerTitle}>
+            <Text style={s.greeting}>{userName}</Text>
             {!loading && (
-              <Text style={hasUrgentItems ? styles.greetingSubUrgent : styles.greetingSub}>
+              <Text style={[s.greetingSub, hasUrgentItems && s.greetingSubUrgent]}>
                 {greetingSub}
               </Text>
             )}
           </View>
-          <View style={styles.headerRight}>
+          <View style={s.headerActions}>
             <TouchableOpacity
-              style={styles.bellBtn}
+              style={s.iconBtn}
               onPress={() => navigation.navigate('Notifications')}
               activeOpacity={0.8}
             >
-              <Text style={styles.bellIcon}>🔔</Text>
-              {unreadCount > 0 && (
-                <View style={styles.bellBadge}>
-                  <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              )}
+              <Text style={s.iconBtnText}>🔔</Text>
+              {unreadCount > 0 && <View style={s.notifDot} />}
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.avatar}
+              style={s.avatarBtn}
               onPress={() => navigation.navigate('Profile')}
               activeOpacity={0.85}
             >
-              <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+              <Text style={s.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* AI 액션 센터 진입 */}
+        {/* ── AI 액션 센터 ─────────────────────────────────────────────── */}
         {pendingCount > 0 && (
-          <TouchableOpacity
-            style={aib.banner}
+          <AIActionBanner
+            count={pendingCount}
             onPress={() => navigation.navigate('ActionCenter')}
-            activeOpacity={0.85}
-          >
-            <Text style={aib.icon}>🤖</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={aib.title}>AI 제안 {pendingCount}개</Text>
-              <Text style={aib.sub}>팔로업·정산 초안을 검토하세요</Text>
-            </View>
-            <Text style={aib.arrow}>›</Text>
-          </TouchableOpacity>
+          />
         )}
 
-        {/* 시작 가이드 (activation checklist) */}
+        {/* ── 시작 가이드 ──────────────────────────────────────────────── */}
         {!loading && !activation.isAllDone && (
           <ActivationChecklist
             state={activation.state}
@@ -250,10 +302,25 @@ export default function HomeScreen() {
         )}
 
         {loading ? (
-          <ActivityIndicator color={colors.primary} style={{ paddingVertical: 48 }} />
+          <ActivityIndicator color={colors.brand.default} style={{ paddingVertical: 48 }} />
         ) : (
           <>
-            {/* 오늘의 브리핑 */}
+            {/* ── 우선 협찬 블록 ──────────────────────────────────────── */}
+            {priorityDeal && (
+              <PriorityCollabBlock
+                deal={priorityDeal}
+                onPress={() => navigation.navigate('Main', { screen: '스튜디오' } as any)}
+              />
+            )}
+
+            {/* ── 현황 스트립 ─────────────────────────────────────────── */}
+            <StatusStrip
+              activeCount={data.activeDeals.length}
+              deadlineCount={deadlineCount}
+              pendingSettlement={data.pendingSettlement}
+            />
+
+            {/* ── 오늘의 브리핑 ────────────────────────────────────────── */}
             {briefing ? (
               <MorningBriefing
                 briefing={briefing}
@@ -262,278 +329,297 @@ export default function HomeScreen() {
               />
             ) : snapshot ? (
               <DailyDigest snapshot={snapshot} onNavigate={handleDigestNavigate} />
-            ) : (
-              <WorkflowSummaryCard
-                activeCount={data.activeDeals.length}
-                deadlineCount={deadlineCount}
-                pendingSettlement={data.pendingSettlement}
-              />
-            )}
+            ) : null}
 
-            {/* TOP 3 집중 과제 */}
+            {/* ── TOP 3 집중 과제 ──────────────────────────────────────── */}
             <FocusCard items={focusItems} onPress={handleFocusItemPress} />
 
-            {/* 운영 타임라인 */}
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, unreadCount > 0 && styles.sectionTitleUrgent]}>
-                운영 현황
-              </Text>
-              {unreadCount > 0 ? (
+            {/* ── 운영 현황 타임라인 ───────────────────────────────────── */}
+            <AppSection
+              title="운영 현황"
+              action={unreadCount > 0 ? (
                 <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-                  <Text style={styles.sectionMore}>전체 보기</Text>
+                  <Text style={s.sectionLink}>전체 보기</Text>
                 </TouchableOpacity>
-              ) : null}
-            </View>
-            <TimelineFeed
-              groups={timelineGroups}
-              loading={timelineLoading}
-              maxItems={5}
-              onItemPress={handleTimelineItemPress}
-              onMarkRead={markRead}
-              onViewAll={() => navigation.navigate('Notifications')}
-            />
-            <View style={{ height: 8 }} />
+              ) : undefined}
+            >
+              <TimelineFeed
+                groups={timelineGroups}
+                loading={timelineLoading}
+                maxItems={5}
+                onItemPress={handleTimelineItemPress}
+                onMarkRead={markRead}
+                onViewAll={() => navigation.navigate('Notifications')}
+              />
+            </AppSection>
 
-            {/* 스마트 제안 */}
+            {/* ── 스마트 제안 ─────────────────────────────────────────── */}
             <SmartRecommendations
               recommendations={recommendations}
               onPress={handleRecommendationPress}
               onDismiss={handleDismissRecommendation}
             />
 
-            {/* 활성 협찬 */}
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>활성 협찬</Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Main', { screen: '협찬' } as any)}
-              >
-                <Text style={styles.sectionMore}>전체보기</Text>
-              </TouchableOpacity>
-            </View>
-
-            {data.activeDeals.length === 0 ? (
-              <View style={styles.emptyDeals}>
-                <Text style={styles.emptyDealsIcon}>📮</Text>
-                <Text style={styles.emptyDealsTitle}>진행 중인 협찬이 없어요</Text>
-                <Text style={styles.emptyDealsDesc}>
-                  브랜드 문의를 받거나 협찬을 직접 등록해보세요
-                </Text>
-                <View style={styles.emptyDealsBtns}>
-                  <TouchableOpacity
-                    style={styles.emptyBtnSecondary}
-                    onPress={() => navigation.navigate('Inquiries')}
-                  >
-                    <Text style={styles.emptyBtnSecondaryText}>📬 문의함</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.emptyBtnPrimary}
-                    onPress={() => navigation.navigate('Main', { screen: '협찬' } as any)}
-                  >
-                    <Text style={styles.emptyBtnPrimaryText}>협찬 관리</Text>
-                  </TouchableOpacity>
+            {/* ── 활성 협찬 ───────────────────────────────────────────── */}
+            <AppSection
+              title="활성 협찬"
+              action={
+                <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: '스튜디오' } as any)}>
+                  <Text style={s.sectionLink}>전체보기</Text>
+                </TouchableOpacity>
+              }
+            >
+              {data.activeDeals.length === 0 ? (
+                <AppCard variant="ghost" style={s.emptyBlock}>
+                  <Text style={s.emptyIcon}>📮</Text>
+                  <Text style={s.emptyTitle}>진행 중인 협찬이 없어요</Text>
+                  <Text style={s.emptyDesc}>브랜드 문의를 받거나 협찬을 직접 등록해보세요</Text>
+                  <View style={s.emptyBtns}>
+                    <TouchableOpacity style={s.emptyBtnSoft} onPress={() => navigation.navigate('Inquiries')}>
+                      <Text style={s.emptyBtnSoftText}>문의함</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.emptyBtnFill} onPress={() => navigation.navigate('Main', { screen: '스튜디오' } as any)}>
+                      <Text style={s.emptyBtnFillText}>협찬 관리</Text>
+                    </TouchableOpacity>
+                  </View>
+                </AppCard>
+              ) : (
+                <View style={s.dealList}>
+                  {data.activeDeals.map((deal) => (
+                    <DealRow
+                      key={deal.id}
+                      deal={deal}
+                      onPress={() => navigation.navigate('Main', { screen: '스튜디오' } as any)}
+                    />
+                  ))}
                 </View>
-              </View>
-            ) : (
-              <View style={styles.dealList}>
-                {data.activeDeals.map((deal) => (
-                  <TouchableOpacity
-                    key={deal.id}
-                    style={styles.dealCard}
-                    activeOpacity={0.85}
-                    onPress={() => navigation.navigate('Main', { screen: '협찬' } as any)}
-                  >
-                    <View style={[styles.dealAvatar, { backgroundColor: deal.initBg }]}>
-                      <Text style={styles.dealAvatarText}>{deal.initial}</Text>
-                    </View>
-                    <View style={styles.dealInfo}>
-                      <Text style={styles.dealBrand}>{deal.brand}</Text>
-                      <Text style={styles.dealAmount}>
-                        {deal.amount > 0
-                          ? deal.amount.toLocaleString('ko-KR') + '원'
-                          : '금액 미정'}
-                      </Text>
-                    </View>
-                    <View style={[styles.dealStatusBadge, { backgroundColor: deal.statusBg }]}>
-                      <Text style={[styles.dealStatusText, { color: deal.statusColor }]}>
-                        {deal.statusLabel}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            <View style={{ height: 24 }} />
+              )}
+            </AppSection>
           </>
         )}
 
-        {/* 소셜 채널 현황 */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>소셜 채널</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('YouTubeConnect')}>
-            <Text style={styles.sectionMore}>{channels.length > 0 ? '관리' : '+ 연동'}</Text>
-          </TouchableOpacity>
-        </View>
+        {/* ── 소셜 채널 ─────────────────────────────────────────────────── */}
+        <AppSection
+          title="연결된 채널"
+          action={
+            <TouchableOpacity onPress={() => navigation.navigate('YouTubeConnect')}>
+              <Text style={s.sectionLink}>{channels.length > 0 ? '관리' : '+ 연동'}</Text>
+            </TouchableOpacity>
+          }
+        >
+          {channels.length === 0 ? (
+            <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('YouTubeConnect')}>
+              <AppCard variant="ghost" style={s.channelEmpty}>
+                <Text style={s.channelEmptyIcon}>📺</Text>
+                <View style={s.channelEmptyBody}>
+                  <Text style={s.channelEmptyTitle}>YouTube 채널을 연동하세요</Text>
+                  <Text style={s.channelEmptyDesc}>구독자·조회수를 홈에서 바로 확인</Text>
+                </View>
+                <Text style={s.rowArrow}>›</Text>
+              </AppCard>
+            </TouchableOpacity>
+          ) : (
+            channels.map((ch) => (
+              <AppCard key={ch.id} style={s.channelCard}>
+                <View style={s.channelHeader}>
+                  <View style={s.ytBadge}>
+                    <Text style={s.ytBadgeText}>▶</Text>
+                  </View>
+                  <Text style={s.channelName} numberOfLines={1}>{ch.channel_name}</Text>
+                </View>
+                <View style={s.channelStats}>
+                  <View style={s.channelStat}>
+                    <Text style={s.statValue}>{formatCount(ch.subscriber_count)}</Text>
+                    <Text style={s.statLabel}>구독자</Text>
+                  </View>
+                  <View style={s.statDivider} />
+                  <View style={s.channelStat}>
+                    <Text style={s.statValue}>
+                      {ch.video_count > 0 ? formatCount(Math.floor(ch.view_count / ch.video_count)) : '—'}
+                    </Text>
+                    <Text style={s.statLabel}>평균 조회수</Text>
+                  </View>
+                  <View style={s.statDivider} />
+                  <View style={s.channelStat}>
+                    <Text style={s.statValue}>{ch.video_count}</Text>
+                    <Text style={s.statLabel}>영상</Text>
+                  </View>
+                </View>
+              </AppCard>
+            ))
+          )}
+        </AppSection>
 
-        {channels.length === 0 ? (
-          <TouchableOpacity
-            style={channelStyle.empty}
-            onPress={() => navigation.navigate('YouTubeConnect')}
-            activeOpacity={0.85}
-          >
-            <Text style={channelStyle.emptyIcon}>📺</Text>
-            <View style={channelStyle.emptyBody}>
-              <Text style={channelStyle.emptyTitle}>YouTube 채널을 연동하세요</Text>
-              <Text style={channelStyle.emptyDesc}>구독자·조회수를 홈에서 바로 확인</Text>
-            </View>
-            <Text style={channelStyle.emptyArrow}>›</Text>
-          </TouchableOpacity>
-        ) : (
-          channels.map((ch) => (
-            <View key={ch.id} style={channelStyle.card}>
-              <View style={channelStyle.cardHeader}>
-                <View style={channelStyle.ytBadge}>
-                  <Text style={channelStyle.ytBadgeText}>▶</Text>
-                </View>
-                <Text style={channelStyle.channelName} numberOfLines={1}>
-                  {ch.channel_name}
-                </Text>
-              </View>
-              <View style={channelStyle.stats}>
-                <View style={channelStyle.stat}>
-                  <Text style={channelStyle.statValue}>{formatCount(ch.subscriber_count)}</Text>
-                  <Text style={channelStyle.statLabel}>구독자</Text>
-                </View>
-                <View style={channelStyle.statDivider} />
-                <View style={channelStyle.stat}>
-                  <Text style={channelStyle.statValue}>
-                    {ch.video_count > 0 ? formatCount(Math.floor(ch.view_count / ch.video_count)) : '-'}
-                  </Text>
-                  <Text style={channelStyle.statLabel}>평균 조회수</Text>
-                </View>
-                <View style={channelStyle.statDivider} />
-                <View style={channelStyle.stat}>
-                  <Text style={channelStyle.statValue}>{ch.video_count}개</Text>
-                  <Text style={channelStyle.statLabel}>영상</Text>
-                </View>
-              </View>
-            </View>
-          ))
-        )}
-
-        <View style={{ height: 24 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F3EF' },
-  scroll: { paddingHorizontal: 20, paddingBottom: 16 },
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
+const s = StyleSheet.create({
+  root:   { flex: 1, backgroundColor: colors.bg },
+  scroll: { paddingHorizontal: space.screen, paddingBottom: space.lg },
+
+  // Header
   header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingVertical: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: space.xl,
+    paddingBottom: space.lg,
   },
-  greeting:          { ...typography.screenTitle, color: tokens.ink },
-  greetingSub:       { ...typography.metadata, color: tokens.ink4, marginTop: 2 },
-  greetingSubUrgent: { ...typography.metadata, color: tokens.primary, marginTop: 2, fontWeight: '600' },
-  avatar: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+  headerTitle:       { flex: 1 },
+  greeting:          { fontSize: 22, fontWeight: '700', color: colors.text.primary, letterSpacing: -0.5 },
+  greetingSub:       { ...typography.caption, color: colors.text.muted, marginTop: 3 },
+  greetingSubUrgent: { ...typography.caption, color: colors.brand.default, fontWeight: '600', marginTop: 3 },
+  headerActions:     { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  iconBtn: {
+    width: 38, height: 38, borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border.default,
+    alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  bellBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#EAE3FF', alignItems: 'center', justifyContent: 'center' },
-  bellIcon: { fontSize: 18 },
-  bellBadge: { position: 'absolute', top: 4, right: 4, backgroundColor: '#C13C3C', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  bellBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
+  iconBtnText: { fontSize: 17 },
+  notifDot: {
+    position: 'absolute', top: 8, right: 8,
+    width: 7, height: 7, borderRadius: 4,
+    backgroundColor: colors.semantic.error,
+  },
+  avatarBtn: {
+    width: 38, height: 38, borderRadius: radius.md,
+    backgroundColor: colors.brand.default,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
-  sectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 12,
+  // AI Banner
+  aiBannerWrap: { marginBottom: space.md },
+  aiBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: 0,
   },
-  sectionTitle: { ...typography.sectionTitle, color: tokens.ink },
-  sectionMore:  { ...typography.metadata, color: colors.primary, fontWeight: '600' },
-  sectionTitleUrgent: { color: tokens.urgent },
+  aiBannerLeft:  { flexDirection: 'row', alignItems: 'center', gap: space.sm, flex: 1 },
+  aiBannerText:  { flex: 1 },
+  aiBannerTitle: { ...typography.bodyStrong, color: colors.ai.text },
+  aiBannerSub:   { ...typography.caption, color: colors.text.tertiary, marginTop: 2 },
+  aiBannerArrow: { fontSize: 20, color: colors.ai.text, opacity: 0.5 },
 
-  dealList: { gap: 10, marginBottom: 8 },
+  // Priority collab block
+  priorityWrap: { marginBottom: space.md },
+  priorityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border.default,
+    padding: space.md,
+    ...shadows.sm,
+  },
+  priorityLeft:      { flexDirection: 'row', alignItems: 'center', gap: space.md, flex: 1 },
+  priorityAvatar: {
+    width: 48, height: 48, borderRadius: radius.md,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  priorityAvatarText: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  priorityInfo:       { flex: 1, gap: 4 },
+  priorityEyebrow:    { fontSize: 10, fontWeight: '600', color: colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
+  priorityBrand:      { fontSize: 16, fontWeight: '700', color: colors.text.primary },
+  priorityBadge:      { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill },
+  priorityBadgeText:  { fontSize: 11, fontWeight: '600' },
+  priorityRight:      { alignItems: 'flex-end', gap: 2 },
+  priorityAmount:     { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+  priorityAmountUnit: { fontSize: 12, color: colors.text.muted },
+  priorityArrow:      { fontSize: 18, color: colors.border.medium, marginTop: 2 },
+
+  // Status strip
+  strip: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border.default,
+    paddingVertical: space.md,
+    marginBottom: space.md,
+    ...shadows.xs,
+  },
+  stripItem:        { flex: 1, alignItems: 'center', gap: 4 },
+  stripDivider:     { width: StyleSheet.hairlineWidth, backgroundColor: colors.border.faint },
+  stripValue:       { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+  stripValueUrgent: { color: colors.semantic.error },
+  stripValuePending:{ color: colors.semantic.successMid },
+  stripLabel:       { ...typography.caption, color: colors.text.muted },
+
+  // Section link
+  sectionLink: { ...typography.label, color: colors.brand.default },
+
+  // Deal list
+  dealList: { gap: space.xs + 2 },
   dealCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 16, padding: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    padding: space.md, marginBottom: 0, gap: space.md,
   },
   dealAvatar: {
-    width: 44, height: 44, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center', marginRight: 14,
+    width: 40, height: 40, borderRadius: radius.md,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  dealAvatarText: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  dealInfo:       { flex: 1 },
-  dealBrand:      { ...typography.cardTitle, color: tokens.ink, marginBottom: 3 },
-  dealAmount:     { ...typography.metadata, color: tokens.ink3 },
-  dealStatusBadge:{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  dealStatusText: { fontSize: 12, fontWeight: '600' },
+  dealAvatarText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  dealInfo:       { flex: 1, gap: 2 },
+  dealBrand:      { ...typography.bodyStrong, color: colors.text.primary },
+  dealAmount:     { ...typography.caption, color: colors.text.muted },
+  dealStatusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.pill },
+  dealStatusText: { fontSize: 11, fontWeight: '600' },
 
-  emptyDeals: {
-    backgroundColor: '#fff', borderRadius: 18, padding: 28,
-    alignItems: 'center', marginBottom: 8,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+  // Empty state
+  emptyBlock: { alignItems: 'center', paddingVertical: space.xxl, gap: space.sm },
+  emptyIcon:  { fontSize: 32, marginBottom: space.xs },
+  emptyTitle: { ...typography.subheading, color: colors.text.primary },
+  emptyDesc:  { ...typography.caption, color: colors.text.muted, textAlign: 'center', lineHeight: 20 },
+  emptyBtns:  { flexDirection: 'row', gap: space.sm, alignSelf: 'stretch', marginTop: space.sm },
+  emptyBtnSoft: {
+    flex: 1, paddingVertical: space.sm + 2,
+    borderRadius: radius.md, backgroundColor: colors.brand.softer,
+    alignItems: 'center',
   },
-  emptyDealsIcon:  { fontSize: 40, marginBottom: 10 },
-  emptyDealsTitle: { fontSize: 15, fontWeight: '700', color: '#1A1A2E', marginBottom: 6 },
-  emptyDealsDesc:  { fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
-  emptyDealsBtns: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
-  emptyBtnSecondary: {
-    flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12,
-    backgroundColor: '#F0EFFE', alignItems: 'center', justifyContent: 'center',
+  emptyBtnSoftText: { ...typography.buttonSm, color: colors.brand.deep },
+  emptyBtnFill: {
+    flex: 1, paddingVertical: space.sm + 2,
+    borderRadius: radius.md, backgroundColor: colors.brand.default,
+    alignItems: 'center', ...shadows.fab,
   },
-  emptyBtnSecondaryText: { fontSize: 13, fontWeight: '700', color: colors.primary },
-  emptyBtnPrimary: {
-    flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12,
-    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
-  },
-  emptyBtnPrimaryText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  emptyBtnFillText: { ...typography.buttonSm, color: '#fff' },
 
-});
-
-const aib = StyleSheet.create({
-  banner: {
+  // Channel
+  channelEmpty: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1A1A2E', borderRadius: 16, padding: 14, marginBottom: 16, gap: 12,
+    gap: space.md, paddingVertical: space.lg,
   },
-  icon:  { fontSize: 22 },
-  title: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  sub:   { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
-  arrow: { fontSize: 22, color: 'rgba(255,255,255,0.4)' },
-});
-
-const channelStyle = StyleSheet.create({
-  empty: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 8,
-    gap: 12, borderWidth: 1.5, borderColor: '#E8E4FF',
+  channelEmptyIcon:  { fontSize: 24 },
+  channelEmptyBody:  { flex: 1, gap: 2 },
+  channelEmptyTitle: { ...typography.bodyStrong, color: colors.text.primary },
+  channelEmptyDesc:  { ...typography.caption, color: colors.text.muted },
+  rowArrow:          { fontSize: 20, color: colors.border.medium },
+  channelCard:       { marginBottom: space.sm },
+  channelHeader:     { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.md },
+  ytBadge: {
+    width: 28, height: 28, borderRadius: radius.sm,
+    backgroundColor: '#FF0000', alignItems: 'center', justifyContent: 'center',
   },
-  emptyIcon:  { fontSize: 28 },
-  emptyBody:  { flex: 1 },
-  emptyTitle: { fontSize: 14, fontWeight: '700', color: '#1A1A2E' },
-  emptyDesc:  { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-  emptyArrow: { fontSize: 22, color: '#D1D5DB' },
-
-  card: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 8,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  ytBadgeText:  { color: '#fff', fontSize: 10, fontWeight: '800' },
+  channelName:  { flex: 1, ...typography.bodyStrong, color: colors.text.primary },
+  channelStats: {
+    flexDirection: 'row',
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    paddingVertical: space.sm + 2,
+    paddingHorizontal: space.md,
   },
-  cardHeader:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  ytBadge:     { width: 32, height: 32, borderRadius: 8, backgroundColor: '#FF0000', alignItems: 'center', justifyContent: 'center' },
-  ytBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  channelName: { flex: 1, fontSize: 14, fontWeight: '700', color: '#1A1A2E' },
-
-  stats:       { flexDirection: 'row', backgroundColor: '#F5F3EF', borderRadius: 12, padding: 12 },
-  stat:        { flex: 1, alignItems: 'center' },
-  statValue:   { fontSize: 16, fontWeight: '800', color: '#1A1A2E', marginBottom: 2 },
-  statLabel:   { ...typography.caption, color: tokens.primary },
-  statDivider: { width: 1, backgroundColor: 'rgba(110,86,240,0.15)' },
+  channelStat:  { flex: 1, alignItems: 'center', gap: 3 },
+  statValue:    { ...typography.heading, color: colors.text.primary },
+  statLabel:    { ...typography.caption, color: colors.brand.default },
+  statDivider:  { width: StyleSheet.hairlineWidth, backgroundColor: colors.border.faint },
 });
