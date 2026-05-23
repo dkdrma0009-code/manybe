@@ -4,6 +4,8 @@ import { getAdvertiserSession, createClient } from "@/lib/supabase-server";
 import { logoutAdvertiser } from "../signup/actions";
 import MessagesClient, { type Conversation } from "./MessagesClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function MessagesPage() {
   const session = await getAdvertiserSession();
   if (!session) redirect("/advertiser/login");
@@ -16,21 +18,24 @@ export default async function MessagesPage() {
     .eq("advertiser_id", session.user.id)
     .order("created_at", { ascending: false });
 
-  const creatorIds = [...new Set((proposals ?? []).map((p) => p.creator_id))];
+  if (!proposals || proposals.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <MessagesPageShell session={session}>
+          <MessagesClient initialConversations={[]} supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!} supabaseAnonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!} advertiserName={session.profile.full_name ?? ""} />
+        </MessagesPageShell>
+      </div>
+    );
+  }
 
+  const proposalIds = proposals.map((p) => p.id);
+  const creatorIds = [...new Set(proposals.map((p) => p.creator_id))];
+
+  // Fetch all threads this advertiser can access (RLS handles filtering)
   const [{ data: profiles }, { data: kits }, { data: threads }] = await Promise.all([
-    creatorIds.length
-      ? supabase.from("profiles").select("id, full_name").in("id", creatorIds)
-      : Promise.resolve({ data: [] }),
-    creatorIds.length
-      ? supabase.from("media_kits").select("user_id, slug").in("user_id", creatorIds)
-      : Promise.resolve({ data: [] }),
-    proposals && proposals.length > 0
-      ? supabase
-          .from("message_threads")
-          .select("id, proposal_id, last_message_at")
-          .in("proposal_id", proposals.map((p) => p.id))
-      : Promise.resolve({ data: [] }),
+    supabase.from("profiles").select("id, full_name").in("id", creatorIds),
+    supabase.from("media_kits").select("user_id, slug").in("user_id", creatorIds),
+    supabase.from("message_threads").select("id, proposal_id, last_message_at").in("proposal_id", proposalIds),
   ]);
 
   const slugMap = Object.fromEntries((kits ?? []).map((k) => [k.user_id, k.slug]));
@@ -38,37 +43,31 @@ export default async function MessagesPage() {
     (profiles ?? []).map((p) => [p.id, p.full_name || slugMap[p.id] || "알 수 없음"])
   );
   const threadMap = Object.fromEntries((threads ?? []).map((t) => [t.proposal_id, t]));
-
   const threadIds = (threads ?? []).map((t) => t.id);
+
   let unreadMap: Record<string, number> = {};
   let lastMsgMap: Record<string, string> = {};
 
   if (threadIds.length > 0) {
-    const [{ data: unread }, { data: lastMsgs }] = await Promise.all([
-      supabase
-        .from("chat_messages")
-        .select("thread_id")
-        .in("thread_id", threadIds)
-        .eq("sender_role", "creator")
-        .eq("is_read", false),
-      supabase
-        .from("chat_messages")
-        .select("thread_id, content, sender_role")
-        .in("thread_id", threadIds)
-        .order("created_at", { ascending: false }),
-    ]);
+    const { data: msgs } = await supabase
+      .from("chat_messages")
+      .select("thread_id, content, sender_role, is_read")
+      .in("thread_id", threadIds)
+      .order("created_at", { ascending: false });
 
-    (unread ?? []).forEach((u) => {
-      unreadMap[u.thread_id] = (unreadMap[u.thread_id] ?? 0) + 1;
-    });
-    (lastMsgs ?? []).forEach((m) => {
+    (msgs ?? []).forEach((m) => {
+      // unread: creator messages not yet read by advertiser
+      if (m.sender_role === "creator" && !m.is_read) {
+        unreadMap[m.thread_id] = (unreadMap[m.thread_id] ?? 0) + 1;
+      }
+      // latest message preview (first per thread in desc order)
       if (!lastMsgMap[m.thread_id]) {
         lastMsgMap[m.thread_id] = m.sender_role === "brand" ? `나: ${m.content}` : m.content;
       }
     });
   }
 
-  const conversations: Conversation[] = (proposals ?? []).map((p) => {
+  const conversations: Conversation[] = proposals.map((p) => {
     const thread = threadMap[p.id];
     return {
       proposalId: p.id,
@@ -84,6 +83,21 @@ export default async function MessagesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <MessagesPageShell session={session}>
+        <MessagesClient
+          initialConversations={conversations}
+          supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!}
+          supabaseAnonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}
+          advertiserName={session.profile.full_name ?? ""}
+        />
+      </MessagesPageShell>
+    </div>
+  );
+}
+
+function MessagesPageShell({ session, children }: { session: { profile: { full_name: string | null } }; children: React.ReactNode }) {
+  return (
+    <>
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -105,16 +119,10 @@ export default async function MessagesPage() {
           </div>
         </div>
       </header>
-
       <div className="max-w-4xl mx-auto px-6 py-8">
         <h1 className="text-2xl font-extrabold text-gray-900 mb-6">메시지</h1>
-        <MessagesClient
-          initialConversations={conversations}
-          supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!}
-          supabaseAnonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}
-          advertiserName={session.profile.full_name ?? ""}
-        />
+        {children}
       </div>
-    </div>
+    </>
   );
 }
