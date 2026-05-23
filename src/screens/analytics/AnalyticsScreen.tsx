@@ -6,8 +6,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useIntelligence } from '../../hooks/useIntelligence';
+import { useChannelAnalysis } from '../../hooks/useChannelAnalysis';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { useDecisionEngine } from '../../hooks/useDecisionEngine';
 import { useBusinessGraph } from '../../hooks/useBusinessGraph';
@@ -218,6 +220,22 @@ export default function AnalyticsScreen() {
   const userId = session?.user?.id;
 
   const now = new Date();
+  const [ytChannelId, setYtChannelId] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from('social_channels')
+      .select('channel_id')
+      .eq('user_id', userId)
+      .eq('platform', 'youtube')
+      .limit(1)
+      .single()
+      .then(({ data }) => { if (data) setYtChannelId(data.channel_id); });
+  }, [userId]);
+
+  const { analysis: chAnalysis, analyzing, error: chError, isStale, runAnalysis } = useChannelAnalysis(userId, ytChannelId);
+
   const { intelligence, loading: intLoading, refetch: refetchInt } = useIntelligence(userId);
   const { metrics, loading: metricsLoading, refetch: refetchMetrics } = useAnalytics(userId);
   const { focusItems, refetch: refetchDecision } = useDecisionEngine(userId);
@@ -406,7 +424,106 @@ export default function AnalyticsScreen() {
         </SectionCard>
       )}
 
-      {/* ── 2. Revenue Trend Chart ───────────────────────────────── */}
+      {/* ── 2. Channel AI 분석 ──────────────────────────────────── */}
+      {ytChannelId && (
+        <SectionCard>
+          <View style={s.sectionTitleRow}>
+            <Text style={s.sectionTitle}>채널 AI 분석</Text>
+            <TouchableOpacity
+              onPress={runAnalysis}
+              disabled={analyzing}
+              style={[s.chip, { backgroundColor: tokens.primary + '22' }]}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.chipText, { color: tokens.primary }]}>
+                {analyzing ? '분석 중...' : chAnalysis ? (isStale ? '갱신' : '다시 분석') : '분석 시작'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {analyzing && (
+            <View style={{ paddingHorizontal: 16, paddingBottom: 16, alignItems: 'center', gap: 6 }}>
+              <ActivityIndicator size="small" color={tokens.primary} />
+              <Text style={{ fontSize: 12, color: tokens.ink4 }}>댓글 수집 및 Claude AI 분석 중...</Text>
+            </View>
+          )}
+
+          {chError && !analyzing && (
+            <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+              <Text style={{ fontSize: 12, color: tokens.urgent }}>{chError}</Text>
+            </View>
+          )}
+
+          {chAnalysis && !analyzing && (
+            <>
+              {/* 감성 점수 */}
+              <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={{ fontSize: 12, color: tokens.ink3 }}>댓글 감성</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: chAnalysis.sentiment_score >= 60 ? tokens.uploaded : chAnalysis.sentiment_score >= 40 ? tokens.inProgress : tokens.urgent }}>
+                    {chAnalysis.sentiment_label} ({chAnalysis.sentiment_score}/100)
+                  </Text>
+                </View>
+                <ProgressBar
+                  value={chAnalysis.sentiment_score}
+                  color={chAnalysis.sentiment_score >= 60 ? tokens.uploaded : chAnalysis.sentiment_score >= 40 ? tokens.inProgress : tokens.urgent}
+                />
+              </View>
+
+              <Divider />
+
+              {/* 타겟 오디언스 */}
+              {chAnalysis.audience_keywords.length > 0 && (
+                <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 11, color: tokens.ink4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 }}>타겟 오디언스</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {chAnalysis.audience_keywords.map((kw) => (
+                      <View key={kw} style={[s.chip, { backgroundColor: tokens.primary + '15' }]}>
+                        <Text style={[s.chipText, { color: tokens.primary }]}>{kw}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <Divider />
+
+              <MetricRow
+                label="광고/협찬 콘텐츠 비율"
+                value={`${chAnalysis.ad_ratio}%`}
+                valueColor={chAnalysis.ad_ratio > 50 ? tokens.urgent : chAnalysis.ad_ratio > 25 ? tokens.reviewing : tokens.ink}
+              />
+
+              <Divider />
+
+              {/* 인사이트 */}
+              {chAnalysis.insights.map((insight, idx) => (
+                <View key={idx} style={s.factorRow}>
+                  <Text style={s.factorIcon}>{insight.icon}</Text>
+                  <Text style={[s.factorDetail, { flex: 1 }]}>{insight.text}</Text>
+                </View>
+              ))}
+
+              <View style={{ paddingHorizontal: 16, paddingBottom: 10, paddingTop: 4 }}>
+                <Text style={{ fontSize: 10, color: tokens.ink4 }}>
+                  댓글 {chAnalysis.sample_size}개 분석 · {new Date(chAnalysis.computed_at).toLocaleDateString('ko-KR')}
+                </Text>
+              </View>
+            </>
+          )}
+
+          {!chAnalysis && !analyzing && (
+            <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+              <Text style={{ fontSize: 13, color: tokens.ink4, lineHeight: 20 }}>
+                YouTube 댓글을 분석해 감성, 타겟 오디언스, 광고 비율을 파악합니다.{'\n'}
+                "분석 시작"을 눌러 시작하세요.
+              </Text>
+            </View>
+          )}
+        </SectionCard>
+      )}
+
+      {/* ── 3. Revenue Trend Chart ───────────────────────────────────── */}
       {chartBars.length > 0 && (
         <SectionCard>
           <SectionTitle
