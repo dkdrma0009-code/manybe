@@ -27,7 +27,6 @@ export default async function MessagesPage() {
 
   const supabase = await createClient();
 
-  // Get proposals with thread info
   const { data: proposals } = await supabase
     .from("advertiser_proposals")
     .select("id, creator_id, brand_name, message, amount, status, created_at")
@@ -37,7 +36,7 @@ export default async function MessagesPage() {
   const creatorIds = [...new Set((proposals ?? []).map((p) => p.creator_id))];
   const [{ data: profiles }, { data: threads }] = await Promise.all([
     creatorIds.length
-      ? supabase.from("profiles").select("id, full_name").in("id", creatorIds)
+      ? supabase.from("profiles").select("id, full_name, email").in("id", creatorIds)
       : Promise.resolve({ data: [] }),
     proposals && proposals.length > 0
       ? supabase
@@ -47,21 +46,40 @@ export default async function MessagesPage() {
       : Promise.resolve({ data: [] }),
   ]);
 
-  const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p.full_name ?? "알 수 없음"]));
+  const profileMap = Object.fromEntries(
+    (profiles ?? []).map((p) => [p.id, p.full_name || p.email || "알 수 없음"])
+  );
   const threadMap = Object.fromEntries((threads ?? []).map((t) => [t.proposal_id, t]));
 
-  // Get unread counts (creator messages that advertiser hasn't read)
+  // Fetch last message and unread count per thread
   const threadIds = (threads ?? []).map((t) => t.id);
   let unreadMap: Record<string, number> = {};
+  let lastMsgMap: Record<string, { content: string; sender_role: string }> = {};
+
   if (threadIds.length > 0) {
-    const { data: unread } = await supabase
-      .from("chat_messages")
-      .select("thread_id")
-      .in("thread_id", threadIds)
-      .eq("sender_role", "creator")
-      .eq("is_read", false);
+    const [{ data: unread }, { data: lastMsgs }] = await Promise.all([
+      supabase
+        .from("chat_messages")
+        .select("thread_id")
+        .in("thread_id", threadIds)
+        .eq("sender_role", "creator")
+        .eq("is_read", false),
+      supabase
+        .from("chat_messages")
+        .select("thread_id, content, sender_role")
+        .in("thread_id", threadIds)
+        .order("created_at", { ascending: false }),
+    ]);
+
     (unread ?? []).forEach((u) => {
       unreadMap[u.thread_id] = (unreadMap[u.thread_id] ?? 0) + 1;
+    });
+
+    // Keep only the latest message per thread
+    (lastMsgs ?? []).forEach((m) => {
+      if (!lastMsgMap[m.thread_id]) {
+        lastMsgMap[m.thread_id] = { content: m.content, sender_role: m.sender_role };
+      }
     });
   }
 
@@ -111,6 +129,10 @@ export default async function MessagesPage() {
               const thread = threadMap[p.id];
               const unread = thread ? (unreadMap[thread.id] ?? 0) : 0;
               const lastAt = thread?.last_message_at ?? p.created_at;
+              const lastMsg = thread ? lastMsgMap[thread.id] : null;
+              const previewText = lastMsg
+                ? (lastMsg.sender_role === "brand" ? `나: ${lastMsg.content}` : lastMsg.content)
+                : p.message;
               const status = STATUS_META[p.status] ?? STATUS_META.pending;
 
               return (
@@ -119,7 +141,6 @@ export default async function MessagesPage() {
                   href={`/advertiser/messages/${p.id}`}
                   className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
                 >
-                  {/* Avatar */}
                   <div className="relative shrink-0">
                     <div className="w-12 h-12 rounded-2xl bg-[#6C63FF] flex items-center justify-center text-white font-bold text-base">
                       {creatorName.charAt(0).toUpperCase()}
@@ -133,13 +154,13 @@ export default async function MessagesPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className={`font-bold text-gray-900 text-sm ${unread > 0 ? "font-extrabold" : ""}`}>
+                      <span className={`text-sm text-gray-900 ${unread > 0 ? "font-extrabold" : "font-bold"}`}>
                         {creatorName}
                       </span>
                       <span className="text-xs text-gray-400 shrink-0 ml-2">{timeAgo(lastAt)}</span>
                     </div>
-                    <p className={`text-sm truncate mb-1.5 ${unread > 0 ? "text-gray-900" : "text-gray-500"}`}>
-                      {p.message}
+                    <p className={`text-sm truncate mb-1.5 ${unread > 0 ? "text-gray-900 font-medium" : "text-gray-500"}`}>
+                      {previewText}
                     </p>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${status.bg} ${status.color}`}>

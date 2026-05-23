@@ -39,14 +39,16 @@ export default async function DashboardPage() {
 
   const creatorIds = [...new Set((proposals ?? []).map((p) => p.creator_id))];
   const { data: profiles } = creatorIds.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", creatorIds)
+    ? await supabase.from("profiles").select("id, full_name, email").in("id", creatorIds)
     : { data: [] };
 
   const { data: kits } = creatorIds.length
     ? await supabase.from("media_kits").select("user_id, slug").in("user_id", creatorIds)
     : { data: [] };
 
-  const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p.full_name]));
+  const profileMap = Object.fromEntries(
+    (profiles ?? []).map((p) => [p.id, p.full_name || p.email || null])
+  );
   const slugMap = Object.fromEntries((kits ?? []).map((k) => [k.user_id, k.slug]));
 
   const counts = { total: 0, pending: 0, accepted: 0, rejected: 0 };

@@ -21,11 +21,11 @@ export default async function ChatPage({ params }: { params: Promise<{ proposalI
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, email")
     .eq("id", proposal.creator_id)
     .single();
 
-  const creatorName = profile?.full_name ?? "크리에이터";
+  const creatorName = profile?.full_name || profile?.email || "크리에이터";
 
   // Get or initialize thread + existing messages
   let { data: thread } = await supabase
