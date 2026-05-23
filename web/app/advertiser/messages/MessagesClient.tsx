@@ -75,7 +75,7 @@ export default function MessagesClient({
               if (c.threadId !== msg.thread_id) return c;
               return {
                 ...c,
-                previewText: msg.sender_role === "creator" ? msg.content : c.previewText,
+                previewText: msg.sender_role === "brand" ? `나: ${msg.content}` : msg.content,
                 lastAt: msg.created_at,
                 unreadCount:
                   msg.sender_role === "creator" ? c.unreadCount + 1 : c.unreadCount,

@@ -44,7 +44,7 @@ export default async function MessagesPage() {
   let lastMsgMap: Record<string, string> = {};
 
   if (threadIds.length > 0) {
-    const [{ data: unread }, { data: lastCreatorMsgs }] = await Promise.all([
+    const [{ data: unread }, { data: lastMsgs }] = await Promise.all([
       supabase
         .from("chat_messages")
         .select("thread_id")
@@ -53,17 +53,18 @@ export default async function MessagesPage() {
         .eq("is_read", false),
       supabase
         .from("chat_messages")
-        .select("thread_id, content")
+        .select("thread_id, content, sender_role")
         .in("thread_id", threadIds)
-        .eq("sender_role", "creator")
         .order("created_at", { ascending: false }),
     ]);
 
     (unread ?? []).forEach((u) => {
       unreadMap[u.thread_id] = (unreadMap[u.thread_id] ?? 0) + 1;
     });
-    (lastCreatorMsgs ?? []).forEach((m) => {
-      if (!lastMsgMap[m.thread_id]) lastMsgMap[m.thread_id] = m.content;
+    (lastMsgs ?? []).forEach((m) => {
+      if (!lastMsgMap[m.thread_id]) {
+        lastMsgMap[m.thread_id] = m.sender_role === "brand" ? `나: ${m.content}` : m.content;
+      }
     });
   }
 
