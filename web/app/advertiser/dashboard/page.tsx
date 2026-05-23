@@ -72,6 +72,12 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600 hidden sm:block">{session.profile.full_name}</span>
             <Link
+              href="/advertiser/messages"
+              className="text-xs font-semibold text-gray-500 hover:text-gray-900"
+            >
+              메시지
+            </Link>
+            <Link
               href="/discover"
               className="text-xs font-semibold text-[#6C63FF] hover:underline"
             >
@@ -123,9 +129,10 @@ export default async function DashboardPage() {
               const status = STATUS_META[p.status] ?? STATUS_META.pending;
 
               return (
-                <div
+                <Link
                   key={p.id}
-                  className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4"
+                  href={`/advertiser/messages/${p.id}`}
+                  className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4 hover:border-[#6C63FF]/30 hover:shadow-md transition-all"
                 >
                   {/* 아바타 */}
                   <div className="w-10 h-10 rounded-xl bg-[#6C63FF] flex items-center justify-center text-white font-bold text-sm shrink-0">
@@ -164,7 +171,7 @@ export default async function DashboardPage() {
                       <span>{timeAgo(p.created_at)}</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
