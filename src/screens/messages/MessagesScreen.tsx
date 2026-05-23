@@ -148,27 +148,43 @@ export default function MessagesScreen() {
 
       const threadMap = new Map((threads ?? []).map((t) => [t.proposal_id, t]));
 
-      // 읽지 않은 메시지 수 조회
       const threadIds = (threads ?? []).map((t) => t.id);
       const unreadMap = new Map<string, number>();
+      const lastMsgMap = new Map<string, string>();
+
       if (threadIds.length > 0) {
-        const { data: unread } = await supabase
-          .from('chat_messages')
-          .select('thread_id')
-          .in('thread_id', threadIds)
-          .eq('sender_role', 'brand')
-          .eq('is_read', false);
+        const [{ data: unread }, { data: lastMsgs }] = await Promise.all([
+          supabase
+            .from('chat_messages')
+            .select('thread_id')
+            .in('thread_id', threadIds)
+            .eq('sender_role', 'brand')
+            .eq('is_read', false),
+          supabase
+            .from('chat_messages')
+            .select('thread_id, content, sender_role')
+            .in('thread_id', threadIds)
+            .order('created_at', { ascending: false }),
+        ]);
         (unread ?? []).forEach((u) => {
           unreadMap.set(u.thread_id, (unreadMap.get(u.thread_id) ?? 0) + 1);
+        });
+        // 스레드별 최신 메시지만 보관
+        (lastMsgs ?? []).forEach((m) => {
+          if (!lastMsgMap.has(m.thread_id)) {
+            const prefix = m.sender_role === 'creator' ? '나: ' : '';
+            lastMsgMap.set(m.thread_id, prefix + m.content);
+          }
         });
       }
 
       const msgs: Message[] = (proposals ?? []).map((d) => {
         const thread = threadMap.get(d.id);
+        const lastMsg = thread ? lastMsgMap.get(thread.id) : undefined;
         return {
           id:          d.id,
           brand:       d.brand_name,
-          preview:     d.message,
+          preview:     lastMsg ?? d.message,
           timestamp:   thread?.last_message_at ?? d.created_at,
           status:      d.status as Message['status'],
           amount:      d.amount,
