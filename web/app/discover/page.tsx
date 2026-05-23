@@ -141,6 +141,12 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
           <div className="flex items-center gap-3 shrink-0">
             {session ? (
               <>
+                <Link
+                  href="/advertiser/dashboard"
+                  className="text-xs font-semibold text-[#6C63FF] hover:underline hidden sm:block"
+                >
+                  보낸 제안
+                </Link>
                 <span className="text-sm text-gray-600 hidden sm:block">{session.profile.full_name}</span>
                 <form action={logoutAdvertiser}>
                   <button className="text-xs text-gray-400 hover:text-gray-600 transition-colors">로그아웃</button>

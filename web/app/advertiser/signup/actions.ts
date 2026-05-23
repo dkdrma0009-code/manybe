@@ -26,7 +26,7 @@ export async function signUpAdvertiser(formData: FormData) {
 
   if (profileError) return { error: profileError.message };
 
-  redirect("/discover");
+  redirect("/advertiser/dashboard");
 }
 
 export async function loginAdvertiser(formData: FormData) {
@@ -55,7 +55,7 @@ export async function loginAdvertiser(formData: FormData) {
   }
 
   const next = formData.get("next") as string | null;
-  redirect(next || "/discover");
+  redirect(next || "/advertiser/dashboard");
 }
 
 export async function logoutAdvertiser() {
