@@ -100,12 +100,12 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
       {/* Header */}
       <header className="bg-white border-b border-gray-100 py-4 px-6">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link href="/discover" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-[#6C63FF] flex items-center justify-center">
               <span className="text-white font-bold text-xs">M</span>
             </div>
             <span className="font-bold text-gray-900 text-sm">매니비</span>
-          </div>
+          </Link>
           <span className="text-xs text-gray-400">미디어 키트</span>
         </div>
       </header>
@@ -240,7 +240,7 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
       <footer className="text-center py-8 text-xs text-gray-400">
         <p>
           Powered by{" "}
-          <Link href="/" className="text-[#6C63FF] font-semibold hover:underline">
+          <Link href="/discover" className="text-[#6C63FF] font-semibold hover:underline">
             매니비
           </Link>
         </p>
