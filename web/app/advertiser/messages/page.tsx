@@ -34,9 +34,12 @@ export default async function MessagesPage() {
     .order("created_at", { ascending: false });
 
   const creatorIds = [...new Set((proposals ?? []).map((p) => p.creator_id))];
-  const [{ data: profiles }, { data: threads }] = await Promise.all([
+  const [{ data: profiles }, { data: kits }, { data: threads }] = await Promise.all([
     creatorIds.length
-      ? supabase.from("profiles").select("id, full_name, email").in("id", creatorIds)
+      ? supabase.from("profiles").select("id, full_name").in("id", creatorIds)
+      : Promise.resolve({ data: [] }),
+    creatorIds.length
+      ? supabase.from("media_kits").select("user_id, slug").in("user_id", creatorIds)
       : Promise.resolve({ data: [] }),
     proposals && proposals.length > 0
       ? supabase
@@ -46,8 +49,9 @@ export default async function MessagesPage() {
       : Promise.resolve({ data: [] }),
   ]);
 
+  const slugMap = Object.fromEntries((kits ?? []).map((k) => [k.user_id, k.slug]));
   const profileMap = Object.fromEntries(
-    (profiles ?? []).map((p) => [p.id, p.full_name || p.email || "알 수 없음"])
+    (profiles ?? []).map((p) => [p.id, p.full_name || slugMap[p.id] || "알 수 없음"])
   );
   const threadMap = Object.fromEntries((threads ?? []).map((t) => [t.proposal_id, t]));
 

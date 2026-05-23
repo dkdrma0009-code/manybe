@@ -131,6 +131,16 @@ export default function ChatScreen() {
           setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
         },
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `thread_id=eq.${threadId}` },
+        (payload) => {
+          const updated = payload.new as ChatMessage;
+          setMessages((prev) =>
+            prev.map((m) => m.id === updated.id ? { ...m, is_read: updated.is_read } : m)
+          );
+        },
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -196,7 +206,7 @@ export default function ChatScreen() {
           </View>
           {isLastInGroup && (
             <View style={[cs.metaRow, isCreator ? cs.metaRight : cs.metaLeft]}>
-              {!isCreator && item.is_read && (
+              {item.is_read && (
                 <Text style={cs.readText}>읽음</Text>
               )}
               <Text style={cs.timeText}>{formatTime(item.created_at)}</Text>

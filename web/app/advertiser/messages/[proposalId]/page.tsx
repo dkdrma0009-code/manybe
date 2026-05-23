@@ -19,13 +19,12 @@ export default async function ChatPage({ params }: { params: Promise<{ proposalI
 
   if (!proposal) notFound();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, email")
-    .eq("id", proposal.creator_id)
-    .single();
+  const [{ data: profile }, { data: kit }] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("id", proposal.creator_id).single(),
+    supabase.from("media_kits").select("slug").eq("user_id", proposal.creator_id).single(),
+  ]);
 
-  const creatorName = profile?.full_name || profile?.email || "크리에이터";
+  const creatorName = profile?.full_name || kit?.slug || "크리에이터";
 
   // Get or initialize thread + existing messages
   let { data: thread } = await supabase
