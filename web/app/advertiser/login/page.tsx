@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { loginAdvertiser } from "../signup/actions";
 
-export default function AdvertiserLoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "";
   const [error, setError] = useState<string | null>(null);
@@ -103,5 +103,13 @@ export default function AdvertiserLoginPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function AdvertiserLoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
