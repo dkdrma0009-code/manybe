@@ -1,60 +1,59 @@
 import { ViewStyle } from 'react-native';
 import { tokens } from './tokens';
 
-const BASE = tokens.ink;
+const BASE = '#000000';
 
 export const shadows: Record<string, ViewStyle> = {
-  // No elevation — for flat surfaces
   none: {
     shadowOpacity: 0,
     elevation: 0,
   },
-  // Faintest — banners, inline chips
+  // 거의 없는 그림자 — 카드 구분용
   xs: {
     shadowColor: BASE,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
-    shadowRadius: 3,
+    shadowRadius: 2,
     elevation: 1,
   },
-  // Standard content card
+  // 기본 카드
   sm: {
     shadowColor: BASE,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.055,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 2,
   },
-  // Elevated card (CTAs, focused state)
+  // 강조 카드
   md: {
     shadowColor: BASE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.09,
-    shadowRadius: 14,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  // Bottom sheet / modal
+  // 바텀시트 / 모달
   lg: {
     shadowColor: BASE,
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.10,
     shadowRadius: 20,
-    elevation: 24,
+    elevation: 20,
   },
-  // FAB — tinted with brand color
+  // FAB
   fab: {
     shadowColor: tokens.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.30,
     shadowRadius: 10,
     elevation: 8,
   },
-  // AI card — tinted with ai color
+  // AI 카드
   ai: {
-    shadowColor: tokens.primary,
+    shadowColor: tokens.action,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
     elevation: 3,
   },
 
@@ -65,7 +64,6 @@ export const shadows: Record<string, ViewStyle> = {
   subtle:     {} as ViewStyle,
 };
 
-// Fill aliases after the object is created to avoid circular refs
 (shadows.card       as any) = shadows.sm;
 (shadows.cardStrong as any) = shadows.md;
 (shadows.modal      as any) = shadows.lg;

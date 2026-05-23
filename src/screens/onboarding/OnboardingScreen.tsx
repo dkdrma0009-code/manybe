@@ -90,7 +90,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      style={[styles.root, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 16) }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {step > 0 && (
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
 
   stepWrap: {
-    flex: 1, paddingHorizontal: 28, paddingTop: 24, paddingBottom: 20,
+    flex: 1, paddingHorizontal: 28, paddingTop: 24, paddingBottom: 32,
   },
 
   mascotWrap: { alignItems: 'center', marginBottom: 32 },

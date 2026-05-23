@@ -20,6 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { useRealtime } from '../../context/RealtimeContext';
+import { useProposals, Proposal } from '../../hooks/useProposals';
 
 const { colors, space, radius, shadows, typography } = theme;
 
@@ -404,6 +405,91 @@ const asb = StyleSheet.create({
   dismissText:{ fontSize: 13, color: colors.text.muted },
 });
 
+// ─── Proposal banner ─────────────────────────────────────────────────────────
+
+function formatWonShort(n: number) {
+  if (n === 0) return '금액 미정';
+  if (n >= 100_000_000) return `${Math.floor(n / 100_000_000)}억`;
+  if (n >= 10_000) return `${Math.floor(n / 10_000)}만원`;
+  return n.toLocaleString('ko-KR') + '원';
+}
+
+function ProposalBanner({
+  proposals,
+  onAccept,
+  onReject,
+}: {
+  proposals: Proposal[];
+  onAccept: (p: Proposal) => void;
+  onReject: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (proposals.length === 0) return null;
+
+  return (
+    <AppCard style={pb.card} padding={0}>
+      <TouchableOpacity
+        style={pb.header}
+        onPress={() => setExpanded((v) => !v)}
+        activeOpacity={0.8}
+      >
+        <View style={pb.headerLeft}>
+          <View style={pb.dot} />
+          <Text style={pb.title}>새 협찬 제안</Text>
+          <View style={pb.badge}>
+            <Text style={pb.badgeText}>{proposals.length}</Text>
+          </View>
+        </View>
+        <Text style={pb.chevron}>{expanded ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+
+      {expanded && proposals.map((p) => (
+        <View key={p.id} style={pb.row}>
+          <View style={pb.avatar}>
+            <Text style={pb.avatarText}>{p.brand_name[0]}</Text>
+          </View>
+          <View style={pb.info}>
+            <Text style={pb.brand}>{p.brand_name}</Text>
+            <Text style={pb.message} numberOfLines={2}>{p.message}</Text>
+            <Text style={pb.amount}>{formatWonShort(p.amount)}</Text>
+          </View>
+          <View style={pb.actions}>
+            <TouchableOpacity style={pb.acceptBtn} onPress={() => onAccept(p)} activeOpacity={0.8}>
+              <Text style={pb.acceptText}>수락</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={pb.rejectBtn} onPress={() => onReject(p.id)} activeOpacity={0.8}>
+              <Text style={pb.rejectText}>거절</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+    </AppCard>
+  );
+}
+
+const pb = StyleSheet.create({
+  card:       { marginBottom: space.md, overflow: 'hidden', borderWidth: 1.5, borderColor: colors.brand.soft },
+  header:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: space.md, paddingVertical: space.sm + 2 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  dot:        { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand.default },
+  title:      { ...typography.bodyStrong, color: colors.brand.default },
+  badge:      { backgroundColor: colors.brand.default, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  badgeText:  { fontSize: 11, fontWeight: '800', color: '#fff' },
+  chevron:    { fontSize: 10, color: colors.brand.deep },
+  row:        { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.md, paddingTop: space.sm, borderTopWidth: 1, borderTopColor: colors.brand.soft },
+  avatar:     { width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.brand.default, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avatarText: { ...typography.heading, color: '#fff' },
+  info:       { flex: 1, gap: 3 },
+  brand:      { ...typography.cardTitle, color: colors.text.primary },
+  message:    { ...typography.caption, color: colors.text.tertiary, lineHeight: 18 },
+  amount:     { ...typography.label, color: colors.brand.default, fontWeight: '700' },
+  actions:    { gap: space.xs, flexShrink: 0 },
+  acceptBtn:  { backgroundColor: colors.brand.default, paddingHorizontal: space.sm + 2, paddingVertical: 7, borderRadius: radius.sm, alignItems: 'center' },
+  acceptText: { ...typography.status, color: '#fff', fontWeight: '800' },
+  rejectBtn:  { backgroundColor: colors.surface2, paddingHorizontal: space.sm + 2, paddingVertical: 7, borderRadius: radius.sm, alignItems: 'center' },
+  rejectText: { ...typography.status, color: colors.text.muted },
+});
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function DealsScreen() {
@@ -411,8 +497,14 @@ export default function DealsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const { data, loading, refetch } = useDealsData(user?.id);
+  const { proposals, acceptProposal, rejectProposal } = useProposals(user?.id);
   const { dealsVersion } = useRealtime();
   React.useEffect(() => { refetch(); }, [dealsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleAcceptProposal(p: Proposal) {
+    await acceptProposal(p);
+    refetch();
+  }
   const [activeFilter, setActiveFilter] = useState<FilterTab>('전체');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<DealDetailData | null>(null);
@@ -531,6 +623,12 @@ export default function DealsScreen() {
           deals={data.deals}
           activeFilter={activeFilter}
           onSelect={setActiveFilter}
+        />
+
+        <ProposalBanner
+          proposals={proposals}
+          onAccept={handleAcceptProposal}
+          onReject={rejectProposal}
         />
 
         <AutoSuggestBanner

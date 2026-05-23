@@ -8,8 +8,8 @@ const IS_PROD  = APP_ENV === 'production';
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
 
-  // Distinguish dev builds at a glance on the home screen
   name: IS_PROD ? 'MANYBE' : 'MANYBE',
+  slug: config.slug ?? 'manybe',
 
   extra: {
     ...config.extra,

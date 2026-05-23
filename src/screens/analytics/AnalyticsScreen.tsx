@@ -320,7 +320,7 @@ export default function AnalyticsScreen() {
 
   function handleNavigate(dest: 'deals' | 'revenue' | 'inquiries' | 'calendar') {
     const map: Record<string, keyof TabParamList> = {
-      deals: '스튜디오', revenue: '스튜디오', inquiries: '스튜디오', calendar: '캘린더',
+      deals: '스튜디오', revenue: '스튜디오', inquiries: '스튜디오', calendar: '일정',
     };
     nav.navigate(map[dest]);
   }

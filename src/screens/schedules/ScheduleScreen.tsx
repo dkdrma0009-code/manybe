@@ -1,13 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  Alert,
-  RefreshControl,
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, RefreshControl, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,289 +9,371 @@ import { useScheduleData, ScheduleItem } from '../../hooks/useScheduleData';
 import { useRealtime } from '../../context/RealtimeContext';
 import AddScheduleModal from './AddScheduleModal';
 import { supabase } from '../../api/supabase';
-import { colors } from '../../constants/colors';
-import { tokens } from '../../constants/tokens';
-import { typography } from '../../constants/typography';
-import { shadows } from '../../constants/shadows';
+import { theme } from '../../constants/theme';
+
+const { colors, space, radius, shadows, typography } = theme;
 
 const { width } = Dimensions.get('window');
-const DAY_SIZE = Math.floor((width - 40) / 7);
+const GRID_W = width - space.screen * 2;
+const CELL_W = Math.floor(GRID_W / 7);
 
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+const KO_DAYS  = ['일', '월', '화', '수', '목', '금', '토'];
+const MONTH_KO = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
-const TYPE_ICON: Record<string, string> = {
-  '업로드 예정': '📤',
-  '협찬 마감':   '🔔',
-  '미팅':        '📋',
-  '기타':        '💡',
-};
+type ViewMode = 'week' | 'month';
 
-function getCalendarGrid(year: number, month: number): (number | null)[] {
-  const firstDow = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: (number | null)[] = Array(firstDow).fill(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getWeekDates(anchor: Date): Date[] {
+  const dow = anchor.getDay();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(anchor);
+    d.setDate(anchor.getDate() - dow + i);
+    return d;
+  });
 }
 
-// ─── 달력 셀 ────────────────────────────────────────────────
+function getMonthGrid(year: number, month: number): (Date | null)[] {
+  const firstDay = new Date(year, month, 1);
+  const lastDay  = new Date(year, month + 1, 0);
+  const grid: (Date | null)[] = [];
+  for (let i = 0; i < firstDay.getDay(); i++) grid.push(null);
+  for (let d = 1; d <= lastDay.getDate(); d++) grid.push(new Date(year, month, d));
+  while (grid.length % 7 !== 0) grid.push(null);
+  return grid;
+}
 
-function DayCell({
-  day, isToday, isSelected, dots, onPress,
-}: {
-  day: number | null;
-  isToday: boolean;
-  isSelected: boolean;
-  dots: { color: string }[];
-  onPress: () => void;
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+// ─── Week Day Cell ────────────────────────────────────────────────────────────
+
+function WeekDayCell({ date, isToday, isSelected, hasDot, onPress }: {
+  date: Date; isToday: boolean; isSelected: boolean; hasDot: boolean; onPress: () => void;
 }) {
-  if (day === null) return <View style={{ width: DAY_SIZE, height: 52 }} />;
   return (
-    <TouchableOpacity
-      style={[calStyle.cell, { width: DAY_SIZE, height: 52 }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[calStyle.dayCircle, isToday && calStyle.todayCircle, isSelected && !isToday && calStyle.selectedCircle]}>
-        <Text style={[calStyle.dayText, isToday && calStyle.todayText, isSelected && !isToday && calStyle.selectedText]}>
-          {day}
+    <TouchableOpacity style={dc.wrap} onPress={onPress} activeOpacity={0.7}>
+      <Text style={[dc.dow, isToday && dc.active, isSelected && !isToday && dc.selected]}>
+        {KO_DAYS[date.getDay()]}
+      </Text>
+      <View style={[dc.circle, isToday && dc.circleToday, isSelected && !isToday && dc.circleSelected]}>
+        <Text style={[dc.num, isToday && dc.numToday, isSelected && !isToday && dc.numSelected]}>
+          {date.getDate()}
         </Text>
       </View>
-      <View style={calStyle.dotsRow}>
-        {dots.slice(0, 3).map((dot, i) => (
-          <View key={i} style={[calStyle.dot, { backgroundColor: dot.color }]} />
-        ))}
-      </View>
+      <View style={[dc.dot, { backgroundColor: hasDot ? colors.brand.default : 'transparent' }]} />
     </TouchableOpacity>
   );
 }
 
-const calStyle = StyleSheet.create({
-  cell:           { alignItems: 'center', justifyContent: 'flex-start', paddingTop: 2 },
-  dayCircle:      { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  todayCircle:    { backgroundColor: colors.primary },
-  selectedCircle: { backgroundColor: '#EDE9FE' },
-  dayText:        { fontSize: 14, color: '#374151' },
-  todayText:      { color: '#fff', fontWeight: '800' },
-  selectedText:   { color: colors.primary, fontWeight: '700' },
-  dotsRow:        { flexDirection: 'row', gap: 2, marginTop: 2, height: 6, alignItems: 'center' },
-  dot:            { width: 4, height: 4, borderRadius: 2 },
+const dc = StyleSheet.create({
+  wrap:          { width: CELL_W, alignItems: 'center', gap: 4 },
+  dow:           { ...typography.micro, color: colors.text.tertiary },
+  active:        { color: colors.brand.default },
+  selected:      { color: colors.text.primary },
+  circle:        { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  circleToday:   { backgroundColor: colors.text.primary },
+  circleSelected:{ backgroundColor: colors.border.faint },
+  num:           { ...typography.caption, color: colors.text.primary, fontWeight: '500' },
+  numToday:      { color: '#fff', fontWeight: '700' },
+  numSelected:   { color: colors.text.primary, fontWeight: '700' },
+  dot:           { width: 4, height: 4, borderRadius: 2 },
 });
 
-// ─── 일정 카드 ──────────────────────────────────────────────
+// ─── Month Cell ───────────────────────────────────────────────────────────────
 
-function ScheduleCard({ item, onDelete }: { item: ScheduleItem; onDelete: () => void }) {
-  function handlePress() {
-    Alert.alert(item.title, `${item.type} · ${item.time}`, [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: onDelete },
-    ]);
-  }
-
+function MonthCell({ date, isToday, isSelected, hasDot, onPress }: {
+  date: Date | null; isToday: boolean; isSelected: boolean; hasDot: boolean; onPress: () => void;
+}) {
+  if (!date) return <View style={mc.empty} />;
   return (
-    <TouchableOpacity style={schedCard.wrapper} onPress={handlePress} activeOpacity={0.8}>
-      <View style={[schedCard.iconBg, { backgroundColor: item.iconBg }]}>
-        <Text style={schedCard.icon}>{TYPE_ICON[item.type] ?? '📌'}</Text>
+    <TouchableOpacity style={mc.wrap} onPress={onPress} activeOpacity={0.7}>
+      <View style={[mc.circle, isToday && mc.circleToday, isSelected && !isToday && mc.circleSelected]}>
+        <Text style={[mc.num, isToday && mc.numToday, isSelected && !isToday && mc.numSelected]}>
+          {date.getDate()}
+        </Text>
       </View>
-      <View style={schedCard.body}>
-        <Text style={[schedCard.type, { color: item.color }]}>{item.type}</Text>
-        <Text style={schedCard.title}>{item.title}</Text>
+      <View style={[mc.dot, { backgroundColor: hasDot ? colors.brand.default : 'transparent' }]} />
+    </TouchableOpacity>
+  );
+}
+
+const mc = StyleSheet.create({
+  empty:         { width: CELL_W, height: 44 },
+  wrap:          { width: CELL_W, height: 44, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  circle:        { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  circleToday:   { backgroundColor: colors.text.primary },
+  circleSelected:{ backgroundColor: colors.border.faint },
+  num:           { fontSize: 13, color: colors.text.primary, fontWeight: '400' },
+  numToday:      { color: '#fff', fontWeight: '700' },
+  numSelected:   { color: colors.text.primary, fontWeight: '700' },
+  dot:           { width: 4, height: 4, borderRadius: 2 },
+});
+
+// ─── Timeline Row ─────────────────────────────────────────────────────────────
+
+const EVENT_COLORS: Record<string, string> = {
+  '업로드 예정': colors.brand.default,
+  '협찬 마감':   '#C48A40',
+  '미팅':        colors.ai.from,
+  '기타':        colors.text.muted,
+};
+
+function TimelineRow({ item, isHighlight, onDelete }: {
+  item: ScheduleItem; isHighlight: boolean; onDelete: () => void;
+}) {
+  const dotColor = EVENT_COLORS[item.type] ?? colors.text.muted;
+  return (
+    <TouchableOpacity style={tl.row} onLongPress={onDelete} activeOpacity={0.85} delayLongPress={600}>
+      <Text style={tl.time}>{item.time}</Text>
+      <View style={tl.line}>
+        <View style={[tl.dot, { backgroundColor: isHighlight ? '#C48A40' : dotColor }]} />
+        <View style={[tl.track, { backgroundColor: colors.border.faint }]} />
       </View>
-      <View style={[schedCard.timeBadge, { backgroundColor: item.iconBg }]}>
-        <Text style={[schedCard.time, { color: item.color }]}>{item.time}</Text>
+      <View style={tl.body}>
+        <Text style={tl.title}>{item.title}</Text>
+        <Text style={tl.sub}>{item.type}</Text>
       </View>
     </TouchableOpacity>
   );
 }
 
-const schedCard = StyleSheet.create({
-  wrapper:   { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, gap: 12, ...shadows.card },
-  iconBg:    { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  icon:      { fontSize: 20 },
-  body:      { flex: 1, gap: 3 },
-  type:      { ...typography.status },
-  title:     { ...typography.bodyStrong, color: tokens.ink },
-  timeBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  time:      { ...typography.metadata, fontWeight: '600' },
+const tl = StyleSheet.create({
+  row:   { flexDirection: 'row', gap: space.md, paddingVertical: space.sm + 2, alignItems: 'flex-start' },
+  time:  { ...typography.micro, color: colors.text.tertiary, width: 38, textAlign: 'right', lineHeight: 15, marginTop: 3 },
+  line:  { alignItems: 'center', width: 12 },
+  dot:   { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
+  track: { flex: 1, width: 1, marginTop: 4 },
+  body:  { flex: 1, paddingBottom: space.sm },
+  title: { ...typography.bodyStrong, color: colors.text.primary },
+  sub:   { ...typography.caption, color: colors.text.tertiary, marginTop: 1 },
 });
 
-// ─── 메인 화면 ──────────────────────────────────────────────
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ScheduleScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
-  const [selectedDay, setSelectedDay] = useState(today.getDate());
+
+  const [viewMode, setViewMode]       = useState<ViewMode>('week');
+  const [anchor, setAnchor]           = useState(today);
+  const [selectedDay, setSelectedDay] = useState(today);
+
+  const year  = anchor.getFullYear();
+  const month = anchor.getMonth();
 
   const { data, refetch } = useScheduleData(user?.id, year, month);
   const { schedulesVersion } = useRealtime();
-  useEffect(() => { refetch(); }, [schedulesVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { refetch(); }, [schedulesVersion]); // eslint-disable-line
+
   const [showAddModal, setShowAddModal] = useState(false);
 
-  async function handleDeleteSchedule(id: string) {
+  const weekDates  = getWeekDates(anchor);
+  const monthGrid  = getMonthGrid(year, month);
+  const selectedItems = data.schedulesByDate[selectedDay.getDate()] ?? [];
+
+  const otherGroups = viewMode === 'week'
+    ? weekDates
+        .filter((d) => !isSameDay(d, selectedDay))
+        .map((d) => ({ date: d, items: data.schedulesByDate[d.getDate()] ?? [] }))
+        .filter((g) => g.items.length > 0)
+    : [];
+
+  async function handleDelete(id: string) {
     await supabase.from('schedules').delete().eq('id', id);
     refetch();
   }
 
-  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
-  const grid = getCalendarGrid(year, month);
-  const schedules = data.schedulesByDate[selectedDay] ?? [];
+  function prevPeriod() {
+    const d = new Date(anchor);
+    if (viewMode === 'week') d.setDate(d.getDate() - 7);
+    else d.setMonth(d.getMonth() - 1);
+    setAnchor(d);
+  }
 
-  const prevMonth = () => {
-    if (month === 0) { setMonth(11); setYear((y) => y - 1); }
-    else setMonth((m) => m - 1);
-    setSelectedDay(1);
-  };
-  const nextMonth = () => {
-    if (month === 11) { setMonth(0); setYear((y) => y + 1); }
-    else setMonth((m) => m + 1);
-    setSelectedDay(1);
-  };
+  function nextPeriod() {
+    const d = new Date(anchor);
+    if (viewMode === 'week') d.setDate(d.getDate() + 7);
+    else d.setMonth(d.getMonth() + 1);
+    setAnchor(d);
+  }
+
+  function periodLabel() {
+    if (viewMode === 'month') return `${year}년 ${MONTH_KO[month]}`;
+    const s = weekDates[0];
+    const e = weekDates[6];
+    if (s.getMonth() === e.getMonth()) return `${year}년 ${MONTH_KO[s.getMonth()]}`;
+    return `${MONTH_KO[s.getMonth()]}~${MONTH_KO[e.getMonth()]}`;
+  }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[s.root, { paddingTop: insets.top }]}>
       {/* 헤더 */}
-      <View style={styles.header}>
-        <View style={styles.monthNav}>
-          <TouchableOpacity style={styles.navBtn} onPress={prevMonth} activeOpacity={0.7}>
-            <Text style={styles.navArrow}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.monthTitle}>{year}년 {MONTH_NAMES[month]}</Text>
-          <TouchableOpacity style={styles.navBtn} onPress={nextMonth} activeOpacity={0.7}>
-            <Text style={styles.navArrow}>›</Text>
-          </TouchableOpacity>
-        </View>
-        {/* PLAN_GATE: schedule management — full calendar/schedule tracking is a paid feature */}
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
-          <Text style={styles.addBtnText}>＋ 일정 추가</Text>
+      <View style={s.header}>
+        <View style={{ width: 32 }} />
+        <Text style={s.title}>일정</Text>
+        <TouchableOpacity style={s.addBtn} onPress={() => setShowAddModal(true)} activeOpacity={0.7}>
+          <Text style={s.addBtnText}>＋</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={s.scroll}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
       >
-        {/* 달력 */}
-        <View style={styles.calendarCard}>
-          <View style={styles.weekRow}>
-            {WEEKDAYS.map((d, i) => (
-              <View key={d} style={{ width: DAY_SIZE, alignItems: 'center' }}>
-                <Text style={[styles.weekday, i === 0 && styles.weekdaySun, i === 6 && styles.weekdaySat]}>{d}</Text>
-              </View>
+        {/* 네비게이션 바 */}
+        <View style={s.navBar}>
+          <TouchableOpacity onPress={prevPeriod} style={s.navArrow} activeOpacity={0.7}>
+            <Text style={s.navArrowText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={s.navLabel}>{periodLabel()}</Text>
+          <TouchableOpacity onPress={nextPeriod} style={s.navArrow} activeOpacity={0.7}>
+            <Text style={s.navArrowText}>›</Text>
+          </TouchableOpacity>
+          {/* 주/월 토글 */}
+          <View style={s.toggle}>
+            {(['week', 'month'] as ViewMode[]).map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[s.toggleBtn, viewMode === m && s.toggleBtnActive]}
+                onPress={() => setViewMode(m)}
+                activeOpacity={0.7}
+              >
+                <Text style={[s.toggleText, viewMode === m && s.toggleTextActive]}>
+                  {m === 'week' ? '주' : '월'}
+                </Text>
+              </TouchableOpacity>
             ))}
           </View>
-          {Array.from({ length: grid.length / 7 }, (_, row) => (
-            <View key={row} style={styles.weekRow}>
-              {grid.slice(row * 7, row * 7 + 7).map((day, col) => (
-                <DayCell
-                  key={col}
-                  day={day}
-                  isToday={isCurrentMonth && day === today.getDate()}
-                  isSelected={day === selectedDay}
-                  dots={day ? (data.dotEvents[day] ?? []) : []}
-                  onPress={() => day && setSelectedDay(day)}
-                />
-              ))}
-            </View>
-          ))}
         </View>
 
-        {/* 선택된 날짜 일정 */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {month + 1}월 {selectedDay}일 일정{' '}
-            <Text style={styles.sectionCountInline}>{schedules.length}개</Text>
-          </Text>
-        </View>
+        {/* 요일 헤더 (월간만) */}
+        {viewMode === 'month' && (
+          <View style={s.dowHeader}>
+            {KO_DAYS.map((d) => (
+              <Text key={d} style={[s.dowLabel, d === '일' && { color: '#EF4444' }, d === '토' && { color: '#3D5AFE' }]}>
+                {d}
+              </Text>
+            ))}
+          </View>
+        )}
 
-        {schedules.length === 0 ? (
-          <View style={styles.emptySchedule}>
-            <Text style={styles.emptyIcon}>📅</Text>
-            <Text style={styles.emptyText}>이 날 등록된 일정이 없어요</Text>
-            <Text style={styles.emptySubText}>협찬 마감, 업로드, 미팅 일정을 추가해보세요</Text>
-            <TouchableOpacity style={styles.emptyAddBtn} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
-              <Text style={styles.emptyAddBtnText}>일정 추가하기</Text>
+        {/* 주간 스트립 */}
+        {viewMode === 'week' && (
+          <View style={s.weekStrip}>
+            {weekDates.map((d, i) => (
+              <WeekDayCell
+                key={i}
+                date={d}
+                isToday={isSameDay(d, today)}
+                isSelected={isSameDay(d, selectedDay)}
+                hasDot={(data.dotEvents[d.getDate()] ?? []).length > 0}
+                onPress={() => { setSelectedDay(d); setAnchor(d); }}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* 월간 그리드 */}
+        {viewMode === 'month' && (
+          <View style={s.monthGrid}>
+            {monthGrid.map((d, i) => (
+              <MonthCell
+                key={i}
+                date={d}
+                isToday={!!d && isSameDay(d, today)}
+                isSelected={!!d && isSameDay(d, selectedDay)}
+                hasDot={!!d && (data.dotEvents[d.getDate()] ?? []).length > 0}
+                onPress={() => { if (d) { setSelectedDay(d); setAnchor(d); } }}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* 선택된 날 타임라인 */}
+        <Text style={s.dateHeader}>
+          {selectedDay.getMonth() + 1}월 {selectedDay.getDate()}일 · {KO_DAYS[selectedDay.getDay()]}요일
+        </Text>
+        {selectedItems.length > 0 ? (
+          selectedItems.map((item, i) => (
+            <TimelineRow
+              key={item.id}
+              item={item}
+              isHighlight={i === 0 && isSameDay(selectedDay, today)}
+              onDelete={() => handleDelete(item.id)}
+            />
+          ))
+        ) : (
+          <View style={s.empty}>
+            <Text style={s.emptyText}>이 날 일정이 없어요</Text>
+            <TouchableOpacity onPress={() => setShowAddModal(true)} activeOpacity={0.7}>
+              <Text style={s.emptyAdd}>＋ 일정 추가</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          schedules.map((item) => (
-            <ScheduleCard key={item.id} item={item} onDelete={() => handleDeleteSchedule(item.id)} />
-          ))
         )}
 
-        {/* 이번 주 요약 */}
-        {data.weekSummary.length > 0 && (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>이번 주 요약</Text>
-            </View>
-            <View style={styles.weekSummary}>
-              {data.weekSummary.map((ws) => (
-                <View key={ws.label} style={[styles.weekItem, { backgroundColor: ws.bg }]}>
-                  <Text style={[styles.weekCount, { color: ws.color }]}>{ws.count}개</Text>
-                  <Text style={[styles.weekLabel, { color: ws.color }]}>{ws.label}</Text>
-                </View>
-              ))}
-            </View>
-          </>
-        )}
+        {/* 이번 주 나머지 날 (주간 모드만) */}
+        {otherGroups.map((group) => (
+          <React.Fragment key={group.date.toISOString()}>
+            <Text style={s.dateHeader}>
+              {group.date.getMonth() + 1}월 {group.date.getDate()}일 · {KO_DAYS[group.date.getDay()]}요일
+            </Text>
+            {group.items.map((item) => (
+              <TimelineRow key={item.id} item={item} isHighlight={false} onDelete={() => handleDelete(item.id)} />
+            ))}
+          </React.Fragment>
+        ))}
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* 일정 추가 모달 */}
       {user && (
         <AddScheduleModal
           visible={showAddModal}
           userId={user.id}
-          defaultDate={[year, String(month + 1).padStart(2, '0'), String(selectedDay).padStart(2, '0')].join('-')}
+          defaultDate={[
+            selectedDay.getFullYear(),
+            String(selectedDay.getMonth() + 1).padStart(2, '0'),
+            String(selectedDay.getDate()).padStart(2, '0'),
+          ].join('-')}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => { setShowAddModal(false); refetch(); }}
         />
       )}
-
-      {/* 플로팅 버튼 */}
-      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 88 }]} onPress={() => setShowAddModal(true)} activeOpacity={0.85}>
-        <Text style={styles.fabText}>＋</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.bg },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
-  monthNav:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navBtn:     { width: 32, height: 32, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...shadows.subtle },
-  navArrow:   { fontSize: 22, color: tokens.ink2, lineHeight: 26 },
-  monthTitle: { ...typography.navTitle, color: tokens.ink, minWidth: 100, textAlign: 'center' },
-  addBtn:     { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
-  addBtnText: { ...typography.buttonSm, color: '#fff' },
-  scroll:     { paddingHorizontal: 20 },
-  calendarCard: { backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 20, ...shadows.card },
-  weekRow:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
-  weekday:    { ...typography.label, color: tokens.ink4, paddingVertical: 6 },
-  weekdaySun: { color: '#EF4444' },
-  weekdaySat: { color: '#3B82F6' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  sectionTitle:  { ...typography.sectionTitle, color: tokens.ink },
-  sectionCountInline: { ...typography.sectionTitle, color: colors.primary },
-  emptySchedule: { alignItems: 'center', paddingVertical: 28, backgroundColor: '#fff', borderRadius: 14, marginBottom: 20, gap: 6 },
-  emptyIcon:    { fontSize: 32 },
-  emptyText:    { ...typography.bodyStrong, color: tokens.ink2 },
-  emptySubText: { ...typography.metadata, color: tokens.ink4, textAlign: 'center' },
-  emptyAddBtn:  { marginTop: 8, backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
-  emptyAddBtnText: { ...typography.buttonSm, color: '#fff' },
-  weekSummary: { flexDirection: 'row', gap: 10, marginBottom: 8 },
-  weekItem:   { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', gap: 4 },
-  weekCount:  { fontSize: 20, fontWeight: '800' },
-  weekLabel:  { ...typography.status },
-  fab: { position: 'absolute', right: 20, width: 52, height: 52, borderRadius: 26, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
-  fabText: { fontSize: 24, color: '#fff', fontWeight: '300', lineHeight: 28 },
+const s = StyleSheet.create({
+  root:   { flex: 1, backgroundColor: colors.bg },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: space.screen, paddingVertical: space.lg },
+  title:  { ...typography.navTitle, color: colors.text.primary },
+  addBtn: { width: 32, height: 32, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border.faint, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
+  addBtnText: { fontSize: 18, color: colors.text.primary, lineHeight: 22, fontWeight: '400' },
+
+  scroll: { paddingHorizontal: space.screen },
+
+  navBar: { flexDirection: 'row', alignItems: 'center', marginBottom: space.md, gap: space.sm },
+  navArrow:     { padding: 4 },
+  navArrowText: { fontSize: 22, color: colors.text.primary, lineHeight: 26 },
+  navLabel:     { ...typography.bodyStrong, color: colors.text.primary, flex: 1, textAlign: 'center' },
+  toggle:       { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.sm + 2, borderWidth: 1, borderColor: colors.border.faint, overflow: 'hidden' },
+  toggleBtn:    { paddingHorizontal: 10, paddingVertical: 5 },
+  toggleBtnActive: { backgroundColor: colors.text.primary },
+  toggleText:      { ...typography.caption, color: colors.text.secondary, fontWeight: '600' },
+  toggleTextActive:{ color: '#fff' },
+
+  dowHeader: { flexDirection: 'row', marginBottom: space.xs },
+  dowLabel:  { width: CELL_W, textAlign: 'center', ...typography.micro, color: colors.text.tertiary, fontWeight: '600' },
+
+  weekStrip: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.faint, padding: space.md, marginBottom: space.xl, ...shadows.sm },
+  monthGrid: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border.faint, paddingVertical: space.sm, marginBottom: space.xl, ...shadows.sm },
+
+  dateHeader: { ...typography.sectionTitle, color: colors.text.primary, marginTop: space.lg, marginBottom: space.sm },
+  empty:      { paddingVertical: space.xxl, alignItems: 'center', gap: space.sm },
+  emptyText:  { ...typography.body, color: colors.text.muted },
+  emptyAdd:   { ...typography.body, color: colors.brand.default, fontWeight: '600' },
 });

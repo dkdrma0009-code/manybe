@@ -13,7 +13,7 @@ import { useRealtime } from '../context/RealtimeContext';
 export type TabParamList = {
   홈: undefined;
   스튜디오: undefined;
-  캘린더: undefined;
+  일정: undefined;
   메시지: undefined;
   설정: undefined;
 };
@@ -21,11 +21,11 @@ export type TabParamList = {
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const TAB_ICONS: Record<string, string> = {
-  홈:      '⊞',
-  스튜디오: '◈',
-  캘린더:  '▦',
+  홈:      '⌂',
+  스튜디오: '⊞',
+  일정:    '▦',
   메시지:  '◻',
-  설정:    '◎',
+  설정:    '⚙',
 };
 
 export default function TabNavigator() {
@@ -79,7 +79,7 @@ export default function TabNavigator() {
     >
       <Tab.Screen name="홈"      component={HomeScreen} />
       <Tab.Screen name="스튜디오" component={StudioScreen} />
-      <Tab.Screen name="캘린더"  component={ScheduleScreen} />
+      <Tab.Screen name="일정"    component={ScheduleScreen} />
       <Tab.Screen name="메시지"  component={MessagesScreen} />
       <Tab.Screen name="설정"    component={SettingsScreen} />
     </Tab.Navigator>

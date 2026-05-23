@@ -61,6 +61,10 @@ export const ENV = {
   // Supabase project reference (for service URLs, if needed by future AI runtime)
   SUPABASE_PROJECT_REF: 'bewcgxzcvxuwzwxcqzmk',
 
+  // Facebook App ID — required for Instagram Business OAuth
+  // Set in .env: EXPO_PUBLIC_FACEBOOK_APP_ID=<your_app_id>
+  FACEBOOK_APP_ID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID ?? '',
+
   // RevenueCat — optional; absent until react-native-purchases is installed
   REVENUECAT_IOS_KEY:     process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY     ?? '',
   REVENUECAT_ANDROID_KEY: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '',

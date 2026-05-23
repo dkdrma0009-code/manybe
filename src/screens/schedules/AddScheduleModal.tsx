@@ -52,6 +52,7 @@ export default function AddScheduleModal({ visible, userId, defaultDate, onClose
       user_id: userId,
       title: title.trim(),
       type,
+      schedule_date: date.trim(),
       start_time: new Date(startTime).toISOString(),
     });
     setSaving(false);

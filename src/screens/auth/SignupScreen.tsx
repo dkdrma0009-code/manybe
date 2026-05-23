@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../constants/colors';
 import { useAuth } from '../../hooks/useAuth';
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export default function SignupScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,8 +76,8 @@ export default function SignupScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {/* 상단 보라색 배경 영역 */}
-        <View style={styles.heroSection}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <View style={[styles.heroSection, { paddingTop: insets.top + 20 }]}>
+          <TouchableOpacity style={[styles.backButton, { top: insets.top + 20 }]} onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>← 돌아가기</Text>
           </TouchableOpacity>
           <View style={styles.logoWrapper}>
@@ -88,7 +90,7 @@ export default function SignupScreen({ navigation }: Props) {
         </View>
 
         {/* 폼 카드 */}
-        <View style={styles.card}>
+        <View style={[styles.card, { paddingBottom: insets.bottom + 40 }]}>
           <Text style={styles.cardTitle}>회원가입</Text>
           <Text style={styles.cardSubtitle}>크리에이터 비즈니스를 체계적으로 관리하세요</Text>
 

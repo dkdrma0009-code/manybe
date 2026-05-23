@@ -1,29 +1,33 @@
 import { TextStyle } from 'react-native';
 
-// Type scale — designed for high information density with clear hierarchy.
-// Inspired by Linear/Notion/Ramp: size does the hierarchy work, weight supports it.
 export const typography: Record<string, TextStyle> = {
   // ── Display ───────────────────────────────────────────────────────────────
-  // Large hero numbers (revenue totals, stats)
   display: {
     fontSize: 36,
     fontWeight: '800',
-    letterSpacing: -1.0,
+    letterSpacing: -1.2,
     lineHeight: 42,
   },
   hero: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 30,
+    fontWeight: '700',
     letterSpacing: -0.8,
     lineHeight: 38,
   },
 
   // ── Headings ──────────────────────────────────────────────────────────────
   screenTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    lineHeight: 28,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    lineHeight: 22,
+  },
+  // 홈 화면 인사말: "지우님, 오늘 작업 정리됩니다."
+  greeting: {
+    fontSize: 26,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+    lineHeight: 34,
   },
   title: {
     fontSize: 20,
@@ -33,13 +37,13 @@ export const typography: Record<string, TextStyle> = {
   },
   navTitle: {
     fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: -0.2,
+    fontWeight: '700',
+    letterSpacing: -0.3,
     lineHeight: 22,
   },
   heading: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: -0.2,
     lineHeight: 22,
   },
@@ -52,20 +56,27 @@ export const typography: Record<string, TextStyle> = {
 
   // ── Section / Card ────────────────────────────────────────────────────────
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+    lineHeight: 20,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.3,
     lineHeight: 16,
     textTransform: 'uppercase',
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 20,
+    letterSpacing: -0.1,
   },
   cardSubtitle: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     lineHeight: 18,
   },
 
@@ -74,6 +85,7 @@ export const typography: Record<string, TextStyle> = {
     fontSize: 14,
     fontWeight: '400',
     lineHeight: 22,
+    letterSpacing: -0.1,
   },
   bodyMedium: {
     fontSize: 14,
@@ -90,13 +102,14 @@ export const typography: Record<string, TextStyle> = {
   label: {
     fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
     lineHeight: 16,
   },
   caption: {
     fontSize: 12,
     fontWeight: '400',
     lineHeight: 17,
+    letterSpacing: -0.1,
   },
   hint: {
     fontSize: 12,
@@ -117,28 +130,28 @@ export const typography: Record<string, TextStyle> = {
   // ── Status / Badge ────────────────────────────────────────────────────────
   status: {
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontWeight: '600',
+    letterSpacing: 0.1,
     lineHeight: 14,
   },
 
   // ── Action ────────────────────────────────────────────────────────────────
   button: {
     fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.1,
+    fontWeight: '600',
+    letterSpacing: -0.1,
     lineHeight: 20,
   },
   buttonSm: {
     fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.1,
+    fontWeight: '600',
+    letterSpacing: 0,
     lineHeight: 18,
   },
   buttonLg: {
     fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.1,
+    fontWeight: '600',
+    letterSpacing: -0.2,
     lineHeight: 22,
   },
 

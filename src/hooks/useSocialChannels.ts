@@ -7,7 +7,7 @@ const log = makeLogger('useSocialChannels');
 
 export interface SocialChannel {
   id: string;
-  platform: 'youtube';
+  platform: 'youtube' | 'instagram';
   channel_id: string;
   channel_name: string;
   channel_url: string;
@@ -146,5 +146,33 @@ export function useSocialChannels(userId: string | undefined) {
     }
   }
 
-  return { channels, loading, refetch: fetch, syncChannel, formatCount };
+  async function saveInstagramChannel(handle: string): Promise<string | null> {
+    if (!userId) return '로그인이 필요합니다';
+    const cleanHandle = handle.replace(/^@/, '').trim();
+    if (!cleanHandle) return '핸들을 입력해주세요';
+    try {
+      const payload = {
+        user_id: userId,
+        platform: 'instagram',
+        channel_id: cleanHandle,
+        channel_name: cleanHandle,
+        channel_url: `https://instagram.com/${cleanHandle}`,
+        handle: cleanHandle,
+        subscriber_count: 0,
+        view_count: 0,
+        video_count: 0,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await supabase
+        .from('social_channels')
+        .upsert(payload, { onConflict: 'user_id,platform' });
+      if (error) throw error;
+      await fetch();
+      return null;
+    } catch (e: any) {
+      return e.message ?? '연동에 실패했습니다';
+    }
+  }
+
+  return { channels, loading, refetch: fetch, syncChannel, saveInstagramChannel, formatCount };
 }

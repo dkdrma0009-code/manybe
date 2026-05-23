@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
+import { getAdvertiserSession } from "@/lib/supabase-server";
 import type { Metadata } from "next";
 
 interface MediaKit {
@@ -79,7 +80,7 @@ const PLATFORM_META: Record<string, { label: string; color: string; textColor: s
 
 export default async function MediaKitPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const data = await getMediaKit(slug);
+  const [data, session] = await Promise.all([getMediaKit(slug), getAdvertiserSession()]);
 
   if (!data) notFound();
 
@@ -187,16 +188,39 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
 
         {/* Inquiry form CTA */}
         {kit.is_form_enabled ? (
-          <div className="bg-[#6C63FF] rounded-2xl p-8 text-center text-white">
-            <p className="text-xl font-extrabold mb-2">협찬 문의하기</p>
-            <p className="text-purple-200 text-sm mb-6">브랜드 담당자라면 아래 버튼으로 협찬을 제안해보세요.</p>
-            <a
-              href={`/${slug}/inquiry`}
-              className="inline-block bg-white text-[#6C63FF] font-bold px-8 py-3 rounded-xl hover:bg-purple-50 transition-colors"
-            >
-              협찬 제안서 보내기
-            </a>
-          </div>
+          session ? (
+            <div className="bg-[#6C63FF] rounded-2xl p-8 text-center text-white">
+              <p className="text-xl font-extrabold mb-2">협찬 제안하기</p>
+              <p className="text-purple-200 text-sm mb-6">
+                {session.profile.full_name}으로 로그인됨 · 인증된 광고주
+              </p>
+              <a
+                href={`/${slug}/inquiry`}
+                className="inline-block bg-white text-[#6C63FF] font-bold px-8 py-3 rounded-xl hover:bg-purple-50 transition-colors"
+              >
+                제안서 작성하기
+              </a>
+            </div>
+          ) : (
+            <div className="bg-[#6C63FF] rounded-2xl p-8 text-center text-white">
+              <p className="text-xl font-extrabold mb-2">협찬 제안하기</p>
+              <p className="text-purple-200 text-sm mb-6">
+                광고주 로그인 후 크리에이터에게 제안을 보낼 수 있습니다
+              </p>
+              <a
+                href={`/advertiser/login?next=/${slug}/inquiry`}
+                className="inline-block bg-white text-[#6C63FF] font-bold px-8 py-3 rounded-xl hover:bg-purple-50 transition-colors"
+              >
+                로그인 후 제안하기
+              </a>
+              <p className="text-purple-300 text-xs mt-3">
+                계정이 없으신가요?{" "}
+                <a href="/advertiser/signup" className="text-white font-semibold underline">
+                  광고주 가입
+                </a>
+              </p>
+            </div>
+          )
         ) : (
           <div className="bg-gray-100 rounded-2xl p-6 text-center">
             <p className="text-gray-500 text-sm">

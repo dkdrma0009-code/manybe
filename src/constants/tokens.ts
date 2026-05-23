@@ -1,64 +1,64 @@
 export const tokens = {
-  // ── Brand (blue-indigo) ───────────────────────────────────────────────────
-  primary:       '#5566DF',
-  primaryDeep:   '#3B4EC8',
-  primaryMid:    '#6677E5',
-  primarySoft:   '#ECEFFE',
-  primarySofter: '#F4F6FF',
+  // ── Brand (coral red) ─────────────────────────────────────────────────────
+  primary:       '#E8472A',
+  primaryDeep:   '#C43520',
+  primaryMid:    '#EB5A3A',
+  primarySoft:   '#FEF0EE',
+  primarySofter: '#FFF7F5',
 
-  // ── Energy (terracotta) — urgency / CTA moments ───────────────────────────
-  energy:     '#E8603C',
-  energySoft: '#FDEEE9',
+  // ── Action (indigo) — CTA buttons, links ──────────────────────────────────
+  action:     '#3D5AFE',
+  actionDeep: '#2B47D4',
+  actionSoft: '#EEF1FD',
 
   // ── Amber — financial / pending moments ──────────────────────────────────
   amber:     '#C48A40',
   amberSoft: '#F5E8D4',
 
   // ── AI Accent — signals AI-powered moments ────────────────────────────────
-  aiFrom:    '#5566DF',  // gradient start (matches brand)
-  aiTo:      '#8B5CF6',  // gradient end (violet contrast)
-  aiSurface: '#F0F2FE',  // AI card / section background
-  aiMuted:   '#E2E6FC',  // AI badge / chip background
-  aiText:    '#3B4EC8',  // AI label text / icons
+  aiFrom:    '#3D5AFE',
+  aiTo:      '#8B5CF6',
+  aiSurface: '#EEF1FD',
+  aiMuted:   '#DDE3FC',
+  aiText:    '#2B47D4',
 
   // ── Background / Surface hierarchy ────────────────────────────────────────
-  bg:       '#F6F6F4',  // page background (near-white warm)
-  bgAlt:    '#F1F1EF',  // raised / pressed states
+  bg:       '#F7F5F0',  // warm off-white
+  bgAlt:    '#F0EDE6',  // slightly deeper warm
   surface0: '#FFFFFF',  // base card surface
-  surface1: '#FAFAFA',  // secondary card / section bg
-  surface2: '#F6F6F4',  // tertiary bg (chip wells, input bg)
-  surface3: '#FFFFFF',  // modal / bottom-sheet (sits above page)
+  surface1: '#FAFAF8',  // secondary card / section bg
+  surface2: '#F7F5F0',  // chip wells, input bg
+  surface3: '#FFFFFF',  // modal / bottom-sheet
 
   // Aliases — backward compatibility
-  bgDeeper: '#F1F1EF',  // → bgAlt
-  surface:  '#FFFFFF',  // → surface0
+  bgDeeper: '#F0EDE6',
+  surface:  '#FFFFFF',
   card:     '#FFFFFF',
-  cardAlt:  '#FAFAFA',
+  cardAlt:  '#FAFAF8',
 
-  // ── Neutral scale (replaces scattered Tailwind grays) ─────────────────────
-  // Maps: neutral800 ≈ #1A1A2E, neutral500 ≈ #9CA3AF, neutral400 ≈ #374151
-  neutral900: '#0F0D18',
-  neutral800: '#1E1B2E',
-  neutral700: '#2E2B3F',
-  neutral600: '#4A4757',
-  neutral500: '#706D7E',
-  neutral400: '#9896A6',
-  neutral300: '#C5C3CE',
-  neutral200: '#E4E2EC',
-  neutral100: '#F2F0F8',
-  neutral50:  '#F8F7FC',
+  // ── Neutral scale ─────────────────────────────────────────────────────────
+  neutral900: '#0F0D0A',
+  neutral800: '#1C1A16',
+  neutral700: '#2E2B24',
+  neutral600: '#4A4740',
+  neutral500: '#706D66',
+  neutral400: '#9896A0',
+  neutral300: '#C5C3BC',
+  neutral200: '#E4E2DA',
+  neutral100: '#F2F0E8',
+  neutral50:  '#F9F7F2',
 
   // ── Ink (text hierarchy) ──────────────────────────────────────────────────
-  ink:  '#181818',
+  ink:  '#111111',
   ink2: '#444444',
-  ink3: '#888888',
-  ink4: '#BBBBBB',
-  ink5: '#D5D5D5',  // disabled / placeholder
+  ink3: '#777777',
+  ink4: '#AAAAAA',
+  ink5: '#D0D0D0',
 
   // ── Border ────────────────────────────────────────────────────────────────
-  borderFaint:  '#EDEDEB',
-  border:       '#E3E3E0',
-  borderMed:    '#CFCFCC',
+  borderFaint:  '#EDEAE3',
+  border:       '#E5E2DA',
+  borderMed:    '#D0CCC2',
   borderStrong: '#ABABAB',
 
   // ── Semantic ──────────────────────────────────────────────────────────────
@@ -74,23 +74,25 @@ export const tokens = {
   errorMid: '#E74C3C',
   errorBg:  '#FDEBEA',
 
-  info:    '#1A6EB5',
-  infoMid: '#2980B9',
-  infoBg:  '#E8F3FC',
+  info:    '#3D5AFE',
+  infoMid: '#5C77FF',
+  infoBg:  '#EEF1FD',
 
   // ── Deal status ───────────────────────────────────────────────────────────
-  inquiry:      '#5566DF',
-  inquiryBg:    '#ECEFFE',
+  inquiry:      '#3D5AFE',
+  inquiryBg:    '#EEF1FD',
   reviewing:    '#C48A40',
   reviewingBg:  '#F5E8D4',
-  inProgress:   '#E8603C',
-  inProgressBg: '#FDEEE9',
-  uploaded:     '#2E8C5D',
-  uploadedBg:   '#DEEFE5',
+  inProgress:   '#E8472A',
+  inProgressBg: '#FEF0EE',
+  uploaded:     '#1D8348',
+  uploadedBg:   '#E8F8EE',
   settled:      '#888888',
-  settledBg:    '#F1F1EF',
+  settledBg:    '#F1F0ED',
 
   // Backward compat aliases
-  urgent:   '#E8603C',
-  urgentBg: '#FDEEE9',
+  energy:     '#E8472A',
+  energySoft: '#FEF0EE',
+  urgent:     '#E8472A',
+  urgentBg:   '#FEF0EE',
 } as const;
