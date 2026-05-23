@@ -61,7 +61,7 @@ export default async function MessagesPage() {
   let lastMsgMap: Record<string, { content: string; sender_role: string }> = {};
 
   if (threadIds.length > 0) {
-    const [{ data: unread }, { data: lastMsgs }] = await Promise.all([
+    const [{ data: unread }, { data: lastCreatorMsgs }] = await Promise.all([
       supabase
         .from("chat_messages")
         .select("thread_id")
@@ -72,6 +72,7 @@ export default async function MessagesPage() {
         .from("chat_messages")
         .select("thread_id, content, sender_role")
         .in("thread_id", threadIds)
+        .eq("sender_role", "creator")
         .order("created_at", { ascending: false }),
     ]);
 
@@ -79,8 +80,8 @@ export default async function MessagesPage() {
       unreadMap[u.thread_id] = (unreadMap[u.thread_id] ?? 0) + 1;
     });
 
-    // Keep only the latest message per thread
-    (lastMsgs ?? []).forEach((m) => {
+    // Keep only the latest creator message per thread
+    (lastCreatorMsgs ?? []).forEach((m) => {
       if (!lastMsgMap[m.thread_id]) {
         lastMsgMap[m.thread_id] = { content: m.content, sender_role: m.sender_role };
       }
@@ -134,9 +135,7 @@ export default async function MessagesPage() {
               const unread = thread ? (unreadMap[thread.id] ?? 0) : 0;
               const lastAt = thread?.last_message_at ?? p.created_at;
               const lastMsg = thread ? lastMsgMap[thread.id] : null;
-              const previewText = lastMsg
-                ? (lastMsg.sender_role === "brand" ? `나: ${lastMsg.content}` : lastMsg.content)
-                : p.message;
+              const previewText = lastMsg?.content ?? p.message;
               const status = STATUS_META[p.status] ?? STATUS_META.pending;
 
               return (
