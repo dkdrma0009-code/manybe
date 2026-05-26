@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-brand",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "매니비 — 크리에이터 비즈니스 매니저",
@@ -13,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className="h-full scroll-smooth">
+    <html lang="ko" className={`h-full scroll-smooth ${spaceGrotesk.variable}`}>
       <body className="min-h-full flex flex-col bg-white text-gray-900 antialiased">
         {children}
       </body>

@@ -10,10 +10,10 @@ export default function Logo({ period = false, size = 18, onDark = false }: Logo
   return (
     <span
       style={{
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif',
+        fontFamily: 'var(--font-brand), -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
         fontWeight: 700,
         fontSize: size,
-        letterSpacing: "-0.045em",
+        letterSpacing: "-0.04em",
         lineHeight: 1,
         color: onDark ? "#FFFFFF" : "#181818",
         userSelect: "none",
