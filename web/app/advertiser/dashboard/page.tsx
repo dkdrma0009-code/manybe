@@ -39,7 +39,7 @@ export default async function DashboardPage() {
 
   const creatorIds = [...new Set((proposals ?? []).map((p) => p.creator_id))];
   const { data: profiles } = creatorIds.length
-    ? await supabase.from("profiles").select("id, full_name, email").in("id", creatorIds)
+    ? await supabase.from("profiles").select("id, full_name").in("id", creatorIds)
     : { data: [] };
 
   const { data: kits } = creatorIds.length
@@ -47,7 +47,7 @@ export default async function DashboardPage() {
     : { data: [] };
 
   const profileMap = Object.fromEntries(
-    (profiles ?? []).map((p) => [p.id, p.full_name || p.email || null])
+    (profiles ?? []).map((p) => [p.id, p.full_name || null])
   );
   const slugMap = Object.fromEntries((kits ?? []).map((k) => [k.user_id, k.slug]));
 

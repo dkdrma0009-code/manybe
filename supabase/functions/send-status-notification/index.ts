@@ -41,7 +41,7 @@ Deno.serve(async (req: Request) => {
           ${isAccepted ? '수락했습니다. 채팅에서 다음 단계를 진행하세요.' : '거절했습니다.'}
         </p>
         ${rejectionLine}
-        <a href="https://brand.manybe.site/advertiser/messages/${record.id}"
+        <a href="https://www.manybe.site/advertiser/messages/${record.id}"
            style="display:inline-block;margin-top:24px;background:${isAccepted ? '#6C63FF' : '#6b7280'};color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:700">
           대화 보기
         </a>

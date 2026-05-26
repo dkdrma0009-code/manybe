@@ -239,9 +239,10 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
 
         {/* 크리에이터 그리드 */}
         {creators.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
-            <p className="text-4xl mb-3">🔍</p>
-            <p className="font-medium">조건에 맞는 크리에이터가 없습니다</p>
+          <div className="text-center py-20">
+            <p className="text-5xl mb-4">🔍</p>
+            <p className="font-bold text-gray-700 text-lg mb-2">조건에 맞는 크리에이터가 없습니다</p>
+            <p className="text-sm text-gray-400">필터를 바꾸거나 검색어를 다르게 입력해보세요</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
