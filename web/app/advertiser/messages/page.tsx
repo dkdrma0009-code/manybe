@@ -21,7 +21,7 @@ export default async function MessagesPage() {
 
   if (!proposals || proposals.length === 0) {
     return (
-      <div className="min-h-screen" style={{ background: "var(--surface-2)" }}">
+      <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
         <MessagesPageShell session={session}>
           <MessagesClient initialConversations={[]} supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!} supabaseAnonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!} advertiserName={session.profile.full_name ?? ""} />
         </MessagesPageShell>
@@ -83,7 +83,7 @@ export default async function MessagesPage() {
   });
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface-2)" }}">
+    <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
       <MessagesPageShell session={session}>
         <MessagesClient
           initialConversations={conversations}
