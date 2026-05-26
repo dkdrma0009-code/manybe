@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "@/components/Logo";
 
 const FEATURES = [
   {
@@ -320,12 +321,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-[#1A1A2E] border-t border-white/10 py-12">
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#6C63FF] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">M</span>
-            </div>
-            <span className="font-bold text-white">매니비</span>
-          </div>
+          <Logo size={28} onDark />
           <div className="flex gap-6 text-sm text-gray-500">
             <Link href="/terms" className="hover:text-gray-300 transition-colors">이용약관</Link>
             <Link href="/privacy" className="hover:text-gray-300 transition-colors">개인정보처리방침</Link>

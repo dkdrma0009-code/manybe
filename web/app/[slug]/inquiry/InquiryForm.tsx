@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { submitProposal } from "./actions";
+import Logo from "@/components/Logo";
 
 interface Props {
   slug: string;
@@ -60,12 +61,7 @@ export default function InquiryForm({ slug, creatorId, creatorName, advertiserNa
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100 py-4 px-6">
         <div className="max-w-xl mx-auto flex items-center justify-between">
-          <Link href={`/${slug}`} className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#6C63FF] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">M</span>
-            </div>
-            <span className="font-bold text-gray-900 text-sm">매니비</span>
-          </Link>
+          <Link href={`/${slug}`}><Logo size={28} /></Link>
           <span className="text-xs text-gray-400">협찬 제안</span>
         </div>
       </header>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getAdvertiserSession, createClient } from "@/lib/supabase-server";
 import { logoutAdvertiser } from "../signup/actions";
 import MessagesClient, { type Conversation } from "./MessagesClient";
+import Logo from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
 
@@ -101,12 +102,7 @@ function MessagesPageShell({ session, children }: { session: { profile: { full_n
       <header className="bg-white border-b sticky top-0 z-10" style={{ borderColor: "var(--border-faint)" }}>
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/discover" className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--brand)" }}>
-                <span className="text-white font-black text-xs">M</span>
-              </div>
-              <span className="font-bold text-gray-900 text-sm hidden sm:block">매니비</span>
-            </Link>
+            <Link href="/discover"><Logo size={28} /></Link>
             <span className="text-gray-200 text-xs">|</span>
             <span className="text-xs font-medium" style={{ color: "var(--ink-3)" }}>메시지</span>
           </div>

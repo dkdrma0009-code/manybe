@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { loginAdvertiser } from "../signup/actions";
+import Logo from "@/components/Logo";
 
 const PERKS = [
   { icon: "🔍", text: "검증된 크리에이터 직접 검색" },
@@ -35,12 +36,7 @@ function LoginForm() {
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-[480px] xl:w-[520px] shrink-0 flex-col justify-between p-12"
         style={{ background: "linear-gradient(150deg, #6C63FF 0%, #4A44CC 100%)" }}>
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-            <span className="text-white font-black text-base">M</span>
-          </div>
-          <span className="text-white font-bold text-lg tracking-tight">매니비</span>
-        </Link>
+        <Link href="/"><Logo size={36} textSize="text-lg" onDark /></Link>
 
         <div>
           <p className="text-white/60 text-sm font-semibold uppercase tracking-widest mb-4">광고주 플랫폼</p>
@@ -66,12 +62,7 @@ function LoginForm() {
       {/* Right panel */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#FAFAFA]">
         {/* Mobile logo */}
-        <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
-          <div className="w-8 h-8 rounded-xl bg-[#6C63FF] flex items-center justify-center">
-            <span className="text-white font-black text-sm">M</span>
-          </div>
-          <span className="font-bold text-gray-900">매니비</span>
-        </Link>
+        <Link href="/" className="mb-10 lg:hidden"><Logo size={32} /></Link>
 
         <div className="w-full max-w-[400px]">
           <div className="mb-8">

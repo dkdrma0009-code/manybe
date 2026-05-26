@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAdvertiserSession, createClient } from "@/lib/supabase-server";
 import { logoutAdvertiser } from "../signup/actions";
+import Logo from "@/components/Logo";
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   pending:  { label: "검토 중", color: "text-amber-700",  bg: "bg-amber-50",  dot: "bg-amber-400" },
@@ -60,12 +61,7 @@ export default async function DashboardPage() {
       <header className="bg-white border-b sticky top-0 z-10" style={{ borderColor: "var(--border-faint)" }}>
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/discover" className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--brand)" }}>
-                <span className="text-white font-black text-xs">M</span>
-              </div>
-              <span className="font-bold text-gray-900 text-sm hidden sm:block">매니비</span>
-            </Link>
+            <Link href="/discover"><Logo size={28} /></Link>
             <span className="text-gray-200 text-xs">|</span>
             <span className="text-xs font-medium" style={{ color: "var(--ink-3)" }}>대시보드</span>
           </div>

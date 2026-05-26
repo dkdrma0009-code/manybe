@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { getAdvertiserSession } from "@/lib/supabase-server";
 import { logoutAdvertiser } from "../advertiser/signup/actions";
+import Logo from "@/components/Logo";
 
 const CATEGORIES: { key: string; label: string; emoji: string; color: string }[] = [
   { key: "전체",        label: "전체",       emoji: "✨", color: "#6C63FF" },
@@ -119,12 +120,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
       {/* Header */}
       <header className="bg-white sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <Link href="/discover" className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--brand)" }}>
-              <span className="text-white font-bold text-xs">M</span>
-            </div>
-            <span className="font-bold text-gray-900 text-sm hidden sm:block">매니비</span>
-          </Link>
+          <Link href="/discover" className="shrink-0"><Logo size={28} /></Link>
 
           <form method="get" action="/discover" className="flex-1 max-w-md">
             <input
