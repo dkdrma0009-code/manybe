@@ -101,7 +101,7 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
       {/* Header */}
       <header className="bg-white border-b border-gray-100 py-4 px-6">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/discover"><Logo size={28} /></Link>
+          <Link href="/discover"><Logo size={18} period /></Link>
           <span className="text-xs text-gray-400">미디어 키트</span>
         </div>
       </header>

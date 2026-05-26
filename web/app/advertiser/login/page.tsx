@@ -36,7 +36,7 @@ function LoginForm() {
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-[480px] xl:w-[520px] shrink-0 flex-col justify-between p-12"
         style={{ background: "linear-gradient(150deg, #6C63FF 0%, #4A44CC 100%)" }}>
-        <Link href="/"><Logo size={36} textSize="text-lg" onDark /></Link>
+        <Link href="/"><Logo size={22} onDark /></Link>
 
         <div>
           <p className="text-white/60 text-sm font-semibold uppercase tracking-widest mb-4">광고주 플랫폼</p>

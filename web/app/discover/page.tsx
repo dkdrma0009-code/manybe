@@ -120,7 +120,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
       {/* Header */}
       <header className="bg-white sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <Link href="/discover" className="shrink-0"><Logo size={28} /></Link>
+          <Link href="/discover" className="shrink-0"><Logo size={18} period /></Link>
 
           <form method="get" action="/discover" className="flex-1 max-w-md">
             <input

@@ -102,7 +102,7 @@ function MessagesPageShell({ session, children }: { session: { profile: { full_n
       <header className="bg-white border-b sticky top-0 z-10" style={{ borderColor: "var(--border-faint)" }}>
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/discover"><Logo size={28} /></Link>
+            <Link href="/discover"><Logo size={18} period /></Link>
             <span className="text-gray-200 text-xs">|</span>
             <span className="text-xs font-medium" style={{ color: "var(--ink-3)" }}>메시지</span>
           </div>

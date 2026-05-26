@@ -321,7 +321,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-[#1A1A2E] border-t border-white/10 py-12">
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <Logo size={28} onDark />
+          <Logo size={20} onDark />
           <div className="flex gap-6 text-sm text-gray-500">
             <Link href="/terms" className="hover:text-gray-300 transition-colors">이용약관</Link>
             <Link href="/privacy" className="hover:text-gray-300 transition-colors">개인정보처리방침</Link>
