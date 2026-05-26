@@ -33,7 +33,7 @@ export default async function DashboardPage() {
 
   const { data: proposals } = await supabase
     .from("advertiser_proposals")
-    .select("id, creator_id, brand_name, message, amount, status, created_at")
+    .select("id, creator_id, brand_name, message, amount, status, rejection_reason, created_at")
     .eq("advertiser_id", session.user.id)
     .order("created_at", { ascending: false });
 
@@ -164,6 +164,9 @@ export default async function DashboardPage() {
 
                     {p.message && (
                       <p className="text-sm text-gray-500 line-clamp-2 mb-2">{p.message}</p>
+                    )}
+                    {p.status === "rejected" && p.rejection_reason && (
+                      <p className="text-xs text-red-500 mb-2">거절 이유: {p.rejection_reason}</p>
                     )}
 
                     <div className="flex items-center gap-3 text-xs text-gray-400">

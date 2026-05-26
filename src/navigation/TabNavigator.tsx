@@ -30,7 +30,7 @@ const TAB_ICONS: Record<string, string> = {
 
 export default function TabNavigator() {
   const insets = useSafeAreaInsets();
-  const { unreadInquiryCount } = useRealtime();
+  const { unreadInquiryCount, unreadProposalMessageCount } = useRealtime();
 
   return (
     <Tab.Navigator
@@ -59,7 +59,8 @@ export default function TabNavigator() {
           letterSpacing: 0.1,
         },
         tabBarIcon: ({ focused }) => {
-          const showBadge = route.name === '메시지' && unreadInquiryCount > 0;
+          const msgBadgeCount = unreadInquiryCount + unreadProposalMessageCount;
+          const showBadge = route.name === '메시지' && msgBadgeCount > 0;
           return (
             <View style={[s.wrapper, focused && s.wrapperActive]}>
               <Text style={[s.icon, { color: focused ? tokens.primary : tokens.ink4 }]}>
@@ -68,7 +69,7 @@ export default function TabNavigator() {
               {showBadge && (
                 <View style={s.badge}>
                   <Text style={s.badgeText}>
-                    {unreadInquiryCount > 9 ? '9+' : unreadInquiryCount}
+                    {msgBadgeCount > 9 ? '9+' : msgBadgeCount}
                   </Text>
                 </View>
               )}

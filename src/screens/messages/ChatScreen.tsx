@@ -9,6 +9,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { useRealtime } from '../../context/RealtimeContext';
 import { theme } from '../../constants/theme';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -59,6 +60,7 @@ export default function ChatScreen() {
   const [actionLoading, setActionLoading]   = useState(false);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 
+  const { refreshUnreadProposalCount } = useRealtime();
   const listRef = useRef<FlatList>(null);
   const bgColor = avatarColor(brandName);
   const amountStr = amount > 0 ? `₩${amount.toLocaleString()}` : '';
@@ -114,7 +116,9 @@ export default function ChatScreen() {
     setMessages((prev) => prev.map((m) =>
       m.sender_role === 'brand' ? { ...m, is_read: true } : m,
     ));
-  }, [user, proposalId, proposalMessage]);
+
+    refreshUnreadProposalCount();
+  }, [user, proposalId, proposalMessage, refreshUnreadProposalCount]);
 
   useEffect(() => { initThread(); }, [initThread]);
 

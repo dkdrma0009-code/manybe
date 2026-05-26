@@ -23,6 +23,10 @@ interface RealtimeContextValue {
   unreadInquiryCount: number;
   /** Call from InquiryScreen after it marks rows as read */
   syncUnreadCount: (count: number) => void;
+  /** Unread brand message count across all proposal threads */
+  unreadProposalMessageCount: number;
+  /** Re-fetch unread proposal message count from DB */
+  refreshUnreadProposalCount: () => void;
   /** Force all versions up — used after foreground resume to catch missed changes */
   forceRefreshAll: () => void;
 }
@@ -34,6 +38,8 @@ const DEFAULT: RealtimeContextValue = {
   revenuesVersion: 0,
   unreadInquiryCount: 0,
   syncUnreadCount: () => {},
+  unreadProposalMessageCount: 0,
+  refreshUnreadProposalCount: () => {},
   forceRefreshAll: () => {},
 };
 
@@ -56,6 +62,7 @@ export function RealtimeProvider({ userId, children }: Props) {
   const [schedulesVersion, setSchedulesVersion] = useState(0);
   const [revenuesVersion,  setRevenuesVersion]  = useState(0);
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0);
+  const [unreadProposalMessageCount, setUnreadProposalMessageCount] = useState(0);
 
   const channelsRef   = useRef<RealtimeChannel[]>([]);
   const appStateRef   = useRef<AppStateStatus>(AppState.currentState);
@@ -63,7 +70,17 @@ export function RealtimeProvider({ userId, children }: Props) {
   const batchTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingBumps  = useRef(new Set<string>());
 
-  // ── Initial unread count ──────────────────────────────────────────────────
+  // ── Initial unread counts ─────────────────────────────────────────────────
+  const fetchUnreadProposalCount = useCallback(async () => {
+    if (!userId) return;
+    const { count } = await supabase
+      .from('chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_read', false)
+      .eq('sender_role', 'brand');
+    if (mountedRef.current) setUnreadProposalMessageCount(count ?? 0);
+  }, [userId]);
+
   useEffect(() => {
     if (!userId) return;
     supabase
@@ -74,7 +91,8 @@ export function RealtimeProvider({ userId, children }: Props) {
       .then(({ count }) => {
         if (mountedRef.current) setUnreadInquiryCount(count ?? 0);
       });
-  }, [userId]);
+    fetchUnreadProposalCount();
+  }, [userId, fetchUnreadProposalCount]);
 
   // ── Subscription lifecycle ────────────────────────────────────────────────
   const teardown = useCallback(() => {
@@ -147,7 +165,19 @@ export function RealtimeProvider({ userId, children }: Props) {
         }, () => scheduleBump('revenues'))
         .subscribe();
 
-      channelsRef.current = [deals, inquiries, schedules, revenues];
+      const chatMessages = supabase
+        .channel(`realtime:chat_messages:${userId}`)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'chat_messages',
+        }, (payload) => {
+          const msg = payload.new as { sender_role: string; is_read: boolean };
+          if (msg.sender_role === 'brand' && !msg.is_read) {
+            if (mountedRef.current) setUnreadProposalMessageCount((n) => n + 1);
+          }
+        })
+        .subscribe();
+
+      channelsRef.current = [deals, inquiries, schedules, revenues, chatMessages];
     }
 
     setup();
@@ -185,6 +215,10 @@ export function RealtimeProvider({ userId, children }: Props) {
     setUnreadInquiryCount(count);
   }, []);
 
+  const refreshUnreadProposalCount = useCallback(() => {
+    fetchUnreadProposalCount();
+  }, [fetchUnreadProposalCount]);
+
   const forceRefreshAll = useCallback(() => {
     setDealsVersion((v) => v + 1);
     setInquiriesVersion((v) => v + 1);
@@ -200,6 +234,8 @@ export function RealtimeProvider({ userId, children }: Props) {
       revenuesVersion,
       unreadInquiryCount,
       syncUnreadCount,
+      unreadProposalMessageCount,
+      refreshUnreadProposalCount,
       forceRefreshAll,
     }}>
       {children}
