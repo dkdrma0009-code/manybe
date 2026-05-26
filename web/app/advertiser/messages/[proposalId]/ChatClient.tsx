@@ -139,21 +139,21 @@ export default function ChatClient({
   const statusMeta = STATUS_META[status] ?? STATUS_META.pending;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen" style={{ background: "var(--surface-2)" }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={() => router.back()} className="text-2xl text-gray-600 leading-none px-1">‹</button>
-        <div className="w-9 h-9 rounded-xl bg-[#6C63FF] flex items-center justify-center text-white font-bold text-sm shrink-0">
+      <header className="bg-white px-4 py-3 flex items-center gap-3 shrink-0" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+        <button onClick={() => router.back()} className="text-2xl leading-none px-1" style={{ color: "var(--ink-3)" }}>‹</button>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ background: "var(--brand)" }}>
           {creatorName.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-900 text-sm truncate">{creatorName}</p>
-          {amountStr && <p className="text-xs text-gray-400">{amountStr}</p>}
+          <p className="font-bold text-sm truncate" style={{ color: "var(--ink)" }}>{creatorName}</p>
+          {amountStr && <p className="text-xs" style={{ color: "var(--ink-4)" }}>{amountStr}</p>}
         </div>
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${statusMeta.bg} ${statusMeta.color}`}>
           {statusMeta.label}
         </span>
-        <Link href="/advertiser/messages" className="text-xs text-gray-400 hover:text-gray-600 ml-2">목록</Link>
+        <Link href="/advertiser/messages" className="text-xs ml-2 transition-colors" style={{ color: "var(--ink-4)" }}>목록</Link>
       </header>
 
       {/* 거절 이유 배너 */}
@@ -175,25 +175,26 @@ export default function ChatClient({
           return (
             <div key={msg.id} className={`flex items-end gap-2 ${isBrand ? "justify-end" : "justify-start"}`}>
               {!isBrand && !sameGroup && (
-                <div className="w-8 h-8 rounded-xl bg-[#6C63FF] flex items-center justify-center text-white text-xs font-bold shrink-0 mb-1">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0 mb-1" style={{ background: "var(--brand)" }}>
                   {creatorName.charAt(0).toUpperCase()}
                 </div>
               )}
               {!isBrand && sameGroup && <div className="w-8 shrink-0" />}
-              <div className={`max-w-[72%] ${!isBrand && !sameGroup ? "" : ""}`}>
+              <div className="max-w-[72%]">
                 {!isBrand && !sameGroup && (
-                  <p className="text-xs text-gray-400 mb-1 ml-1">{creatorName}</p>
+                  <p className="text-xs mb-1 ml-1" style={{ color: "var(--ink-4)" }}>{creatorName}</p>
                 )}
-                <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                  isBrand
-                    ? "bg-[#3D5AFE] text-white rounded-br-sm"
-                    : "bg-white text-gray-900 shadow-sm rounded-bl-sm"
-                }`}>
+                <div
+                  className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${isBrand ? "rounded-br-sm" : "rounded-bl-sm"}`}
+                  style={isBrand
+                    ? { background: "var(--brand)", color: "#fff" }
+                    : { background: "#fff", color: "var(--ink)", boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}
+                >
                   {msg.content}
                 </div>
                 {isLastInGroup && (
-                  <div className={`flex items-center gap-1 mt-1 text-xs text-gray-400 ${isBrand ? "justify-end mr-1" : "ml-1"}`}>
-                    {isBrand && msg.is_read && <span className="text-[#3D5AFE] font-semibold">읽음</span>}
+                  <div className={`flex items-center gap-1 mt-1 text-xs ${isBrand ? "justify-end mr-1" : "ml-1"}`} style={{ color: "var(--ink-4)" }}>
+                    {isBrand && msg.is_read && <span className="font-semibold" style={{ color: "var(--brand)" }}>읽음</span>}
                     <span>{formatTime(msg.created_at)}</span>
                   </div>
                 )}
@@ -205,9 +206,10 @@ export default function ChatClient({
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t border-gray-100 px-4 py-3 flex items-end gap-2 shrink-0">
+      <div className="bg-white px-4 py-3 flex items-end gap-2 shrink-0" style={{ borderTop: "1px solid var(--border-faint)" }}>
         <textarea
-          className="flex-1 bg-purple-50 border border-purple-100 rounded-2xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:border-[#6C63FF] max-h-32"
+          className="flex-1 rounded-2xl px-4 py-2.5 text-sm resize-none focus:outline-none max-h-32"
+          style={{ background: "var(--brand-softer)", border: "1px solid var(--border)", color: "var(--ink)" }}
           rows={1}
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -218,7 +220,8 @@ export default function ChatClient({
         <button
           onClick={sendMessage}
           disabled={!text.trim() || sending || !threadId}
-          className="w-10 h-10 rounded-full bg-[#3D5AFE] flex items-center justify-center text-white font-bold text-lg shrink-0 disabled:opacity-40 hover:bg-[#3451E8] transition-colors"
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 disabled:opacity-40 transition-colors hover:opacity-90"
+          style={{ background: "var(--brand)" }}
         >
           {sending ? (
             <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

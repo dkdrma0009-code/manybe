@@ -115,12 +115,12 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <Link href="/discover" className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-[#6C63FF] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--brand)" }}>
               <span className="text-white font-bold text-xs">M</span>
             </div>
             <span className="font-bold text-gray-900 text-sm hidden sm:block">매니비</span>
@@ -131,7 +131,8 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
               name="q"
               defaultValue={query}
               placeholder="크리에이터 검색..."
-              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+              className="input-field"
+              style={{ paddingTop: "0.5rem", paddingBottom: "0.5rem" }}
             />
             {activePlatform !== "전체" && <input type="hidden" name="platform" value={activePlatform} />}
             {activeCategory !== "전체" && <input type="hidden" name="category" value={activeCategory} />}
@@ -143,19 +144,21 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
               <>
                 <Link
                   href="/advertiser/dashboard"
-                  className="text-xs font-semibold text-[#6C63FF] hover:underline hidden sm:block"
+                  className="text-xs font-semibold hidden sm:block"
+                  style={{ color: "var(--brand)" }}
                 >
                   보낸 제안
                 </Link>
-                <span className="text-sm text-gray-600 hidden sm:block">{session.profile.full_name}</span>
+                <span className="text-sm hidden sm:block" style={{ color: "var(--ink-3)" }}>{session.profile.full_name}</span>
                 <form action={logoutAdvertiser}>
-                  <button className="text-xs text-gray-400 hover:text-gray-600 transition-colors">로그아웃</button>
+                  <button className="text-xs transition-colors" style={{ color: "var(--ink-4)" }}>로그아웃</button>
                 </form>
               </>
             ) : (
               <Link
                 href="/advertiser/login"
-                className="bg-[#6C63FF] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#5B53EE] transition-colors"
+                className="text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors hover:opacity-90"
+                style={{ background: "var(--brand)" }}
               >
                 로그인
               </Link>
@@ -167,7 +170,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
       <div className="max-w-6xl mx-auto px-6 py-6">
 
         {/* 카테고리 — 배달앱 스타일 아이콘 그리드 */}
-        <div className="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: "1px solid var(--border-faint)" }}>
           <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
             {CATEGORIES.map((cat) => {
               const isActive = activeCategory === cat.key;
@@ -206,26 +209,24 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             <Link
               key={pl}
               href={filterUrl({ platform: pl })}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border whitespace-nowrap shrink-0 ${
-                activePlatform === pl
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-              }`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border whitespace-nowrap shrink-0"
+              style={activePlatform === pl
+                ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" }
+                : { background: "#fff", color: "var(--ink-3)", borderColor: "var(--border)" }}
             >
               {pl !== "전체" && <span>{PLATFORM_EMOJI[pl]}</span>}
               {pl === "전체" ? "플랫폼 전체" : PLATFORM_LABEL[pl]}
             </Link>
           ))}
-          <div className="w-px bg-gray-200 mx-1 shrink-0" />
+          <div className="w-px mx-1 shrink-0" style={{ background: "var(--border)" }} />
           {SCALE_OPTIONS.map((s) => (
             <Link
               key={s.label}
               href={filterUrl({ scale: s.label })}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border whitespace-nowrap shrink-0 ${
-                activeScale === s.label
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-              }`}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all border whitespace-nowrap shrink-0"
+              style={activeScale === s.label
+                ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" }
+                : { background: "#fff", color: "var(--ink-3)", borderColor: "var(--border)" }}
             >
               {s.label === "전체" ? "규모 전체" : s.label}
             </Link>
@@ -233,16 +234,16 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         </div>
 
         {/* 결과 수 */}
-        <p className="text-sm text-gray-500 mb-5">
-          크리에이터 <span className="font-bold text-gray-900">{creators.length}</span>명
+        <p className="text-sm mb-5" style={{ color: "var(--ink-3)" }}>
+          크리에이터 <span className="font-bold" style={{ color: "var(--ink)" }}>{creators.length}</span>명
         </p>
 
         {/* 크리에이터 그리드 */}
         {creators.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-5xl mb-4">🔍</p>
-            <p className="font-bold text-gray-700 text-lg mb-2">조건에 맞는 크리에이터가 없습니다</p>
-            <p className="text-sm text-gray-400">필터를 바꾸거나 검색어를 다르게 입력해보세요</p>
+            <p className="font-bold text-lg mb-2" style={{ color: "var(--ink-2)" }}>조건에 맞는 크리에이터가 없습니다</p>
+            <p className="text-sm" style={{ color: "var(--ink-4)" }}>필터를 바꾸거나 검색어를 다르게 입력해보세요</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -257,7 +258,8 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                 <Link
                   key={kit.id}
                   href={`/${kit.slug}`}
-                  className="bg-white rounded-2xl p-5 border border-gray-100 hover:border-[#6C63FF] hover:shadow-md transition-all group"
+                  className="bg-white rounded-2xl p-5 transition-all hover:shadow-md group"
+                  style={{ border: "1px solid var(--border-faint)" }}
                 >
                   {/* 아바타 + 이름 */}
                   <div className="flex items-center gap-3 mb-4">
@@ -268,11 +270,11 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                       {initial}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-gray-900 text-sm truncate group-hover:text-[#6C63FF] transition-colors">
+                      <p className="font-bold text-sm truncate transition-colors" style={{ color: "var(--ink)" }}>
                         {name}
                       </p>
                       {kit.category && (
-                        <span className="text-xs text-[#6C63FF] bg-[#F0EFFE] px-2 py-0.5 rounded-full">
+                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: "var(--brand)", background: "var(--brand-soft)" }}>
                           {kit.category}
                         </span>
                       )}
@@ -281,7 +283,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
 
                   {/* bio */}
                   {kit.bio && (
-                    <p className="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed">{kit.bio}</p>
+                    <p className="text-xs mb-4 line-clamp-2 leading-relaxed" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>
                   )}
 
                   {/* 채널 통계 */}
@@ -293,23 +295,23 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                             <span className="text-xs" style={{ color: PLATFORM_COLOR[ch.platform] ?? "#666" }}>
                               {PLATFORM_ICON[ch.platform] ?? "◦"}
                             </span>
-                            <span className="text-xs text-gray-500 truncate max-w-[100px]">{ch.channel_name}</span>
+                            <span className="text-xs truncate max-w-[100px]" style={{ color: "var(--ink-3)" }}>{ch.channel_name}</span>
                           </div>
-                          <span className="text-xs font-bold text-gray-900">
+                          <span className="text-xs font-bold" style={{ color: "var(--ink)" }}>
                             {formatK(ch.subscriber_count ?? 0)}
                           </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-400">채널 미연동</p>
+                    <p className="text-xs" style={{ color: "var(--ink-4)" }}>채널 미연동</p>
                   )}
 
                   {/* 총 팔로워 */}
                   {totalSubs > 0 && chs.length > 1 && (
-                    <div className="mt-3 pt-3 border-t border-gray-50 flex justify-between items-center">
-                      <span className="text-xs text-gray-400">총 팔로워</span>
-                      <span className="text-xs font-extrabold text-gray-900">{formatK(totalSubs)}</span>
+                    <div className="mt-3 pt-3 flex justify-between items-center" style={{ borderTop: "1px solid var(--border-faint)" }}>
+                      <span className="text-xs" style={{ color: "var(--ink-4)" }}>총 팔로워</span>
+                      <span className="text-xs font-extrabold" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</span>
                     </div>
                   )}
                 </Link>
@@ -320,14 +322,15 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
 
         {/* 광고주 가입 배너 (비로그인) */}
         {!session && (
-          <div className="mt-12 bg-[#6C63FF] rounded-2xl p-8 text-center text-white">
+          <div className="mt-12 rounded-2xl p-8 text-center text-white" style={{ background: "var(--brand)" }}>
             <p className="text-xl font-extrabold mb-2">크리에이터에게 제안하고 싶으신가요?</p>
-            <p className="text-purple-200 text-sm mb-6">
+            <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.75)" }}>
               광고주로 가입하면 원하는 크리에이터에게 직접 협찬을 제안할 수 있습니다.
             </p>
             <Link
               href="/advertiser/signup"
-              className="inline-block bg-white text-[#6C63FF] font-bold px-8 py-3 rounded-xl hover:bg-purple-50 transition-colors"
+              className="inline-block font-bold px-8 py-3 rounded-xl transition-colors hover:opacity-90"
+              style={{ background: "#fff", color: "var(--brand)" }}
             >
               광고주 무료 가입
             </Link>
