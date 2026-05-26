@@ -4,6 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { signUpAdvertiser } from "./actions";
 
+const PERKS = [
+  { icon: "🔍", text: "검증된 크리에이터 직접 검색" },
+  { icon: "💬", text: "제안 → 협의 → 계약 원스톱" },
+  { icon: "📊", text: "채널 통계 기반 매칭" },
+];
+
 export default function AdvertiserSignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -20,65 +26,66 @@ export default function AdvertiserSignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b border-gray-100 py-4 px-6">
-        <div className="max-w-xl mx-auto flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#6C63FF] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">M</span>
-            </div>
-            <span className="font-bold text-gray-900 text-sm">매니비</span>
-          </Link>
-          <span className="text-gray-300 text-sm">·</span>
-          <span className="text-xs text-gray-500">광고주 플랫폼</span>
-        </div>
-      </header>
+    <div className="min-h-screen flex">
+      {/* Left panel */}
+      <div className="hidden lg:flex lg:w-[480px] xl:w-[520px] shrink-0 flex-col justify-between p-12"
+        style={{ background: "linear-gradient(150deg, #6C63FF 0%, #4A44CC 100%)" }}>
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+            <span className="text-white font-black text-base">M</span>
+          </div>
+          <span className="text-white font-bold text-lg tracking-tight">매니비</span>
+        </Link>
 
-      <main className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">광고주 회원가입</h1>
+        <div>
+          <p className="text-white/60 text-sm font-semibold uppercase tracking-widest mb-4">광고주 플랫폼</p>
+          <h2 className="text-white text-4xl font-extrabold leading-tight tracking-tight mb-6">
+            크리에이터를 찾는<br />가장 스마트한 방법
+          </h2>
+          <p className="text-white/70 text-base leading-relaxed mb-10">
+            국내 크리에이터의 채널 통계, 카테고리, 협찬 이력을 기반으로 최적의 파트너를 찾아보세요.
+          </p>
+          <div className="space-y-4">
+            {PERKS.map((p) => (
+              <div key={p.text} className="flex items-center gap-3">
+                <span className="text-xl">{p.icon}</span>
+                <span className="text-white/80 text-sm font-medium">{p.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-white/30 text-xs">© 2026 매니비</p>
+      </div>
+
+      {/* Right panel */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#FAFAFA]">
+        {/* Mobile logo */}
+        <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
+          <div className="w-8 h-8 rounded-xl bg-[#6C63FF] flex items-center justify-center">
+            <span className="text-white font-black text-sm">M</span>
+          </div>
+          <span className="font-bold text-gray-900">매니비</span>
+        </Link>
+
+        <div className="w-full max-w-[400px]">
+          <div className="mb-8">
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-1.5">광고주 회원가입</h1>
             <p className="text-sm text-gray-500">검증된 광고주만 크리에이터에게 제안을 보낼 수 있습니다</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-8 space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                회사명 / 브랜드명 <span className="text-[#6C63FF]">*</span>
-              </label>
-              <input
-                name="company_name"
-                type="text"
-                required
-                placeholder="예: 나이키 코리아"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:border-transparent"
-              />
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">회사명 / 브랜드명</label>
+              <input name="company_name" type="text" required placeholder="예: 나이키 코리아" className="input-field" />
             </div>
-
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                기업 이메일 <span className="text-[#6C63FF]">*</span>
-              </label>
-              <input
-                name="email"
-                type="email"
-                required
-                placeholder="예: marketing@brand.com"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:border-transparent"
-              />
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">기업 이메일</label>
+              <input name="email" type="email" required placeholder="예: marketing@brand.com" className="input-field" />
             </div>
-
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                비밀번호 <span className="text-[#6C63FF]">*</span>
-              </label>
-              <input
-                name="password"
-                type="password"
-                required
-                placeholder="8자 이상"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:border-transparent"
-              />
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">비밀번호</label>
+              <input name="password" type="password" required placeholder="8자 이상" className="input-field" />
             </div>
 
             {error && (
@@ -87,28 +94,27 @@ export default function AdvertiserSignupPage() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#6C63FF] text-white font-bold py-3.5 rounded-xl hover:bg-[#5B53EE] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? "처리 중..." : "광고주로 가입하기"}
-            </button>
+            <div className="pt-1">
+              <button type="submit" disabled={loading} className="btn-primary">
+                {loading ? "처리 중..." : "광고주로 가입하기"}
+              </button>
+            </div>
 
-            <p className="text-center text-sm text-gray-500">
+            <p className="text-center text-sm text-gray-500 pt-1">
               이미 계정이 있으신가요?{" "}
-              <Link href="/advertiser/login" className="text-[#6C63FF] font-semibold hover:underline">
+              <Link href="/advertiser/login" className="font-semibold" style={{ color: "var(--brand)" }}>
                 로그인
               </Link>
             </p>
           </form>
 
-          <p className="text-center text-xs text-gray-400 mt-6">
-            크리에이터라면{" "}
-            <span className="text-gray-600 font-medium">매니비 앱</span>을 이용해주세요.
-          </p>
+          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+            <p className="text-xs text-gray-400">
+              크리에이터라면 <span className="text-gray-600 font-medium">매니비 앱</span>을 이용해주세요
+            </p>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

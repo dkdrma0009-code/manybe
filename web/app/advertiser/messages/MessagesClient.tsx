@@ -27,10 +27,10 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
 }
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  pending:  { label: "검토 중", color: "text-yellow-700", bg: "bg-yellow-50" },
-  accepted: { label: "수락됨",  color: "text-green-700",  bg: "bg-green-50" },
-  rejected: { label: "거절됨",  color: "text-red-700",    bg: "bg-red-50" },
+const STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
+  pending:  { label: "검토 중", color: "text-amber-700",   bg: "bg-amber-50",   dot: "bg-amber-400" },
+  accepted: { label: "수락됨",  color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500" },
+  rejected: { label: "거절됨",  color: "text-red-600",     bg: "bg-red-50",     dot: "bg-red-400" },
 };
 
 export default function MessagesClient({
@@ -112,29 +112,27 @@ export default function MessagesClient({
   return (
     <>
       {convos.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
-          <p className="text-4xl mb-3">💬</p>
-          <p className="font-semibold text-gray-700 mb-1">아직 대화가 없습니다</p>
-          <p className="text-sm text-gray-400 mb-6">크리에이터에게 제안을 보내면 여기서 대화할 수 있습니다.</p>
-          <Link
-            href="/discover"
-            className="inline-block bg-[#6C63FF] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#5B53EE] transition-colors text-sm"
-          >
+        <div className="bg-white rounded-2xl p-16 text-center" style={{ border: "1px solid var(--border-faint)" }}>
+          <p className="text-5xl mb-4">💬</p>
+          <p className="font-bold text-gray-800 mb-1">아직 대화가 없습니다</p>
+          <p className="text-sm mb-6" style={{ color: "var(--ink-3)" }}>크리에이터에게 제안을 보내면 여기서 대화할 수 있습니다</p>
+          <Link href="/discover" className="inline-block text-white font-semibold px-6 py-3 rounded-xl transition-colors hover:opacity-90 text-sm" style={{ background: "var(--brand)" }}>
             크리에이터 찾기
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-50">
-          {convos.map((c) => {
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border-faint)" }}>
+          {convos.map((c, i) => {
             const status = STATUS_META[c.status] ?? STATUS_META.pending;
             return (
               <Link
                 key={c.proposalId}
                 href={`/advertiser/messages/${c.proposalId}`}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-gray-50"
+                style={{ borderTop: i > 0 ? "1px solid var(--border-faint)" : undefined }}
               >
                 <div className="relative shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-[#6C63FF] flex items-center justify-center text-white font-bold text-base">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ background: "var(--brand)" }}>
                     {c.creatorName.charAt(0).toUpperCase()}
                   </div>
                   {c.unreadCount > 0 && (
@@ -145,28 +143,27 @@ export default function MessagesClient({
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-sm text-gray-900 ${c.unreadCount > 0 ? "font-extrabold" : "font-bold"}`}>
-                      {c.creatorName}
-                    </span>
-                    <span className="text-xs text-gray-400 shrink-0 ml-2">{timeAgo(c.lastAt)}</span>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-sm font-bold truncate" style={{ color: "var(--ink)" }}>{c.creatorName}</span>
+                    <span className="text-xs shrink-0 ml-2" style={{ color: "var(--ink-4)" }}>{timeAgo(c.lastAt)}</span>
                   </div>
-                  <p className={`text-sm truncate mb-1.5 ${c.unreadCount > 0 ? "text-gray-900 font-medium" : "text-gray-500"}`}>
+                  <p className="text-sm truncate mb-1.5" style={{ color: c.unreadCount > 0 ? "var(--ink)" : "var(--ink-3)", fontWeight: c.unreadCount > 0 ? "600" : "400" }}>
                     {c.previewText}
                   </p>
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${status.bg} ${status.color}`}>
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${status.bg} ${status.color}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                       {status.label}
                     </span>
                     {c.amount > 0 && (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs" style={{ color: "var(--ink-3)" }}>
                         {c.amount >= 10_000 ? `${Math.floor(c.amount / 10_000)}만원` : `${c.amount.toLocaleString("ko-KR")}원`}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <span className="text-gray-300 text-lg shrink-0">›</span>
+                <span className="shrink-0 text-lg" style={{ color: "var(--ink-4)" }}>›</span>
               </Link>
             );
           })}
