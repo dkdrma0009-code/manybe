@@ -34,6 +34,7 @@ import UpgradeScreen from '../screens/paywall/UpgradeScreen';
 import ActionCenterScreen from '../screens/automation/ActionCenterScreen';
 import MediaKitPreviewScreen from '../screens/mediakit/MediaKitPreviewScreen';
 import ChatScreen from '../screens/messages/ChatScreen';
+import FeedbackScreen from '../screens/settings/FeedbackScreen';
 
 // 개발 모드: 로그인 및 채널 연결 게이트 우회 (true = 로그인/채널 게이트 건너뜀)
 const DEV_BYPASS_AUTH = false;
@@ -62,6 +63,7 @@ export type RootStackParamList = {
     amount: number;
     status: 'pending' | 'accepted' | 'rejected';
   };
+  Feedback: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -138,6 +140,11 @@ function MainNavigator() {
       <RootStack.Screen
         name="Chat"
         component={ChatScreen}
+        options={{ presentation: 'card' }}
+      />
+      <RootStack.Screen
+        name="Feedback"
+        component={FeedbackScreen}
         options={{ presentation: 'card' }}
       />
     </RootStack.Navigator>

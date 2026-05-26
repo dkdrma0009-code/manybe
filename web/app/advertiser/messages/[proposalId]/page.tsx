@@ -12,7 +12,7 @@ export default async function ChatPage({ params }: { params: Promise<{ proposalI
   // Verify this proposal belongs to the advertiser
   const { data: proposal } = await supabase
     .from("advertiser_proposals")
-    .select("id, creator_id, brand_name, message, amount, status")
+    .select("id, creator_id, brand_name, message, amount, status, rejection_reason")
     .eq("id", proposalId)
     .eq("advertiser_id", session.user.id)
     .single();
@@ -61,6 +61,7 @@ export default async function ChatPage({ params }: { params: Promise<{ proposalI
       proposalMessage={proposal.message}
       amount={proposal.amount}
       initialStatus={proposal.status}
+      rejectionReason={proposal.rejection_reason ?? null}
       initialMessages={initialMessages}
       threadId={thread?.id ?? null}
       supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!}

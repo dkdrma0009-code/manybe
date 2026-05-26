@@ -21,6 +21,7 @@ interface Props {
   proposalMessage: string;
   amount: number;
   initialStatus: string;
+  rejectionReason: string | null;
   initialMessages: ChatMessage[];
   threadId: string | null;
   supabaseUrl: string;
@@ -39,15 +40,17 @@ export default function ChatClient({
   proposalMessage,
   amount,
   initialStatus,
+  rejectionReason,
   initialMessages,
   threadId: initialThreadId,
   supabaseUrl,
   supabaseAnonKey,
 }: Props) {
   const router = useRouter();
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: true },
-  });
+  const supabaseRef = useRef(
+    createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: true } })
+  );
+  const supabase = supabaseRef.current;
 
   const [threadId, setThreadId] = useState<string | null>(initialThreadId);
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
@@ -152,6 +155,13 @@ export default function ChatClient({
         </span>
         <Link href="/advertiser/messages" className="text-xs text-gray-400 hover:text-gray-600 ml-2">목록</Link>
       </header>
+
+      {/* 거절 이유 배너 */}
+      {status === "rejected" && rejectionReason && (
+        <div className="mx-4 mt-3 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">
+          <span className="font-semibold">거절 이유: </span>{rejectionReason}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">

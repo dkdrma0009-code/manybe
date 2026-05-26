@@ -8,6 +8,7 @@ export interface Proposal {
   amount: number;
   status: 'pending' | 'accepted' | 'rejected';
   created_at: string;
+  rejection_reason?: string | null;
 }
 
 export function useProposals(userId: string | undefined) {
@@ -75,10 +76,10 @@ export function useProposals(userId: string | undefined) {
     }
   }
 
-  async function rejectProposal(id: string): Promise<string | null> {
+  async function rejectProposal(id: string, reason: string): Promise<string | null> {
     const { error } = await supabase
       .from('advertiser_proposals')
-      .update({ status: 'rejected' })
+      .update({ status: 'rejected', rejection_reason: reason })
       .eq('id', id);
     if (error) return error.message;
     await fetchPending();

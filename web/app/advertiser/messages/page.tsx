@@ -49,7 +49,7 @@ export default async function MessagesPage() {
   let lastMsgMap: Record<string, string> = {};
 
   if (threadIds.length > 0) {
-    const { data: msgs } = await supabase
+    const { data: msgs, error: msgsError } = await supabase
       .from("chat_messages")
       .select("thread_id, content, sender_role, is_read")
       .in("thread_id", threadIds)

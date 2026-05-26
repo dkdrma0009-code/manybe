@@ -4,10 +4,13 @@ import {
   StyleSheet, Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
 import { useSocialChannels } from '../../hooks/useSocialChannels';
 import { theme } from '../../constants/theme';
 import { supabase } from '../../api/supabase';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 const { colors, space, radius, shadows, typography } = theme;
 
@@ -26,6 +29,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
   const { channels } = useSocialChannels(user?.id);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [notifBrand, setNotifBrand]     = useState(true);
   const [notifSchedule, setNotifSchedule] = useState(true);
@@ -137,6 +141,10 @@ export default function SettingsScreen() {
           </React.Fragment>
         ))}
 
+        <TouchableOpacity style={s.feedback} onPress={() => navigation.navigate('Feedback')} activeOpacity={0.7}>
+          <Text style={s.feedbackText}>피드백 보내기</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={s.signOut} onPress={handleSignOut} activeOpacity={0.7}>
           <Text style={s.signOutText}>로그아웃</Text>
         </TouchableOpacity>
@@ -191,6 +199,8 @@ const s = StyleSheet.create({
   plainLabel: { ...typography.body, color: colors.text.primary },
   plainValue: { ...typography.body, color: colors.text.tertiary },
 
-  signOut:     { marginTop: space.xxl, paddingVertical: space.md, alignItems: 'center' },
-  signOutText: { ...typography.body, color: colors.semantic.error },
+  feedback:     { marginTop: space.xxl, paddingVertical: space.md, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default, borderRadius: radius.lg },
+  feedbackText: { ...typography.body, color: colors.text.secondary },
+  signOut:      { marginTop: space.md, paddingVertical: space.md, alignItems: 'center' },
+  signOutText:  { ...typography.body, color: colors.semantic.error },
 });

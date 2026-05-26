@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
@@ -414,6 +416,14 @@ function formatWonShort(n: number) {
   return n.toLocaleString('ko-KR') + '원';
 }
 
+const REJECTION_REASONS = [
+  '금액이 맞지 않음',
+  '브랜드/제품이 채널과 맞지 않음',
+  '일정이 안 됨',
+  '이미 경쟁 브랜드 광고 중',
+  '기타',
+];
+
 function ProposalBanner({
   proposals,
   onAccept,
@@ -421,9 +431,10 @@ function ProposalBanner({
 }: {
   proposals: Proposal[];
   onAccept: (p: Proposal) => void;
-  onReject: (id: string) => void;
+  onReject: (id: string, reason: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   if (proposals.length === 0) return null;
 
   return (
@@ -457,12 +468,36 @@ function ProposalBanner({
             <TouchableOpacity style={pb.acceptBtn} onPress={() => onAccept(p)} activeOpacity={0.8}>
               <Text style={pb.acceptText}>수락</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={pb.rejectBtn} onPress={() => onReject(p.id)} activeOpacity={0.8}>
+            <TouchableOpacity style={pb.rejectBtn} onPress={() => setRejectingId(p.id)} activeOpacity={0.8}>
               <Text style={pb.rejectText}>거절</Text>
             </TouchableOpacity>
           </View>
         </View>
       ))}
+
+      <Modal visible={rejectingId !== null} transparent animationType="fade">
+        <Pressable style={pb.overlay} onPress={() => setRejectingId(null)}>
+          <Pressable style={pb.sheet} onPress={(e) => e.stopPropagation()}>
+            <Text style={pb.sheetTitle}>거절 이유를 선택해주세요</Text>
+            {REJECTION_REASONS.map((reason) => (
+              <TouchableOpacity
+                key={reason}
+                style={pb.reasonRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (rejectingId) onReject(rejectingId, reason);
+                  setRejectingId(null);
+                }}
+              >
+                <Text style={pb.reasonText}>{reason}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={pb.cancelRow} onPress={() => setRejectingId(null)} activeOpacity={0.7}>
+              <Text style={pb.cancelText}>취소</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </AppCard>
   );
 }
@@ -488,6 +523,13 @@ const pb = StyleSheet.create({
   acceptText: { ...typography.status, color: '#fff', fontWeight: '800' },
   rejectBtn:  { backgroundColor: colors.surface2, paddingHorizontal: space.sm + 2, paddingVertical: 7, borderRadius: radius.sm, alignItems: 'center' },
   rejectText: { ...typography.status, color: colors.text.muted },
+  overlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheet:      { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space.xl },
+  sheetTitle: { ...typography.bodyStrong, color: colors.text.primary, marginBottom: space.md, textAlign: 'center' },
+  reasonRow:  { paddingVertical: space.sm + 2, borderBottomWidth: 1, borderBottomColor: colors.surface2 },
+  reasonText: { ...typography.body, color: colors.text.primary, textAlign: 'center' },
+  cancelRow:  { paddingVertical: space.sm + 2, marginTop: space.xs },
+  cancelText: { ...typography.body, color: colors.text.muted, textAlign: 'center' },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -628,7 +670,7 @@ export default function DealsScreen() {
         <ProposalBanner
           proposals={proposals}
           onAccept={handleAcceptProposal}
-          onReject={rejectProposal}
+          onReject={(id, reason) => rejectProposal(id, reason)}
         />
 
         <AutoSuggestBanner

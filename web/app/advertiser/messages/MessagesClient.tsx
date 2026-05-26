@@ -55,10 +55,28 @@ export default function MessagesClient({
 
   useEffect(() => {
     const supabase = supabaseRef.current!;
-    const threadIds = initialConversations.map((c) => c.threadId).filter(Boolean);
-    if (!threadIds.length) return;
 
-    const channel = supabase
+    // message_threads INSERT 구독 — 새 스레드 생성 시 threadId 업데이트
+    const threadChannel = supabase
+      .channel("messages-list-threads")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "message_threads" },
+        (payload) => {
+          const thread = payload.new as { id: string; proposal_id: string };
+          setConvos((prev) =>
+            prev.map((c) =>
+              c.proposalId === thread.proposal_id && !c.threadId
+                ? { ...c, threadId: thread.id }
+                : c
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    // chat_messages INSERT 구독 — 필터 없이 전체, 클라이언트에서 매칭
+    const msgChannel = supabase
       .channel("messages-list-realtime")
       .on(
         "postgres_changes",
@@ -77,8 +95,7 @@ export default function MessagesClient({
                 ...c,
                 previewText: msg.sender_role === "brand" ? `나: ${msg.content}` : msg.content,
                 lastAt: msg.created_at,
-                unreadCount:
-                  msg.sender_role === "creator" ? c.unreadCount + 1 : c.unreadCount,
+                unreadCount: msg.sender_role === "creator" ? c.unreadCount + 1 : c.unreadCount,
               };
             })
           );
@@ -86,7 +103,10 @@ export default function MessagesClient({
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(threadChannel);
+      supabase.removeChannel(msgChannel);
+    };
   }, []);
 
   return (
