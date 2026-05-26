@@ -20,9 +20,10 @@ export async function signUpAdvertiser(formData: FormData) {
   if (error) return { error: error.message };
   if (!data.user) return { error: "회원가입에 실패했습니다." };
 
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .upsert({ id: data.user.id, full_name: companyName, role: "advertiser" });
+  const { error: profileError } = await supabase.rpc("create_advertiser_profile", {
+    user_id: data.user.id,
+    company_name: companyName,
+  });
 
   if (profileError) return { error: profileError.message };
 

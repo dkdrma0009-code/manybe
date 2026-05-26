@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Modal, Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -12,6 +13,14 @@ import { theme } from '../../constants/theme';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 const { colors, space, radius, typography } = theme;
+
+const REJECTION_REASONS = [
+  '금액이 맞지 않음',
+  '브랜드/제품이 채널과 맞지 않음',
+  '일정이 안 됨',
+  '이미 경쟁 브랜드 광고 중',
+  '기타',
+];
 
 type ChatRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 
@@ -48,6 +57,7 @@ export default function ChatScreen() {
   const [sending, setSending]     = useState(false);
   const [proposalStatus, setProposalStatus] = useState(initialStatus);
   const [actionLoading, setActionLoading]   = useState(false);
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
 
   const listRef = useRef<FlatList>(null);
   const bgColor = avatarColor(brandName);
@@ -160,18 +170,18 @@ export default function ChatScreen() {
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   }
 
-  async function handleProposalAction(action: 'accepted' | 'rejected') {
+  async function handleProposalAction(action: 'accepted' | 'rejected', reason?: string) {
     setActionLoading(true);
     await supabase
       .from('advertiser_proposals')
-      .update({ status: action })
+      .update({ status: action, ...(reason ? { rejection_reason: reason } : {}) })
       .eq('id', proposalId);
     setProposalStatus(action);
     setActionLoading(false);
 
     const noticeContent = action === 'accepted'
       ? '✓ 협찬 제안을 수락했습니다.'
-      : '✗ 협찬 제안을 거절했습니다.';
+      : `✗ 협찬 제안을 거절했습니다.${reason ? ` (${reason})` : ''}`;
     if (threadId) {
       await supabase.from('chat_messages').insert({
         thread_id: threadId,
@@ -244,7 +254,7 @@ export default function ChatScreen() {
           <View style={cs.proposalBtnRow}>
             <TouchableOpacity
               style={cs.rejectBtn}
-              onPress={() => handleProposalAction('rejected')}
+              onPress={() => setRejectModalVisible(true)}
               disabled={actionLoading}
             >
               <Text style={cs.rejectText}>거절</Text>
@@ -303,6 +313,30 @@ export default function ChatScreen() {
           }
         </TouchableOpacity>
       </View>
+
+      <Modal visible={rejectModalVisible} transparent animationType="fade">
+        <Pressable style={cs.overlay} onPress={() => setRejectModalVisible(false)}>
+          <Pressable style={cs.sheet} onPress={(e) => e.stopPropagation()}>
+            <Text style={cs.sheetTitle}>거절 이유를 선택해주세요</Text>
+            {REJECTION_REASONS.map((reason) => (
+              <TouchableOpacity
+                key={reason}
+                style={cs.reasonRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setRejectModalVisible(false);
+                  handleProposalAction('rejected', reason);
+                }}
+              >
+                <Text style={cs.reasonText}>{reason}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={cs.cancelRow} onPress={() => setRejectModalVisible(false)} activeOpacity={0.7}>
+              <Text style={cs.cancelText}>취소</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -356,4 +390,12 @@ const cs = StyleSheet.create({
   input:    { flex: 1, backgroundColor: '#F4F0FF', borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: colors.text.primary, maxHeight: 120, borderWidth: 1.5, borderColor: '#E8E4FF' },
   sendBtn:  { width: 40, height: 40, borderRadius: 20, backgroundColor: '#3D5AFE', alignItems: 'center', justifyContent: 'center' },
   sendIcon: { fontSize: 18, color: '#fff', fontWeight: '700' },
+
+  overlay:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheet:     { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space.xl },
+  sheetTitle:{ ...typography.bodyStrong, color: colors.text.primary, marginBottom: space.md, textAlign: 'center' },
+  reasonRow: { paddingVertical: space.sm + 2, borderBottomWidth: 1, borderBottomColor: colors.surface2 },
+  reasonText:{ ...typography.body, color: colors.text.primary, textAlign: 'center' },
+  cancelRow: { paddingVertical: space.sm + 2, marginTop: space.xs },
+  cancelText:{ ...typography.body, color: colors.text.muted, textAlign: 'center' },
 });
