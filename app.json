@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "manybe",
+    "name": "매니비",
     "slug": "manybe",
     "scheme": "manybe",
     "version": "1.0.0",
@@ -22,17 +22,17 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F7F5F0"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "io.manybe.app",
+      "bundleIdentifier": "com.manybe.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "io.manybe.app",
+      "package": "com.manybe.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

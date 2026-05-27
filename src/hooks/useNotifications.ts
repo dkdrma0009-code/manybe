@@ -40,7 +40,9 @@ async function registerPushToken(userId: string) {
   }
 
   try {
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: '18c949fc-8f75-4c39-865f-00c081209bd7',
+    });
     await supabase
       .from('profiles')
       .update({ push_token: tokenData.data })

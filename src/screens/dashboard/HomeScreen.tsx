@@ -10,6 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useHomeData } from '../../hooks/useHomeData';
 import { useSocialChannels } from '../../hooks/useSocialChannels';
 import { useRealtime } from '../../context/RealtimeContext';
+import { supabase } from '../../api/supabase';
 import { theme } from '../../constants/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -279,8 +280,19 @@ export default function HomeScreen() {
   const { dealsVersion } = useRealtime();
 
   const [dismissedPriority, setDismissedPriority] = useState(false);
+  const [pendingProposalCount, setPendingProposalCount] = useState(0);
 
   React.useEffect(() => { refetch(); }, [dealsVersion]); // eslint-disable-line
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('advertiser_proposals')
+      .select('id', { count: 'exact', head: true })
+      .eq('creator_id', user.id)
+      .eq('status', 'pending')
+      .then(({ count }) => { setPendingProposalCount(count ?? 0); });
+  }, [user?.id]);
 
   const userName = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? '크리에이터';
   const priorityDeal = data.activeDeals[0];
@@ -291,13 +303,29 @@ export default function HomeScreen() {
       {/* 헤더 */}
       <View style={s.header}>
         <Text style={s.logo}>manybe</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Notifications')}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={s.bell}>🔔</Text>
-        </TouchableOpacity>
+        <View style={s.headerRight}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Revenue')}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={s.bell}>💰</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Analytics')}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={s.bell}>📊</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Notifications')}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={s.bell}>🔔</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -316,6 +344,22 @@ export default function HomeScreen() {
               {data.newInquiryCount}개의 새 문의가 들어왔어요
             </Text>
           </View>
+        )}
+
+        {pendingProposalCount > 0 && (
+          <TouchableOpacity
+            style={s.proposalBanner}
+            onPress={() => navigation.navigate('IncomingProposals')}
+            activeOpacity={0.85}
+          >
+            <View style={s.proposalBannerLeft}>
+              <Text style={s.proposalBannerIcon}>📨</Text>
+              <Text style={s.proposalBannerText}>
+                광고주 협찬 제안 {pendingProposalCount}건 도착
+              </Text>
+            </View>
+            <Text style={s.proposalBannerArrow}>›</Text>
+          </TouchableOpacity>
         )}
 
         <View style={s.gap} />
@@ -415,6 +459,7 @@ const s = StyleSheet.create({
     color: colors.text.primary,
     letterSpacing: -0.3,
   },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   bell: { fontSize: 18 },
 
   scroll: { paddingHorizontal: space.screen, paddingTop: space.sm },
@@ -445,6 +490,27 @@ const s = StyleSheet.create({
   },
 
   gap: { height: space.xxl },
+
+  proposalBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border.faint,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    marginTop: space.sm,
+  },
+  proposalBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  proposalBannerIcon: { fontSize: 16 },
+  proposalBannerText: {
+    ...typography.bodyStrong,
+    color: colors.brand.default,
+    fontSize: 13,
+  },
+  proposalBannerArrow: { fontSize: 18, color: colors.text.tertiary },
 
   empty: { alignItems: 'center', paddingVertical: 60, gap: space.sm },
   emptyIcon:  { fontSize: 44 },

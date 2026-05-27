@@ -7,23 +7,31 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": { "APP_ENV": "development" },
-      "android": {
-        "buildType": "apk"
-      },
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": false }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": { "APP_ENV": "preview" },
       "ios": {
         "simulator": false
       }
     },
-    "preview": {
-      "distribution": "internal",
-      "env": { "APP_ENV": "preview" }
-    },
     "production": {
       "autoIncrement": true,
-      "env": { "APP_ENV": "production" }
+      "env": { "APP_ENV": "production" },
+      "ios": {
+        "buildConfiguration": "Release"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "eficar@eficar.co.kr",
+        "ascAppId": "",
+        "bundleIdentifier": "com.manybe.app"
+      }
+    }
   }
 }

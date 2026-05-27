@@ -237,14 +237,14 @@ export function EmptyStateIntelligence() {
         </Text>
         <TouchableOpacity
           style={s.ctaButton}
-          onPress={() => tabNav.navigate('스튜디오')}
+          onPress={() => tabNav.navigate('협찬')}
           activeOpacity={0.85}
         >
           <Text style={s.ctaButtonText}>🤝 첫 협찬 추가하기 →</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={s.ctaSecondary}
-          onPress={() => tabNav.navigate('스튜디오')}
+          onPress={() => tabNav.navigate('협찬')}
           activeOpacity={0.7}
         >
           <Text style={s.ctaSecondaryText}>💰 수익 기록하기</Text>

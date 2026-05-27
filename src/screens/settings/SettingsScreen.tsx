@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../hooks/useAuth';
 import { useSocialChannels } from '../../hooks/useSocialChannels';
 import { theme } from '../../constants/theme';
@@ -31,10 +32,23 @@ export default function SettingsScreen() {
   const { channels } = useSocialChannels(user?.id);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const [notifBrand, setNotifBrand]     = useState(true);
+  const [notifBrand, setNotifBrand]       = useState(true);
   const [notifSchedule, setNotifSchedule] = useState(true);
-  const [notifAI, setNotifAI]           = useState(false);
-  const [dbName, setDbName] = useState<string | null>(null);
+  const [notifAI, setNotifAI]             = useState(false);
+  const [dbName, setDbName]               = useState<string | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.multiGet(['notif_brand', 'notif_schedule', 'notif_ai']).then((pairs) => {
+      const map = Object.fromEntries(pairs.map(([k, v]) => [k, v]));
+      if (map['notif_brand']    !== null) setNotifBrand(map['notif_brand']    === 'true');
+      if (map['notif_schedule'] !== null) setNotifSchedule(map['notif_schedule'] === 'true');
+      if (map['notif_ai']       !== null) setNotifAI(map['notif_ai']       === 'true');
+    });
+  }, []);
+
+  function saveNotif(key: string, value: boolean) {
+    AsyncStorage.setItem(key, String(value));
+  }
 
   useEffect(() => {
     if (!user?.id || user?.user_metadata?.full_name) return;
@@ -106,9 +120,9 @@ export default function SettingsScreen() {
         <Text style={s.sectionLabel}>알림</Text>
         <View style={s.card}>
           {([
-            ['브랜드 메시지', notifBrand,    setNotifBrand],
-            ['일정 알림',    notifSchedule, setNotifSchedule],
-            ['AI 인사이트',  notifAI,       setNotifAI],
+            ['브랜드 메시지', notifBrand,    (v: boolean) => { setNotifBrand(v);    saveNotif('notif_brand', v);    }],
+            ['일정 알림',    notifSchedule, (v: boolean) => { setNotifSchedule(v); saveNotif('notif_schedule', v); }],
+            ['AI 인사이트',  notifAI,       (v: boolean) => { setNotifAI(v);       saveNotif('notif_ai', v);       }],
           ] as [string, boolean, (v: boolean) => void][]).map(([label, val, setter], i) => (
             <React.Fragment key={label}>
               {i > 0 && <Divider />}
@@ -126,11 +140,30 @@ export default function SettingsScreen() {
           ))}
         </View>
 
+        {/* 내 작업실 / 수익 */}
+        <Text style={s.sectionLabel}>작업실</Text>
+        <View style={s.card}>
+          <TouchableOpacity style={s.row} onPress={() => navigation.navigate('Studio')} activeOpacity={0.7}>
+            <View style={[s.platformIcon, { backgroundColor: '#3D5AFE15' }]}>
+              <Text style={[s.platformIconText, { color: '#3D5AFE' }]}>⊞</Text>
+            </View>
+            <Text style={[s.rowLabel, { flex: 1 }]}>내 작업실 보기</Text>
+            <Text style={{ fontSize: 18, color: colors.text.tertiary }}>›</Text>
+          </TouchableOpacity>
+          <Divider />
+          <TouchableOpacity style={s.row} onPress={() => navigation.navigate('Revenue')} activeOpacity={0.7}>
+            <View style={[s.platformIcon, { backgroundColor: '#1D834815' }]}>
+              <Text style={[s.platformIconText, { color: '#1D8348' }]}>💰</Text>
+            </View>
+            <Text style={[s.rowLabel, { flex: 1 }]}>수익 현황</Text>
+            <Text style={{ fontSize: 18, color: colors.text.tertiary }}>›</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* 기타 */}
         {([
-          ['작업실 공개', '공개됨'],
-          ['언어',       '한국어'],
-          ['버전',       '1.0.0 beta'],
+          ['언어',   '한국어'],
+          ['버전',   '1.0.0 beta'],
         ] as [string, string][]).map(([label, value], i, arr) => (
           <React.Fragment key={label}>
             <View style={s.plainRow}>

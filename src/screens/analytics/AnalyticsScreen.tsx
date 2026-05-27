@@ -15,8 +15,8 @@ import { useDecisionEngine } from '../../hooks/useDecisionEngine';
 import { useBusinessGraph } from '../../hooks/useBusinessGraph';
 import { useWeeklyReview } from '../../hooks/useWeeklyReview';
 import { useRevenueData } from '../../hooks/useRevenueData';
-import { explainHealthScore, forecastRevenueTool } from '../../services/AssistantRuntime';
 import { getRecentEvents } from '../../services/OperationalMemory';
+import type { CreatorIntelligence } from '../../services/IntelligenceLayer';
 import { RevenueBarChart } from '../../components/RevenueBarChart';
 import type { ChartBar } from '../../components/RevenueBarChart';
 import { PremiumGate } from '../../components/PremiumGate';
@@ -70,6 +70,49 @@ function stageLabel(stage: string): string {
 
 function urgencyColor(u: 'critical' | 'high' | 'medium'): string {
   return u === 'critical' ? tokens.urgent : u === 'high' ? tokens.reviewing : tokens.inProgress;
+}
+
+function formatWon(n: number): string {
+  if (n >= 100_000_000) return `${Math.floor(n / 100_000_000)}억원`;
+  if (n >= 10_000)      return `${Math.floor(n / 10_000)}만원`;
+  return n.toLocaleString('ko-KR') + '원';
+}
+
+type HealthFactor = { name: string; impact: 'positive' | 'negative'; detail: string };
+type ToolResult<T> = { data: T; explanation: string; confidence: number };
+
+function explainHealthScore(
+  intelligence: CreatorIntelligence,
+  prevScore: number | null,
+): ToolResult<{ score: number; factors: HealthFactor[] }> {
+  const { personal: p, financial: f, relationship: r } = intelligence;
+  const score = intelligence.compositeScore;
+  const factors: HealthFactor[] = [];
+  if (p.burnoutRisk === 'high')          factors.push({ name: '번아웃 위험', impact: 'negative', detail: '활성 협찬 과부하 + 정체 건수 많음' });
+  if (f.monthlyTrend === 'declining')    factors.push({ name: '수익 감소', impact: 'negative', detail: '이번 달 수익이 전월 대비 감소' });
+  if (r.dependencyRisk === 'high')       factors.push({ name: '브랜드 집중 위험', impact: 'negative', detail: '특정 브랜드 의존도 60% 초과' });
+  if (f.revenueVolatility === 'high')    factors.push({ name: '수익 변동성 높음', impact: 'negative', detail: '월별 수익 편차가 큼' });
+  if (p.activityRhythm === 'consistent') factors.push({ name: '일관된 활동', impact: 'positive', detail: '최근 꾸준히 협찬 완료' });
+  if (f.settlementReliability >= 80)     factors.push({ name: '정산 신뢰도 높음', impact: 'positive', detail: `정산 완료율 ${f.settlementReliability}%` });
+  if (f.monthlyTrend === 'growing')      factors.push({ name: '수익 성장', impact: 'positive', detail: '이번 달 수익이 전월 대비 증가' });
+  const negFactors = factors.filter((fac) => fac.impact === 'negative').map((fac) => fac.name);
+  const prevDiff = prevScore !== null ? score - prevScore : null;
+  const explanation = prevDiff !== null
+    ? `운영점수 ${score}점${prevDiff >= 0 ? ` (+${prevDiff})` : ` (${prevDiff})`}. ${negFactors.length ? `하락 요인: ${negFactors.join(', ')}.` : ''}`
+    : `현재 운영점수 ${score}점. ${negFactors.length ? `주요 리스크: ${negFactors[0]}.` : '전반적으로 안정적이에요.'}`;
+  return { data: { score, factors }, explanation, confidence: 85 };
+}
+
+function forecastRevenueTool(
+  intelligence: CreatorIntelligence,
+): ToolResult<{ projected: number; confidence: number; trend: string }> {
+  const { financial: f } = intelligence;
+  const trendLabel2 = f.monthlyTrend === 'growing' ? '성장' : f.monthlyTrend === 'declining' ? '감소' : '안정';
+  return {
+    data: { projected: f.projectedThisMonth, confidence: f.forecastConfidence, trend: f.monthlyTrend },
+    explanation: `예상 이번 달 수익 ${formatWon(f.projectedThisMonth)} (신뢰도 ${f.forecastConfidence}%). 트렌드: ${trendLabel2}.`,
+    confidence: f.forecastConfidence,
+  };
 }
 
 function timeAgo(iso: string): string {
@@ -338,7 +381,7 @@ export default function AnalyticsScreen() {
 
   function handleNavigate(dest: 'deals' | 'revenue' | 'inquiries' | 'calendar') {
     const map: Record<string, keyof TabParamList> = {
-      deals: '스튜디오', revenue: '스튜디오', inquiries: '스튜디오', calendar: '일정',
+      deals: '협찬', revenue: '협찬', inquiries: '협찬', calendar: '일정',
     };
     nav.navigate(map[dest]);
   }
@@ -427,6 +470,7 @@ export default function AnalyticsScreen() {
       {/* ── 2. Channel AI 분석 ──────────────────────────────────── */}
       {ytChannelId && (
         <SectionCard>
+          <PremiumGate feature="channel_analysis" previewHeight={52}>
           <View style={s.sectionTitleRow}>
             <Text style={s.sectionTitle}>채널 AI 분석</Text>
             <TouchableOpacity
@@ -520,6 +564,7 @@ export default function AnalyticsScreen() {
               </Text>
             </View>
           )}
+          </PremiumGate>
         </SectionCard>
       )}
 

@@ -27,9 +27,9 @@ function useChecklistNav() {
   return function navigate(dest: 'deals' | 'revenue' | 'channel' | 'insights' | null) {
     if (!dest) return;
     if (dest === 'channel')       rootNav?.navigate('YouTubeConnect');
-    else if (dest === 'insights') tabNav.navigate('스튜디오');
-    else if (dest === 'deals')    tabNav.navigate('스튜디오');
-    else if (dest === 'revenue')  tabNav.navigate('스튜디오');
+    else if (dest === 'insights') tabNav.navigate('협찬');
+    else if (dest === 'deals')    tabNav.navigate('협찬');
+    else if (dest === 'revenue')  tabNav.navigate('협찬');
   };
 }
 

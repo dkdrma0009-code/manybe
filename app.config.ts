@@ -8,7 +8,7 @@ const IS_PROD  = APP_ENV === 'production';
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
 
-  name: IS_PROD ? 'MANYBE' : 'MANYBE',
+  name: '매니비',
   slug: config.slug ?? 'manybe',
 
   extra: {

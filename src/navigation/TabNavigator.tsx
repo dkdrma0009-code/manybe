@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import HomeScreen    from '../screens/dashboard/HomeScreen';
-import StudioScreen  from '../screens/studio/StudioScreen';
+import HomeScreen     from '../screens/dashboard/HomeScreen';
+import DealsScreen    from '../screens/deals/DealsScreen';
 import ScheduleScreen from '../screens/schedules/ScheduleScreen';
 import MessagesScreen from '../screens/messages/MessagesScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
@@ -12,7 +12,7 @@ import { useRealtime } from '../context/RealtimeContext';
 
 export type TabParamList = {
   홈: undefined;
-  스튜디오: undefined;
+  협찬: undefined;
   일정: undefined;
   메시지: undefined;
   설정: undefined;
@@ -21,11 +21,11 @@ export type TabParamList = {
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const TAB_ICONS: Record<string, string> = {
-  홈:      '⌂',
-  스튜디오: '⊞',
-  일정:    '▦',
-  메시지:  '◻',
-  설정:    '⚙',
+  홈:   '⌂',
+  협찬:  '◎',
+  일정:  '▦',
+  메시지: '◻',
+  설정:  '⚙',
 };
 
 export default function TabNavigator() {
@@ -78,11 +78,11 @@ export default function TabNavigator() {
         },
       })}
     >
-      <Tab.Screen name="홈"      component={HomeScreen} />
-      <Tab.Screen name="스튜디오" component={StudioScreen} />
-      <Tab.Screen name="일정"    component={ScheduleScreen} />
-      <Tab.Screen name="메시지"  component={MessagesScreen} />
-      <Tab.Screen name="설정"    component={SettingsScreen} />
+      <Tab.Screen name="홈"   component={HomeScreen} />
+      <Tab.Screen name="협찬"  component={DealsScreen} />
+      <Tab.Screen name="일정"  component={ScheduleScreen} />
+      <Tab.Screen name="메시지" component={MessagesScreen} />
+      <Tab.Screen name="설정"  component={SettingsScreen} />
     </Tab.Navigator>
   );
 }

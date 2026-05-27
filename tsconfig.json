@@ -3,5 +3,5 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": ["web", "supabase/functions"]
+  "exclude": ["web", "manybe", "supabase/functions"]
 }

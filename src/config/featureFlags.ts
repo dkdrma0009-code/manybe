@@ -6,7 +6,6 @@ import { ENV } from './env';
 
 export const FEATURES = {
   // ── Automation & Intelligence ─────────────────────────────────────────────
-  AUTONOMOUS_ENGINE:     true,   // auto-schedules reminders, builds workflow chains
   AI_BRIEFING:           true,   // morning briefing + weekly review
   DECISION_ENGINE:       true,   // focus items + auto-suggestions
   BUSINESS_GRAPH:        true,   // brand relationship + HHI analysis
@@ -17,12 +16,8 @@ export const FEATURES = {
   YOUTUBE_INTEGRATION: ENV.YOUTUBE_API_KEY.length > 0, // gated by API key
   PUSH_NOTIFICATIONS:  true,
 
-  // ── Future AI runtime (not yet active) ───────────────────────────────────
-  // Will enable conversational assistant, tool-call APIs, LLM context export.
-  ASSISTANT_RUNTIME: false,
-
   // ── Monetisation (not yet active) ────────────────────────────────────────
-  PAYWALL_ENABLED: false,
+  PAYWALL_ENABLED: true,
 
   // ── Dev / debug ───────────────────────────────────────────────────────────
   DEV_BYPASS_AUTH:  false, // mirrors AppNavigator.DEV_BYPASS_AUTH — keep in sync

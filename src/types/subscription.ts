@@ -8,7 +8,8 @@ export type PremiumFeature =
   | 'trend_intelligence'
   | 'advanced_analytics'
   | 'autonomous_recommendations'
-  | 'unlimited_deals';
+  | 'unlimited_deals'
+  | 'channel_analysis';
 
 export interface PremiumFeatureMeta {
   title: string;
@@ -65,6 +66,12 @@ export const PREMIUM_FEATURE_META: Record<PremiumFeature, PremiumFeatureMeta> = 
     description: '협찬 등록 제한 없이 모든 프로젝트를 관리하세요.',
     icon: '🤝',
     requiresPremium: false, // free tier includes this
+  },
+  channel_analysis: {
+    title: '채널 AI 심화분석',
+    description: '유튜브 댓글 감성 분석, 타겟 오디언스, 광고 비율을 파악하세요.',
+    icon: '📊',
+    requiresPremium: true,
   },
 };
 
