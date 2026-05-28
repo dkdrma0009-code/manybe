@@ -3,7 +3,8 @@ import { supabase } from '../api/supabase';
 import { useAuth } from './useAuth';
 import { computePortfolioIntelligence } from '../services/PortfolioIntelligence';
 import { generateMediaKitIntelligence } from '../services/MediaKitGenerator';
-import type { MediaKitIntelligence } from '../types/mediaKit';
+import type { MediaKitIntelligence, BadgeId, MediaKitTheme, SectionId } from '../types/mediaKit';
+import { DEFAULT_SECTION_ORDER } from '../types/mediaKit';
 
 export interface MediaKitData {
   bio: string;
@@ -11,6 +12,9 @@ export interface MediaKitData {
   pastBrands: string[];
   slug: string;
   isFormEnabled: boolean;
+  badges: BadgeId[];
+  theme: MediaKitTheme;
+  sectionOrder: SectionId[];
 }
 
 interface UseMediaKitResult {
@@ -28,6 +32,9 @@ const EMPTY_KIT: MediaKitData = {
   pastBrands: [],
   slug: '',
   isFormEnabled: false,
+  badges: [],
+  theme: 'indigo',
+  sectionOrder: DEFAULT_SECTION_ORDER,
 };
 
 export function useMediaKit(): UseMediaKitResult {
@@ -43,7 +50,7 @@ export function useMediaKit(): UseMediaKitResult {
     try {
       const { data } = await supabase
         .from('media_kits')
-        .select('bio, pricing, past_brands, slug, is_form_enabled')
+        .select('bio, pricing, past_brands, slug, is_form_enabled, badges, theme, section_order')
         .eq('user_id', user.id)
         .limit(1);
       const kit = data?.[0];
@@ -53,6 +60,9 @@ export function useMediaKit(): UseMediaKitResult {
         pastBrands: kit?.past_brands ?? [],
         slug: kit?.slug ?? '',
         isFormEnabled: kit?.is_form_enabled ?? false,
+        badges: (kit?.badges ?? []) as BadgeId[],
+        theme: (kit?.theme ?? 'indigo') as MediaKitTheme,
+        sectionOrder: (kit?.section_order ?? DEFAULT_SECTION_ORDER) as SectionId[],
       });
     } finally {
       setLoading(false);

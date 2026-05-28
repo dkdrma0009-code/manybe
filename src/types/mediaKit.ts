@@ -33,3 +33,77 @@ export interface MediaKitIntelligence {
   aiGeneratedBio: string;
   generatedAt: string;
 }
+
+// ── 크리에이터 선택 뱃지 ─────────────────────────────────────────
+
+export type BadgeId =
+  | 'sub_100k' | 'sub_500k' | 'sub_1m'
+  | 'high_engagement' | 'fast_growth' | 'viral'
+  | 'reliable' | 'on_time' | 'good_comm' | 'creative' | 'data_driven' | 'long_term'
+  | 'food' | 'travel' | 'beauty' | 'tech' | 'fashion' | 'fitness'
+  | 'family' | 'education' | 'entertainment' | 'gaming' | 'finance' | 'pet' | 'kids'
+  | 'studio' | 'overseas' | 'multi_platform' | 'brand_safe';
+
+export const BADGE_CATALOG: Record<BadgeId, { emoji: string; label: string; category: string }> = {
+  // 성과
+  sub_100k:        { emoji: '🔥', label: '10만 구독',       category: '성과' },
+  sub_500k:        { emoji: '⚡', label: '50만 구독',       category: '성과' },
+  sub_1m:          { emoji: '💎', label: '100만 구독',      category: '성과' },
+  high_engagement: { emoji: '📈', label: '높은 참여율',     category: '성과' },
+  fast_growth:     { emoji: '🚀', label: '빠른 성장',       category: '성과' },
+  viral:           { emoji: '🌊', label: '바이럴 경험',     category: '성과' },
+  // 협업 스타일
+  reliable:        { emoji: '✅', label: '신뢰할 수 있는 파트너', category: '협업 스타일' },
+  on_time:         { emoji: '⏰', label: '기한 엄수',       category: '협업 스타일' },
+  good_comm:       { emoji: '💬', label: '소통 잘됨',       category: '협업 스타일' },
+  creative:        { emoji: '🎨', label: '크리에이티브',    category: '협업 스타일' },
+  data_driven:     { emoji: '📊', label: '데이터 중심',     category: '협업 스타일' },
+  long_term:       { emoji: '🤝', label: '장기 협업 선호',  category: '협업 스타일' },
+  // 분야
+  food:            { emoji: '🍔', label: '푸드',            category: '분야' },
+  travel:          { emoji: '✈️', label: '여행',            category: '분야' },
+  beauty:          { emoji: '💄', label: '뷰티',            category: '분야' },
+  tech:            { emoji: '💻', label: '테크',            category: '분야' },
+  fashion:         { emoji: '👗', label: '패션',            category: '분야' },
+  fitness:         { emoji: '🏋️', label: '피트니스',        category: '분야' },
+  family:          { emoji: '👨‍👩‍👧', label: '가족 콘텐츠',    category: '분야' },
+  education:       { emoji: '📚', label: '교육',            category: '분야' },
+  entertainment:   { emoji: '😂', label: '엔터테인먼트',    category: '분야' },
+  gaming:          { emoji: '🎮', label: '게이밍',          category: '분야' },
+  finance:         { emoji: '💰', label: '경제/재테크',     category: '분야' },
+  pet:             { emoji: '🐾', label: '반려동물',        category: '분야' },
+  kids:            { emoji: '👶', label: '키즈',            category: '분야' },
+  // 특이점
+  studio:          { emoji: '🎬', label: '스튜디오 보유',   category: '특이점' },
+  overseas:        { emoji: '🌏', label: '해외 거주',       category: '특이점' },
+  multi_platform:  { emoji: '📱', label: '멀티 플랫폼',     category: '특이점' },
+  brand_safe:      { emoji: '🛡️', label: '브랜드 세이프',   category: '특이점' },
+};
+
+export const BADGE_CATEGORIES = ['성과', '협업 스타일', '분야', '특이점'] as const;
+
+// ── 테마 ─────────────────────────────────────────────────────────
+
+export type MediaKitTheme = 'indigo' | 'rose' | 'emerald' | 'amber' | 'slate';
+
+export const THEME_CATALOG: Record<MediaKitTheme, { label: string; primary: string; bg: string; accent: string }> = {
+  indigo:  { label: '인디고',   primary: '#5566DF', bg: '#F0EFFE', accent: '#E8E4FF' },
+  rose:    { label: '로즈',     primary: '#E11D48', bg: '#FFF1F2', accent: '#FFE4E6' },
+  emerald: { label: '에메랄드', primary: '#059669', bg: '#ECFDF5', accent: '#D1FAE5' },
+  amber:   { label: '앰버',     primary: '#D97706', bg: '#FFFBEB', accent: '#FEF3C7' },
+  slate:   { label: '다크',     primary: '#334155', bg: '#F1F5F9', accent: '#E2E8F0' },
+};
+
+export const THEME_IDS: MediaKitTheme[] = ['indigo', 'rose', 'emerald', 'amber', 'slate'];
+
+// ── 섹션 ─────────────────────────────────────────────────────────
+
+export type SectionId = 'channels' | 'pricing' | 'brands';
+
+export const SECTION_CATALOG: Record<SectionId, { label: string; icon: string }> = {
+  channels: { label: '채널 성과',   icon: '📊' },
+  pricing:  { label: '협찬 단가',   icon: '💰' },
+  brands:   { label: '협업 브랜드', icon: '🤝' },
+};
+
+export const DEFAULT_SECTION_ORDER: SectionId[] = ['channels', 'pricing', 'brands'];

@@ -12,6 +12,10 @@ import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { computePortfolioIntelligence } from '../../services/PortfolioIntelligence';
 import { generateMediaKitIntelligence } from '../../services/MediaKitGenerator';
+import {
+  BADGE_CATALOG, BADGE_CATEGORIES, THEME_CATALOG, THEME_IDS, SECTION_CATALOG, DEFAULT_SECTION_ORDER,
+} from '../../types/mediaKit';
+import type { BadgeId, MediaKitTheme, SectionId } from '../../types/mediaKit';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MediaKitEdit'>;
@@ -41,6 +45,9 @@ export default function MediaKitEditScreen({ navigation }: Props) {
   const [pastBrands, setPastBrands] = useState<string[]>([]);
   const [brandInput, setBrandInput] = useState('');
   const [isFormEnabled, setIsFormEnabled] = useState(false);
+  const [selectedBadges, setSelectedBadges] = useState<BadgeId[]>([]);
+  const [theme, setTheme] = useState<MediaKitTheme>('indigo');
+  const [sectionOrder, setSectionOrder] = useState<SectionId[]>(DEFAULT_SECTION_ORDER);
 
   useEffect(() => {
     if (!user) return;
@@ -51,7 +58,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
     setLoading(true);
     const { data } = await supabase
       .from('media_kits')
-      .select('bio, pricing, past_brands, is_form_enabled')
+      .select('bio, pricing, past_brands, is_form_enabled, badges, theme, section_order')
       .eq('user_id', user!.id)
       .limit(1);
 
@@ -66,6 +73,9 @@ export default function MediaKitEditScreen({ navigation }: Props) {
       setPricing(p);
       setPastBrands(kit.past_brands ?? []);
       setIsFormEnabled(kit.is_form_enabled ?? false);
+      setSelectedBadges((kit.badges ?? []) as BadgeId[]);
+      setTheme((kit.theme ?? 'indigo') as MediaKitTheme);
+      setSectionOrder((kit.section_order ?? DEFAULT_SECTION_ORDER) as SectionId[]);
     }
     setLoading(false);
   }
@@ -104,6 +114,9 @@ export default function MediaKitEditScreen({ navigation }: Props) {
           past_brands: pastBrands.length > 0 ? pastBrands : null,
           // PLAN_GATE: unlimited inquiry reception — consider capping monthly inbound inquiry count for free tier
           is_form_enabled: isFormEnabled,
+          badges: selectedBadges,
+          theme,
+          section_order: sectionOrder,
         })
         .eq('user_id', user!.id);
 
@@ -263,6 +276,136 @@ export default function MediaKitEditScreen({ navigation }: Props) {
             )}
           </View>
 
+          {/* 테마 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>테마 색상</Text>
+            <Text style={styles.sectionDesc}>미디어 키트 페이지의 색상 테마를 선택하세요</Text>
+            <View style={styles.themeRow}>
+              {THEME_IDS.map((id) => {
+                const t = THEME_CATALOG[id];
+                const active = theme === id;
+                return (
+                  <TouchableOpacity
+                    key={id}
+                    style={[styles.themeCircle, { backgroundColor: t.primary }, active && styles.themeCircleActive]}
+                    onPress={() => setTheme(id)}
+                    activeOpacity={0.8}
+                  >
+                    {active && <Text style={styles.themeCheck}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={styles.themeLabel}>{THEME_CATALOG[theme].label}</Text>
+          </View>
+
+          {/* 뱃지 */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>나를 표현하는 뱃지</Text>
+                <Text style={styles.sectionDesc}>최대 3개까지 선택할 수 있어요</Text>
+              </View>
+              <View style={[styles.badgeCount, selectedBadges.length === 3 && styles.badgeCountFull]}>
+                <Text style={[styles.badgeCountText, selectedBadges.length === 3 && styles.badgeCountTextFull]}>
+                  {selectedBadges.length} / 3
+                </Text>
+              </View>
+            </View>
+            {BADGE_CATEGORIES.map((cat) => {
+              const ids = (Object.keys(BADGE_CATALOG) as BadgeId[]).filter(
+                (id) => BADGE_CATALOG[id].category === cat,
+              );
+              return (
+                <View key={cat} style={styles.badgeCatBlock}>
+                  <Text style={styles.badgeCatLabel}>{cat}</Text>
+                  <View style={styles.badgeGrid}>
+                    {ids.map((id) => {
+                      const b = BADGE_CATALOG[id];
+                      const selected = selectedBadges.includes(id);
+                      const disabled = !selected && selectedBadges.length >= 3;
+                      return (
+                        <TouchableOpacity
+                          key={id}
+                          style={[
+                            styles.badgeChip,
+                            selected && styles.badgeChipSelected,
+                            disabled && styles.badgeChipDisabled,
+                          ]}
+                          onPress={() => {
+                            if (selected) {
+                              setSelectedBadges((prev) => prev.filter((x) => x !== id));
+                            } else if (!disabled) {
+                              setSelectedBadges((prev) => [...prev, id]);
+                            }
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.badgeEmoji}>{b.emoji}</Text>
+                          <Text style={[styles.badgeChipText, selected && styles.badgeChipTextSelected, disabled && styles.badgeChipTextDisabled]}>
+                            {b.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* 섹션 표시 순서 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>섹션 표시 설정</Text>
+            <Text style={styles.sectionDesc}>표시할 섹션을 선택하고 순서를 조정하세요</Text>
+            {(['channels', 'pricing', 'brands'] as SectionId[]).map((id, i) => {
+              const sec = SECTION_CATALOG[id];
+              const enabled = sectionOrder.includes(id);
+              return (
+                <View key={id} style={styles.sectionRow}>
+                  <View style={styles.sectionRowLeft}>
+                    <View style={styles.sectionRowBtns}>
+                      <TouchableOpacity
+                        disabled={i === 0}
+                        onPress={() => {
+                          const arr = [...sectionOrder];
+                          const idx = arr.indexOf(id);
+                          if (idx > 0) { [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]]; setSectionOrder(arr); }
+                        }}
+                        style={[styles.orderBtn, i === 0 && styles.orderBtnDisabled]}
+                      >
+                        <Text style={styles.orderBtnText}>↑</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        disabled={i === 2}
+                        onPress={() => {
+                          const arr = [...sectionOrder];
+                          const idx = arr.indexOf(id);
+                          if (idx < arr.length - 1) { [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]]; setSectionOrder(arr); }
+                        }}
+                        style={[styles.orderBtn, i === 2 && styles.orderBtnDisabled]}
+                      >
+                        <Text style={styles.orderBtnText}>↓</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.sectionRowIcon}>{sec.icon}</Text>
+                    <Text style={styles.sectionRowLabel}>{sec.label}</Text>
+                  </View>
+                  <Switch
+                    value={enabled}
+                    onValueChange={(v) => {
+                      setSectionOrder((prev) =>
+                        v ? [...prev, id] : prev.filter((x) => x !== id),
+                      );
+                    }}
+                    trackColor={{ false: '#E5E7EB', true: colors.primary }}
+                    thumbColor="#fff"
+                  />
+                </View>
+              );
+            })}
+          </View>
+
           {/* 인바운드 폼 */}
           <View style={styles.section}>
             <View style={styles.toggleRow}>
@@ -376,4 +519,42 @@ const styles = StyleSheet.create({
     marginTop: 12, backgroundColor: '#D1FAE5', borderRadius: 10, padding: 10,
   },
   formEnabledText: { fontSize: 12, color: '#059669', fontWeight: '500', lineHeight: 18 },
+
+  // 테마
+  themeRow:         { flexDirection: 'row', gap: 12, marginTop: 14, marginBottom: 8 },
+  themeCircle:      { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  themeCircleActive:{ borderWidth: 3, borderColor: '#1A1A2E' },
+  themeCheck:       { fontSize: 14, color: '#fff', fontWeight: '800' },
+  themeLabel:       { fontSize: 12, color: '#9CA3AF', textAlign: 'center' },
+
+  // 뱃지
+  badgeCount:         { backgroundColor: '#F3F4F6', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  badgeCountFull:     { backgroundColor: '#F0EFFE' },
+  badgeCountText:     { fontSize: 12, fontWeight: '700', color: '#9CA3AF' },
+  badgeCountTextFull: { color: colors.primary },
+  badgeCatBlock:      { marginTop: 14 },
+  badgeCatLabel:      { fontSize: 11, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  badgeGrid:          { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  badgeChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#F3F4F6', borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderWidth: 1.5, borderColor: 'transparent',
+  },
+  badgeChipSelected:  { backgroundColor: '#F0EFFE', borderColor: colors.primary },
+  badgeChipDisabled:  { opacity: 0.35 },
+  badgeEmoji:         { fontSize: 14 },
+  badgeChipText:      { fontSize: 12, fontWeight: '600', color: '#374151' },
+  badgeChipTextSelected: { color: colors.primary },
+  badgeChipTextDisabled: { color: '#C4C4C4' },
+
+  // 섹션 순서
+  sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  sectionRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  sectionRowBtns: { flexDirection: 'column', gap: 2 },
+  orderBtn: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6', borderRadius: 4 },
+  orderBtnDisabled: { opacity: 0.25 },
+  orderBtnText: { fontSize: 10, fontWeight: '700', color: '#374151' },
+  sectionRowIcon: { fontSize: 16 },
+  sectionRowLabel: { fontSize: 14, fontWeight: '500', color: '#1A1A2E', flex: 1 },
 });

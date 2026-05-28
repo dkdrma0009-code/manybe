@@ -10,9 +10,11 @@ import { useAuth } from '../../hooks/useAuth';
 import { useMediaKit } from '../../hooks/useMediaKit';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
-import type { CreatorBadge } from '../../types/mediaKit';
+import type { CreatorBadge, BadgeId } from '../../types/mediaKit';
+import { BADGE_CATALOG, THEME_CATALOG } from '../../types/mediaKit';
 
-const WEB_BASE_URL = 'https://manybe-web.vercel.app';
+const SUPABASE_PROJECT = 'https://bewcgxzcvxuwzwxcqzmk.supabase.co'; // Edge Function base
+const WEB_BASE_URL = `${SUPABASE_PROJECT}/functions/v1/media-kit-page?slug`;
 
 const PRICING_LABELS: Record<string, string> = {
   short_form: '숏폼 (60초 이하)',
@@ -55,7 +57,7 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
       Alert.alert('URL 없음', '미디어 키트 URL을 먼저 설정해주세요.');
       return;
     }
-    Clipboard.setStringAsync(`${WEB_BASE_URL}/${kitData.slug}`);
+    Clipboard.setStringAsync(`${WEB_BASE_URL}=${kitData.slug}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -111,12 +113,32 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
             )}
             {kitData?.slug ? (
               <View style={styles.urlChip}>
-                <Text style={styles.urlChipText}>manybe-web.vercel.app/{kitData.slug}</Text>
+                <Text style={styles.urlChipText}>manybe.app/{kitData.slug}</Text>
               </View>
             ) : null}
           </View>
 
-          {/* 크리에이터 배지 */}
+          {/* 선택된 뱃지 */}
+          {kitData?.badges && kitData.badges.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>나를 표현하는 뱃지</Text>
+              <View style={styles.badgeRow}>
+                {kitData.badges.map((id) => {
+                  const b = BADGE_CATALOG[id as BadgeId];
+                  if (!b) return null;
+                  const themeColors = THEME_CATALOG[kitData.theme ?? 'indigo'] ?? THEME_CATALOG.indigo;
+                  return (
+                    <View key={id} style={[styles.selectedBadgeChip, { backgroundColor: themeColors.bg }]}>
+                      <Text style={styles.selectedBadgeEmoji}>{b.emoji}</Text>
+                      <Text style={[styles.selectedBadgeLabel, { color: themeColors.primary }]}>{b.label}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* AI 성과 배지 */}
           {intelligence?.badges && intelligence.badges.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>크리에이터 프로필</Text>
@@ -298,6 +320,12 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1A1A2E', marginBottom: 14 },
 
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  selectedBadgeChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7,
+  },
+  selectedBadgeEmoji: { fontSize: 15 },
+  selectedBadgeLabel: { fontSize: 13, fontWeight: '700' },
   badge: {
     borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
     alignItems: 'center',
