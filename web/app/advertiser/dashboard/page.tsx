@@ -1,14 +1,21 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAdvertiserSession, createClient } from "@/lib/supabase-server";
-import { logoutAdvertiser } from "../signup/actions";
-import Logo from "@/components/Logo";
+import { withdrawProposal } from "./actions";
+import AdvertiserNav from "@/components/AdvertiserNav";
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   pending:  { label: "검토 중", color: "text-amber-700",  bg: "bg-amber-50",  dot: "bg-amber-400" },
   accepted: { label: "수락됨",  color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500" },
   rejected: { label: "거절됨",  color: "text-red-600",    bg: "bg-red-50",    dot: "bg-red-400" },
 };
+
+const FILTER_TABS = [
+  { key: "all",      label: "전체" },
+  { key: "pending",  label: "검토 중" },
+  { key: "accepted", label: "수락됨" },
+  { key: "rejected", label: "거절됨" },
+];
 
 function formatKRW(n: number) {
   if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1).replace(".0", "")}억`;
@@ -26,10 +33,13 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(days / 30)}개월 전`;
 }
 
-export default async function DashboardPage() {
-  const session = await getAdvertiserSession();
+interface SearchParams { filter?: string }
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const [session, params] = await Promise.all([getAdvertiserSession(), searchParams]);
   if (!session) redirect("/advertiser/login");
 
+  const activeFilter = params.filter ?? "all";
   const supabase = await createClient();
 
   const { data: proposals } = await supabase
@@ -55,117 +65,155 @@ export default async function DashboardPage() {
     counts[p.status as keyof typeof counts]++;
   }
 
+  const filtered = (proposals ?? []).filter((p) => activeFilter === "all" || p.status === activeFilter);
+
   return (
     <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10" style={{ borderColor: "var(--border-faint)" }}>
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/discover"><Logo size={18} period /></Link>
-            <span className="text-gray-200 text-xs">|</span>
-            <span className="text-xs font-medium" style={{ color: "var(--ink-3)" }}>대시보드</span>
-          </div>
-          <nav className="flex items-center gap-1">
-            <span className="text-sm hidden sm:block mr-3" style={{ color: "var(--ink-3)" }}>{session.profile.full_name}</span>
-            <Link href="/advertiser/messages" className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-gray-100" style={{ color: "var(--ink-2)" }}>
-              메시지
-            </Link>
-            <Link href="/discover" className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ color: "var(--brand)", background: "var(--brand-softer)" }}>
-              크리에이터 찾기
-            </Link>
-            <form action={logoutAdvertiser} className="ml-1">
-              <button className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-gray-100" style={{ color: "var(--ink-4)" }}>로그아웃</button>
-            </form>
-          </nav>
-        </div>
-      </header>
+      <AdvertiserNav userName={session.profile.full_name ?? ""} current="dashboard" />
 
       <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Page title */}
+        {/* 페이지 타이틀 + 새 제안 버튼 */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-extrabold tracking-tight" style={{ color: "var(--ink)" }}>보낸 제안</h1>
+            <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--ink)" }}>보낸 제안</h1>
             <p className="text-sm mt-0.5" style={{ color: "var(--ink-3)" }}>크리에이터에게 보낸 협찬 제안 현황</p>
           </div>
-          <Link href="/discover" className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-white px-4 py-2 rounded-xl transition-colors hover:opacity-90" style={{ background: "var(--brand)" }}>
-            + 새 제안 보내기
+          <Link href="/discover" className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-white px-4 py-2 rounded-xl hover:opacity-90" style={{ background: "var(--brand)" }}>
+            + 새 제안
           </Link>
         </div>
 
         {/* 요약 카드 */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-4 gap-3 mb-6">
           {[
-            { label: "전체",   value: counts.total,    valueColor: "var(--ink)",    border: "var(--border)" },
-            { label: "검토 중", value: counts.pending,  valueColor: "#d97706",       border: "#fde68a" },
-            { label: "수락됨", value: counts.accepted,  valueColor: "#059669",       border: "#a7f3d0" },
-            { label: "거절됨", value: counts.rejected,  valueColor: "#dc2626",       border: "#fecaca" },
+            { label: "전체",    value: counts.total },
+            { label: "검토 중", value: counts.pending },
+            { label: "수락됨",  value: counts.accepted },
+            { label: "거절됨",  value: counts.rejected },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl p-4 text-center" style={{ border: `1.5px solid ${s.border}` }}>
-              <p className="text-3xl font-extrabold tabular-nums" style={{ color: s.valueColor }}>{s.value}</p>
-              <p className="text-xs mt-1 font-medium" style={{ color: "var(--ink-3)" }}>{s.label}</p>
+            <div key={s.label} className="bg-white rounded-xl p-4 text-center" style={{ border: "1px solid var(--border-faint)" }}>
+              <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--ink)" }}>{s.value}</p>
+              <p className="text-xs mt-0.5 font-medium" style={{ color: "var(--ink-4)" }}>{s.label}</p>
             </div>
           ))}
         </div>
 
+        {/* 상태 필터 탭 */}
+        <div className="flex gap-1 mb-4">
+          {FILTER_TABS.map((tab) => {
+            const count = tab.key === "all" ? counts.total : counts[tab.key as keyof typeof counts];
+            const isActive = activeFilter === tab.key;
+            return (
+              <Link
+                key={tab.key}
+                href={`/advertiser/dashboard${tab.key === "all" ? "" : `?filter=${tab.key}`}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                style={isActive
+                  ? { background: "var(--ink)", color: "#fff" }
+                  : { color: "var(--ink-3)" }}
+              >
+                {tab.label}
+                <span className="text-xs tabular-nums" style={{ opacity: 0.6 }}>{count}</span>
+              </Link>
+            );
+          })}
+        </div>
+
         {/* 제안 목록 */}
-        {!proposals || proposals.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="bg-white rounded-2xl p-16 text-center" style={{ border: "1px solid var(--border-faint)" }}>
-            <p className="text-5xl mb-4">📭</p>
-            <p className="font-bold text-gray-800 mb-1">아직 보낸 제안이 없습니다</p>
+            <p className="font-semibold mb-1" style={{ color: "var(--ink-2)" }}>
+              {activeFilter === "all" ? "아직 보낸 제안이 없습니다" : `${FILTER_TABS.find(t => t.key === activeFilter)?.label} 제안이 없습니다`}
+            </p>
             <p className="text-sm mb-6" style={{ color: "var(--ink-3)" }}>크리에이터를 찾아 첫 제안을 보내보세요</p>
-            <Link href="/discover" className="inline-block text-white font-semibold px-6 py-3 rounded-xl transition-colors hover:opacity-90 text-sm" style={{ background: "var(--brand)" }}>
+            <Link href="/discover" className="inline-block text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90" style={{ background: "var(--brand)" }}>
               크리에이터 찾기
             </Link>
           </div>
         ) : (
-          <div className="space-y-2">
-            {proposals.map((p) => {
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-faint)" }}>
+            {filtered.map((p, idx) => {
               const creatorName = profileMap[p.creator_id] ?? "알 수 없음";
               const slug = slugMap[p.creator_id];
               const status = STATUS_META[p.status] ?? STATUS_META.pending;
 
               return (
-                <Link
+                <div
                   key={p.id}
-                  href={`/advertiser/messages/${p.id}`}
-                  className="group bg-white rounded-2xl p-5 flex items-start gap-4 transition-all hover:shadow-md"
-                  style={{ border: "1px solid var(--border-faint)" }}
+                  className="bg-white flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[#FAFAFA]"
+                  style={{ borderTop: idx === 0 ? "none" : "1px solid var(--border-faint)" }}
                 >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ background: "var(--brand)" }}>
-                    {creatorName.charAt(0).toUpperCase()}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {slug ? (
-                          <span className="font-bold text-sm truncate" style={{ color: "var(--ink)" }}>{creatorName}</span>
-                        ) : (
-                          <span className="font-bold text-sm truncate" style={{ color: "var(--ink)" }}>{creatorName}</span>
-                        )}
-                        <span className="text-xs shrink-0" style={{ color: "var(--ink-4)" }}>· {p.brand_name}</span>
-                      </div>
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${status.bg} ${status.color}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
-                        {status.label}
-                      </span>
+                  {/* 아바타 */}
+                  {slug ? (
+                    <img src={`https://i.pravatar.cc/72?u=${encodeURIComponent(slug)}`} alt={creatorName} width={36} height={36} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-semibold text-sm shrink-0" style={{ background: "var(--ink)" }}>
+                      {creatorName.charAt(0).toUpperCase()}
                     </div>
+                  )}
 
+                  {/* 정보 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-semibold text-sm truncate" style={{ color: "var(--ink)" }}>{creatorName}</span>
+                      <span className="text-xs shrink-0" style={{ color: "var(--ink-4)" }}>· {p.brand_name}</span>
+                    </div>
                     {p.message && (
-                      <p className="text-sm line-clamp-1 mb-1.5" style={{ color: "var(--ink-3)" }}>{p.message}</p>
+                      <p className="text-xs line-clamp-1" style={{ color: "var(--ink-3)" }}>{p.message}</p>
                     )}
                     {p.status === "rejected" && p.rejection_reason && (
-                      <p className="text-xs mb-1.5 font-medium text-red-500">거절 이유: {p.rejection_reason}</p>
+                      <p className="text-xs mt-0.5 font-medium" style={{ color: "#DC2626" }}>거절 이유: {p.rejection_reason}</p>
                     )}
-
-                    <div className="flex items-center gap-3 text-xs" style={{ color: "var(--ink-4)" }}>
-                      {p.amount > 0 && (
-                        <span className="font-bold" style={{ color: "var(--ink-2)" }}>{formatKRW(p.amount)}</span>
-                      )}
-                      <span>{timeAgo(p.created_at)}</span>
-                    </div>
                   </div>
-                </Link>
+
+                  {/* 금액 + 날짜 */}
+                  <div className="hidden sm:flex flex-col items-end gap-0.5 shrink-0">
+                    {p.amount > 0 && (
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: "var(--ink)" }}>{formatKRW(p.amount)}</span>
+                    )}
+                    <span className="text-xs" style={{ color: "var(--ink-4)" }}>{timeAgo(p.created_at)}</span>
+                  </div>
+
+                  {/* 상태 뱃지 */}
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${status.bg} ${status.color}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                    {status.label}
+                  </span>
+
+                  {/* 액션 버튼 */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      href={`/advertiser/messages/${p.id}`}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:bg-gray-100"
+                      style={{ color: "var(--ink-2)", border: "1px solid var(--border)" }}
+                    >
+                      채팅
+                    </Link>
+                    {p.status === "pending" && (
+                      <form action={async () => {
+                        "use server";
+                        await withdrawProposal(p.id);
+                      }}>
+                        <button
+                          type="submit"
+                          className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors hover:bg-red-50"
+                          style={{ color: "#DC2626", border: "1px solid #FECACA" }}
+                        >
+                          철회
+                        </button>
+                      </form>
+                    )}
+                    {p.status === "rejected" && slugMap[p.creator_id] && (
+                      <Link
+                        href={`/${slugMap[p.creator_id]}/inquiry`}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:opacity-90"
+                        style={{ color: "var(--brand)", border: "1px solid var(--brand-soft)", background: "var(--brand-softer)" }}
+                      >
+                        다시 제안
+                      </Link>
+                    )}
+                  </div>
+                </div>
               );
             })}
           </div>

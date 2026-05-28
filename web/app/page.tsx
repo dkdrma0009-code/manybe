@@ -3,46 +3,28 @@ import Logo from "@/components/Logo";
 
 const FEATURES = [
   {
-    icon: "📱",
     title: "소셜 채널 자동 연동",
     desc: "구글 로그인 한 번으로 유튜브 구독자 수, 조회수가 자동으로 불러와집니다. 수동 입력 0%.",
-    color: "bg-red-50",
-    iconBg: "bg-red-100",
   },
   {
-    icon: "🤝",
     title: "협찬 CRM 파이프라인",
     desc: "검토 → 협상 → 계약 → 촬영 → 정산까지. 협찬 딜의 전 과정을 한눈에 관리하세요.",
-    color: "bg-purple-50",
-    iconBg: "bg-purple-100",
   },
   {
-    icon: "💰",
     title: "수익 대시보드",
     desc: "유튜브 광고, 브랜드 협찬, 제휴 수익을 카테고리별로 분류하고 월별 트렌드를 확인하세요.",
-    color: "bg-green-50",
-    iconBg: "bg-green-100",
   },
   {
-    icon: "📋",
     title: "미디어 키트 자동 생성",
     desc: "채널 통계 기반으로 미디어 키트 URL이 자동 생성됩니다. 브랜드 담당자에게 링크 하나만 보내세요.",
-    color: "bg-blue-50",
-    iconBg: "bg-blue-100",
   },
   {
-    icon: "🧮",
     title: "세금 예상액 시뮬레이터",
     desc: "종합소득세, 원천세를 크리에이터 수익 구조에 맞게 계산해드립니다. (단순 예상치)",
-    color: "bg-yellow-50",
-    iconBg: "bg-yellow-100",
   },
   {
-    icon: "📋",
     title: "클립보드 협찬 파서",
     desc: "카카오톡 협찬 제안 문자를 복사하면 자동으로 CRM에 등록됩니다.",
-    color: "bg-orange-50",
-    iconBg: "bg-orange-100",
   },
 ];
 
@@ -87,6 +69,7 @@ export default function LandingPage() {
             <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">기능</a>
             <a href="#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">요금제</a>
             <a href="#faq" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">FAQ</a>
+            <Link href="/discover" className="text-sm font-semibold text-[#6C63FF] hover:text-[#4A44CC] transition-colors">광고주 →</Link>
           </nav>
           <a
             href="#download"
@@ -180,20 +163,17 @@ export default function LandingPage() {
         </section>
 
         {/* Features */}
-        <section id="features" className="py-24 bg-white">
+        <section id="features" className="py-24 bg-[#FAFAFA]">
           <div className="max-w-6xl mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-extrabold text-gray-900 mb-4">필요한 기능, 모두 여기</h2>
               <p className="text-gray-500 text-lg">크리에이터 비즈니스에 필요한 것들을 하나씩 모았습니다.</p>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {FEATURES.map((f) => (
-                <div key={f.title} className={`${f.color} rounded-2xl p-6`}>
-                  <div className={`${f.iconBg} w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-2xl`}>
-                    {f.icon}
-                  </div>
-                  <h3 className="font-bold text-gray-900 text-lg mb-2">{f.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">{f.desc}</p>
+                <div key={f.title} className="bg-white border border-gray-100 rounded-2xl p-6 hover:border-gray-200 hover:shadow-sm transition-all">
+                  <h3 className="font-bold text-gray-900 text-base mb-2">{f.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
                 </div>
               ))}
             </div>
@@ -298,6 +278,50 @@ export default function LandingPage() {
                   <p className="text-gray-500 text-sm leading-relaxed">{faq.a}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Advertiser CTA */}
+        <section className="py-24 bg-white border-t border-gray-100">
+          <div className="max-w-4xl mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-[#6C63FF] mb-3">광고주 / 브랜드 담당자</p>
+              <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
+                맞는 크리에이터를<br />찾는 데 시간이 너무 걸리나요?
+              </h2>
+              <p className="text-gray-500 leading-relaxed mb-8">
+                구독자 수, 평균 조회수, 협찬 이력, 단가표까지 — 크리에이터를 한눈에 비교하고 바로 제안서를 보내세요.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/discover"
+                  className="inline-flex items-center justify-center gap-2 bg-[#6C63FF] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#5B53EE] transition-colors"
+                >
+                  크리에이터 탐색하기 →
+                </Link>
+                <Link
+                  href="/advertiser/signup"
+                  className="inline-flex items-center justify-center gap-2 border border-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:border-gray-300 transition-colors"
+                >
+                  광고주 가입
+                </Link>
+              </div>
+            </div>
+            <div className="flex-shrink-0 w-full md:w-64">
+              <div className="bg-[#F5F3FF] rounded-2xl p-6 space-y-3">
+                {[
+                  "카테고리·구독자 수로 필터",
+                  "채널 통계 기반 비교",
+                  "제안서 → 협의 원스톱",
+                  "사업자 인증 광고주만",
+                ].map((text) => (
+                  <div key={text} className="flex items-center gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#6C63FF] shrink-0" />
+                    <span className="text-sm text-gray-700 font-medium">{text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>

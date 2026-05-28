@@ -3,18 +3,19 @@ import { getSupabase } from "@/lib/supabase";
 import { getAdvertiserSession } from "@/lib/supabase-server";
 import { logoutAdvertiser } from "../advertiser/signup/actions";
 import Logo from "@/components/Logo";
+import AdvertiserNav from "@/components/AdvertiserNav";
 
-const CATEGORIES: { key: string; label: string; emoji: string; color: string }[] = [
-  { key: "전체",        label: "전체",       emoji: "✨", color: "#6C63FF" },
-  { key: "뷰티/패션",   label: "뷰티",   emoji: "💄", color: "#E91E8C" },
-  { key: "게임",        label: "게임",   emoji: "🎮", color: "#5C6BC0" },
-  { key: "음식/요리",   label: "푸드",   emoji: "🍳", color: "#F57C00" },
-  { key: "라이프스타일",label: "라이프", emoji: "🌿", color: "#43A047" },
-  { key: "테크/IT",     label: "테크",   emoji: "💻", color: "#0288D1" },
-  { key: "여행",        label: "여행",   emoji: "✈️", color: "#00897B" },
-  { key: "스포츠",      label: "스포츠", emoji: "⚽", color: "#E53935" },
-  { key: "교육",        label: "교육",   emoji: "📚", color: "#7B1FA2" },
-  { key: "엔터테인먼트",label: "엔터",   emoji: "🎬", color: "#D81B60" },
+const CATEGORIES: { key: string; label: string }[] = [
+  { key: "전체",         label: "전체" },
+  { key: "뷰티/패션",    label: "뷰티/패션" },
+  { key: "게임",         label: "게임" },
+  { key: "음식/요리",    label: "음식/요리" },
+  { key: "라이프스타일", label: "라이프" },
+  { key: "테크/IT",      label: "테크/IT" },
+  { key: "여행",         label: "여행" },
+  { key: "스포츠",       label: "스포츠" },
+  { key: "교육",         label: "교육" },
+  { key: "엔터테인먼트", label: "엔터" },
 ];
 
 const PLATFORMS  = ["전체", "youtube", "instagram", "tiktok"];
@@ -36,14 +37,7 @@ function formatK(n: number): string {
   return n.toLocaleString("ko-KR");
 }
 
-const AVATAR_COLORS = ["#E8472A", "#3D5AFE", "#1D8348", "#C48A40", "#8B5CF6", "#0F9B8E"];
-function avatarColor(s: string) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
-
-const PLATFORM_ICON: Record<string, string> = { youtube: "▶", instagram: "◎", tiktok: "♪" };
+const PLATFORM_ICON: Record<string, string> = { youtube: "YT", instagram: "IG", tiktok: "TK" };
 const PLATFORM_COLOR: Record<string, string> = { youtube: "#FF0000", instagram: "#E1306C", tiktok: "#010101" };
 
 interface SearchParams {
@@ -116,222 +110,234 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <Link href="/discover" className="shrink-0"><Logo size={18} period /></Link>
-
-          <form method="get" action="/discover" className="flex-1 max-w-md">
-            <input
-              name="q"
-              defaultValue={query}
-              placeholder="크리에이터 검색..."
-              className="input-field"
-              style={{ paddingTop: "0.5rem", paddingBottom: "0.5rem" }}
-            />
-            {activePlatform !== "전체" && <input type="hidden" name="platform" value={activePlatform} />}
-            {activeCategory !== "전체" && <input type="hidden" name="category" value={activeCategory} />}
-            {activeScale !== "전체" && <input type="hidden" name="scale" value={activeScale} />}
-          </form>
-
-          <div className="flex items-center gap-3 shrink-0">
-            {session ? (
-              <>
-                <Link
-                  href="/advertiser/dashboard"
-                  className="text-xs font-semibold hidden sm:block"
-                  style={{ color: "var(--brand)" }}
-                >
-                  보낸 제안
-                </Link>
-                <span className="text-sm hidden sm:block" style={{ color: "var(--ink-3)" }}>{session.profile.full_name}</span>
-                <form action={logoutAdvertiser}>
-                  <button className="text-xs transition-colors" style={{ color: "var(--ink-4)" }}>로그아웃</button>
-                </form>
-              </>
-            ) : (
-              <Link
-                href="/advertiser/login"
-                className="text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors hover:opacity-90"
-                style={{ background: "var(--brand)" }}
-              >
-                로그인
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto px-6 py-6">
-
-        {/* 카테고리 — 배달앱 스타일 아이콘 그리드 */}
-        <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: "1px solid var(--border-faint)" }}>
-          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
-            {CATEGORIES.map((cat) => {
-              const isActive = activeCategory === cat.key;
-              return (
-                <Link
-                  key={cat.key}
-                  href={filterUrl({ category: cat.key })}
-                  className="flex flex-col items-center gap-1.5 py-2 px-1 rounded-xl transition-colors hover:bg-gray-50 group"
-                >
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-all"
-                    style={{
-                      backgroundColor: isActive ? cat.color : "#F3F4F6",
-                    }}
-                  >
-                    {cat.emoji}
-                  </div>
-                  <span
-                    className="text-xs font-medium text-center leading-tight transition-colors"
-                    style={{ color: isActive ? cat.color : "#6B7280" }}
-                  >
-                    {cat.label}
-                  </span>
-                  {isActive && (
-                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: cat.color }} />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 플랫폼 + 규모 필터 칩 — 가로 스크롤 */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none -mx-6 px-6">
-          {PLATFORMS.map((pl) => (
-            <Link
-              key={pl}
-              href={filterUrl({ platform: pl })}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border whitespace-nowrap shrink-0"
-              style={activePlatform === pl
-                ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" }
-                : { background: "#fff", color: "var(--ink-3)", borderColor: "var(--border)" }}
-            >
-              {pl !== "전체" && <span>{PLATFORM_EMOJI[pl]}</span>}
-              {pl === "전체" ? "플랫폼 전체" : PLATFORM_LABEL[pl]}
+      {session ? (
+        <AdvertiserNav userName={session.profile.full_name ?? ""} current="discover" />
+      ) : (
+        <header className="bg-white sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+          <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
+            <Link href="/discover"><Logo size={18} period /></Link>
+            <Link href="/advertiser/login" className="text-sm font-semibold px-4 py-2 rounded-lg text-white" style={{ background: "var(--brand)" }}>
+              로그인
             </Link>
-          ))}
-          <div className="w-px mx-1 shrink-0" style={{ background: "var(--border)" }} />
-          {SCALE_OPTIONS.map((s) => (
-            <Link
-              key={s.label}
-              href={filterUrl({ scale: s.label })}
-              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all border whitespace-nowrap shrink-0"
-              style={activeScale === s.label
-                ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" }
-                : { background: "#fff", color: "var(--ink-3)", borderColor: "var(--border)" }}
-            >
-              {s.label === "전체" ? "규모 전체" : s.label}
-            </Link>
-          ))}
-        </div>
-
-        {/* 결과 수 */}
-        <p className="text-sm mb-5" style={{ color: "var(--ink-3)" }}>
-          크리에이터 <span className="font-bold" style={{ color: "var(--ink)" }}>{creators.length}</span>명
-        </p>
-
-        {/* 크리에이터 그리드 */}
-        {creators.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-5xl mb-4">🔍</p>
-            <p className="font-bold text-lg mb-2" style={{ color: "var(--ink-2)" }}>조건에 맞는 크리에이터가 없습니다</p>
-            <p className="text-sm" style={{ color: "var(--ink-4)" }}>필터를 바꾸거나 검색어를 다르게 입력해보세요</p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {creators.map(({ kit, profile, channels: chs }) => {
-              const name = profile?.full_name ?? kit.slug;
-              const initial = name.charAt(0).toUpperCase();
-              const color = avatarColor(name);
-              const topChannels = [...chs].sort((a, b) => (b.subscriber_count ?? 0) - (a.subscriber_count ?? 0)).slice(0, 2);
-              const totalSubs = chs.reduce((s, c) => s + (c.subscriber_count ?? 0), 0);
+        </header>
+      )}
 
-              return (
-                <Link
-                  key={kit.id}
-                  href={`/${kit.slug}`}
-                  className="bg-white rounded-2xl p-5 transition-all hover:shadow-md group"
-                  style={{ border: "1px solid var(--border-faint)" }}
-                >
-                  {/* 아바타 + 이름 */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-extrabold text-lg shrink-0"
-                      style={{ backgroundColor: color }}
+      <div className="max-w-7xl mx-auto px-6 flex gap-8 py-8">
+
+        {/* 사이드바 필터 */}
+        <aside className="hidden lg:block w-52 shrink-0">
+          <div className="sticky top-22 space-y-6">
+            {/* 카테고리 */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--ink-4)" }}>카테고리</p>
+              <div className="space-y-0.5">
+                {CATEGORIES.map((cat) => {
+                  const isActive = activeCategory === cat.key;
+                  return (
+                    <Link
+                      key={cat.key}
+                      href={filterUrl({ category: cat.key })}
+                      className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-colors"
+                      style={isActive
+                        ? { background: "var(--brand-soft)", color: "var(--brand)", fontWeight: 600 }
+                        : { color: "var(--ink-3)" }}
                     >
-                      {initial}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-sm truncate transition-colors" style={{ color: "var(--ink)" }}>
-                        {name}
-                      </p>
+                      {cat.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 플랫폼 */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--ink-4)" }}>플랫폼</p>
+              <div className="space-y-0.5">
+                {PLATFORMS.map((pl) => {
+                  const isActive = activePlatform === pl;
+                  return (
+                    <Link
+                      key={pl}
+                      href={filterUrl({ platform: pl })}
+                      className="flex items-center w-full px-3 py-2 rounded-lg text-sm transition-colors"
+                      style={isActive
+                        ? { background: "var(--brand-soft)", color: "var(--brand)", fontWeight: 600 }
+                        : { color: "var(--ink-3)" }}
+                    >
+                      {pl === "전체" ? "전체" : PLATFORM_LABEL[pl]}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 규모 */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--ink-4)" }}>팔로워 규모</p>
+              <div className="space-y-0.5">
+                {SCALE_OPTIONS.map((s) => {
+                  const isActive = activeScale === s.label;
+                  return (
+                    <Link
+                      key={s.label}
+                      href={filterUrl({ scale: s.label })}
+                      className="flex items-center w-full px-3 py-2 rounded-lg text-sm transition-colors"
+                      style={isActive
+                        ? { background: "var(--brand-soft)", color: "var(--brand)", fontWeight: 600 }
+                        : { color: "var(--ink-3)" }}
+                    >
+                      {s.label === "전체" ? "전체" : s.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* 메인 콘텐츠 */}
+        <main className="flex-1 min-w-0">
+          {/* 모바일 필터 */}
+          <div className="lg:hidden flex gap-2 mb-4 overflow-x-auto pb-1 -mx-6 px-6">
+            {CATEGORIES.map((cat) => (
+              <Link key={cat.key} href={filterUrl({ category: cat.key })}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0"
+                style={activeCategory === cat.key
+                  ? { background: "var(--ink)", color: "#fff" }
+                  : { background: "var(--surface-2)", color: "var(--ink-3)" }}>
+                {cat.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* 헤더 row */}
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+              크리에이터 <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>{creators.length}명</span>
+            </p>
+          </div>
+
+          {/* 리스트 */}
+          {creators.length === 0 ? (
+            <div className="py-24 text-center">
+              <p className="font-semibold mb-1" style={{ color: "var(--ink-2)" }}>조건에 맞는 크리에이터가 없습니다</p>
+              <p className="text-sm" style={{ color: "var(--ink-4)" }}>필터를 바꾸거나 검색어를 다르게 입력해보세요</p>
+            </div>
+          ) : (
+            <div className="rounded-xl overflow-hidden bg-white" style={{ border: "1px solid var(--border-faint)" }}>
+              {creators.map(({ kit, profile, channels: chs }, idx) => {
+                const name = profile?.full_name ?? kit.slug;
+                const initial = name.charAt(0).toUpperCase();
+                const topChannels = [...chs].sort((a, b) => (b.subscriber_count ?? 0) - (a.subscriber_count ?? 0)).slice(0, 2);
+                const totalSubs = chs.reduce((s, c) => s + (c.subscriber_count ?? 0), 0);
+
+                return (
+                  <Link
+                    key={kit.id}
+                    href={session ? `/${kit.slug}` : `/advertiser/login?next=/discover`}
+                    className="flex items-center gap-5 px-6 py-5 transition-colors hover:bg-[#FAFAFA] group"
+                    style={{ borderTop: idx === 0 ? "none" : "1px solid var(--border-faint)" }}
+                  >
+                    {/* 아바타 */}
+                    <img
+                      src={`https://i.pravatar.cc/96?u=${encodeURIComponent(kit.slug)}`}
+                      alt={name}
+                      width={48}
+                      height={48}
+                      className="w-12 h-12 rounded-xl object-cover shrink-0"
+                    />
+
+                    {/* 이름 + 카테고리 */}
+                    <div className="w-44 shrink-0">
+                      <p className="font-semibold text-sm truncate" style={{ color: "var(--ink)" }}>{name}</p>
                       {kit.category && (
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: "var(--brand)", background: "var(--brand-soft)" }}>
+                        <span className="inline-block text-xs px-2 py-0.5 rounded-full mt-1" style={{ background: "var(--surface-2)", color: "var(--ink-3)" }}>
                           {kit.category}
                         </span>
                       )}
                     </div>
-                  </div>
 
-                  {/* bio */}
-                  {kit.bio && (
-                    <p className="text-xs mb-4 line-clamp-2 leading-relaxed" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>
-                  )}
+                    {/* bio */}
+                    <div className="flex-1 min-w-0 hidden md:block">
+                      {session ? (
+                        kit.bio
+                          ? <p className="text-sm line-clamp-1 leading-relaxed" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>
+                          : null
+                      ) : (
+                        <p className="text-sm blur-sm select-none pointer-events-none" style={{ color: "var(--ink-3)" }}>
+                          로그인하면 크리에이터 소개를 확인할 수 있습니다
+                        </p>
+                      )}
+                    </div>
 
-                  {/* 채널 통계 */}
-                  {topChannels.length > 0 ? (
-                    <div className="space-y-2">
-                      {topChannels.map((ch) => (
-                        <div key={ch.platform} className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs" style={{ color: PLATFORM_COLOR[ch.platform] ?? "#666" }}>
-                              {PLATFORM_ICON[ch.platform] ?? "◦"}
+                    {/* 채널 통계 */}
+                    <div className="shrink-0 hidden lg:flex flex-col gap-2 w-52">
+                      {session ? topChannels.map((ch) => (
+                        <div key={ch.platform} className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 tabular-nums"
+                              style={{ background: "var(--surface-2)", color: "var(--ink-3)", letterSpacing: "0.02em" }}>
+                              {PLATFORM_ICON[ch.platform] ?? "??"}
                             </span>
-                            <span className="text-xs truncate max-w-[100px]" style={{ color: "var(--ink-3)" }}>{ch.channel_name}</span>
+                            <span className="text-xs truncate" style={{ color: "var(--ink-3)" }}>{ch.channel_name}</span>
                           </div>
-                          <span className="text-xs font-bold" style={{ color: "var(--ink)" }}>
+                          <span className="text-sm font-semibold tabular-nums shrink-0" style={{ color: "var(--ink)" }}>
                             {formatK(ch.subscriber_count ?? 0)}
                           </span>
                         </div>
-                      ))}
+                      )) : (
+                        <div className="flex items-center gap-1.5">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--ink-4)" }}>
+                            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                          </svg>
+                          <span className="text-xs" style={{ color: "var(--ink-4)" }}>로그인 후 확인</span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-xs" style={{ color: "var(--ink-4)" }}>채널 미연동</p>
-                  )}
 
-                  {/* 총 팔로워 */}
-                  {totalSubs > 0 && chs.length > 1 && (
-                    <div className="mt-3 pt-3 flex justify-between items-center" style={{ borderTop: "1px solid var(--border-faint)" }}>
-                      <span className="text-xs" style={{ color: "var(--ink-4)" }}>총 팔로워</span>
-                      <span className="text-xs font-extrabold" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</span>
+                    {/* 총 팔로워 */}
+                    <div className="shrink-0 text-right w-20">
+                      {session ? (
+                        totalSubs > 0 && (
+                          <>
+                            <p className="text-base font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</p>
+                            <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 팔로워</p>
+                          </>
+                        )
+                      ) : (
+                        <p className="text-base font-bold blur-sm select-none" style={{ color: "var(--ink)" }}>00만</p>
+                      )}
                     </div>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        )}
 
-        {/* 광고주 가입 배너 (비로그인) */}
-        {!session && (
-          <div className="mt-12 rounded-2xl p-8 text-center text-white" style={{ background: "var(--brand)" }}>
-            <p className="text-xl font-extrabold mb-2">크리에이터에게 제안하고 싶으신가요?</p>
-            <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.75)" }}>
-              광고주로 가입하면 원하는 크리에이터에게 직접 협찬을 제안할 수 있습니다.
-            </p>
-            <Link
-              href="/advertiser/signup"
-              className="inline-block font-bold px-8 py-3 rounded-xl transition-colors hover:opacity-90"
-              style={{ background: "#fff", color: "var(--brand)" }}
-            >
-              광고주 무료 가입
-            </Link>
-          </div>
-        )}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: "var(--ink-4)" }}>
+                      <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 비로그인 배너 */}
+          {!session && (
+            <div className="mt-10 p-8 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4"
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+              <div>
+                <p className="font-semibold mb-1" style={{ color: "var(--ink)" }}>크리에이터에게 제안하려면 로그인하세요</p>
+                <p className="text-sm" style={{ color: "var(--ink-3)" }}>사업자 인증 광고주만 제안서를 보낼 수 있습니다.</p>
+              </div>
+              <div className="flex gap-3 shrink-0">
+                <Link href="/advertiser/login" className="text-sm font-semibold px-5 py-2.5 rounded-lg"
+                  style={{ border: "1px solid var(--border)", color: "var(--ink-2)" }}>로그인</Link>
+                <Link href="/advertiser/signup" className="text-sm font-semibold px-5 py-2.5 rounded-lg text-white"
+                  style={{ background: "var(--brand)" }}>광고주 가입</Link>
+              </div>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );

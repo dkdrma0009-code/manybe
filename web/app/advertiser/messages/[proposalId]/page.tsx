@@ -57,6 +57,7 @@ export default async function ChatPage({ params }: { params: Promise<{ proposalI
       proposalId={proposalId}
       creatorId={proposal.creator_id}
       creatorName={creatorName}
+      creatorSlug={kit?.slug ?? null}
       brandName={proposal.brand_name}
       proposalMessage={proposal.message}
       amount={proposal.amount}

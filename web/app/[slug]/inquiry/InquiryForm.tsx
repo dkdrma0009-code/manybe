@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { submitProposal } from "./actions";
 import Logo from "@/components/Logo";
@@ -12,10 +13,17 @@ interface Props {
   advertiserName: string;
 }
 
+interface Submitted {
+  brandName: string;
+  amount: number;
+  message: string;
+}
+
 export default function InquiryForm({ slug, creatorId, creatorName, advertiserName }: Props) {
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState<Submitted | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -25,60 +33,111 @@ export default function InquiryForm({ slug, creatorId, creatorName, advertiserNa
     const formData = new FormData(e.currentTarget);
     formData.set("creator_id", creatorId);
 
+    const brandName = (formData.get("brand_name") as string)?.trim();
+    const amount = Number(formData.get("amount") ?? 0);
+    const message = (formData.get("message") as string)?.trim();
+
     const result = await submitProposal(formData);
 
     if (result.error) {
       setError(result.error);
+      setLoading(false);
     } else {
-      setSubmitted(true);
+      setSubmitted({ brandName, amount, message });
     }
-    setLoading(false);
   }
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-[#6C63FF] flex items-center justify-center mx-auto mb-6">
-            <span className="text-white text-2xl">✓</span>
+      <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
+        <header className="bg-white sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+          <div className="max-w-xl mx-auto px-6 h-14 flex items-center justify-between">
+            <Link href={`/${slug}`}><Logo size={18} period /></Link>
           </div>
-          <h1 className="text-2xl font-extrabold text-gray-900 mb-2">제안서가 전달되었습니다</h1>
-          <p className="text-gray-500 text-sm mb-8">
-            {creatorName}님이 확인 후 앱에서 응답할 예정입니다.
-          </p>
-          <Link
-            href={`/${slug}`}
-            className="inline-block bg-[#6C63FF] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#5B53EE] transition-colors"
-          >
-            미디어 키트로 돌아가기
-          </Link>
-        </div>
+        </header>
+
+        <main className="max-w-xl mx-auto px-6 py-16">
+          {/* 완료 헤더 */}
+          <div className="mb-8">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-4" style={{ background: "var(--brand)" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold mb-1" style={{ color: "var(--ink)" }}>제안서를 보냈습니다</h1>
+            <p className="text-sm" style={{ color: "var(--ink-3)" }}>{creatorName}님이 검토 후 응답할 예정입니다.</p>
+          </div>
+
+          {/* 제안 요약 */}
+          <div className="bg-white rounded-2xl overflow-hidden mb-6" style={{ border: "1px solid var(--border-faint)" }}>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--ink-4)" }}>받는 크리에이터</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{creatorName}</p>
+            </div>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--ink-4)" }}>브랜드명</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{submitted.brandName}</p>
+            </div>
+            {submitted.amount > 0 && (
+              <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--ink-4)" }}>예산</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                  {submitted.amount.toLocaleString("ko-KR")}원
+                </p>
+              </div>
+            )}
+            {submitted.message && (
+              <div className="px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--ink-4)" }}>제안 내용</p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--ink-2)" }}>{submitted.message}</p>
+              </div>
+            )}
+          </div>
+
+          {/* 액션 버튼 */}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => router.push("/advertiser/dashboard")}
+              className="w-full text-sm font-semibold py-3 rounded-xl text-white transition-colors hover:opacity-90"
+              style={{ background: "var(--brand)" }}
+            >
+              보낸 제안 목록 보기
+            </button>
+            <Link
+              href="/discover"
+              className="w-full text-sm font-semibold py-3 rounded-xl text-center transition-colors"
+              style={{ border: "1px solid var(--border)", color: "var(--ink-2)" }}
+            >
+              다른 크리에이터 찾기
+            </Link>
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-100 py-4 px-6">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
+      <header className="bg-white sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+        <div className="max-w-xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href={`/${slug}`}><Logo size={18} period /></Link>
-          <span className="text-xs text-gray-400">협찬 제안</span>
+          <span className="text-xs" style={{ color: "var(--ink-4)" }}>협찬 제안</span>
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto px-6 py-12">
+      <main className="max-w-xl mx-auto px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-extrabold text-gray-900 mb-1">
+          <h1 className="text-xl font-bold mb-1" style={{ color: "var(--ink)" }}>
             {creatorName}님께 제안하기
           </h1>
-          <p className="text-gray-500 text-sm">{advertiserName} · 인증된 광고주</p>
+          <p className="text-sm" style={{ color: "var(--ink-3)" }}>{advertiserName} · 인증된 광고주</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="bg-white rounded-2xl p-6 shadow-sm space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                브랜드명 <span className="text-[#6C63FF]">*</span>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border-faint)" }}>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--ink-4)" }}>
+                브랜드명 *
               </label>
               <input
                 name="brand_name"
@@ -86,13 +145,13 @@ export default function InquiryForm({ slug, creatorId, creatorName, advertiserNa
                 required
                 defaultValue={advertiserName}
                 placeholder="예: 나이키 코리아"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:border-transparent"
+                className="w-full text-sm outline-none bg-transparent"
+                style={{ color: "var(--ink)" }}
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                예산 <span className="text-gray-400 font-normal">(원, 선택)</span>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--ink-4)" }}>
+                예산 <span className="normal-case font-normal">(선택)</span>
               </label>
               <input
                 name="amount"
@@ -100,25 +159,27 @@ export default function InquiryForm({ slug, creatorId, creatorName, advertiserNa
                 min="0"
                 step="10000"
                 placeholder="예: 3000000"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:border-transparent"
+                className="w-full text-sm outline-none bg-transparent"
+                style={{ color: "var(--ink)" }}
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                제안 내용
+            <div className="px-5 py-4">
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--ink-4)" }}>
+                제안 내용 *
               </label>
               <textarea
                 name="message"
                 rows={6}
+                required
                 placeholder="제품 소개, 협찬 방식, 원하시는 내용을 자유롭게 작성해주세요."
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:border-transparent resize-none"
+                className="w-full text-sm outline-none bg-transparent resize-none"
+                style={{ color: "var(--ink)" }}
               />
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
+            <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA" }}>
               {error}
             </div>
           )}
@@ -126,19 +187,13 @@ export default function InquiryForm({ slug, creatorId, creatorName, advertiserNa
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#6C63FF] text-white font-bold py-4 rounded-xl hover:bg-[#5B53EE] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-base"
+            className="w-full text-sm font-semibold py-3.5 rounded-xl text-white transition-colors hover:opacity-90 disabled:opacity-50"
+            style={{ background: "var(--brand)" }}
           >
             {loading ? "전송 중..." : "제안서 보내기"}
           </button>
         </form>
       </main>
-
-      <footer className="text-center py-8 text-xs text-gray-400">
-        Powered by{" "}
-        <Link href="/" className="text-[#6C63FF] font-semibold hover:underline">
-          매니비
-        </Link>
-      </footer>
     </div>
   );
 }

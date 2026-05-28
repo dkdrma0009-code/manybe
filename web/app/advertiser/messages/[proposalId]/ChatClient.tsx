@@ -17,6 +17,7 @@ interface Props {
   proposalId: string;
   creatorId: string;
   creatorName: string;
+  creatorSlug: string | null;
   brandName: string;
   proposalMessage: string;
   amount: number;
@@ -36,6 +37,7 @@ export default function ChatClient({
   proposalId,
   creatorId,
   creatorName,
+  creatorSlug,
   brandName,
   proposalMessage,
   amount,
@@ -143,11 +145,15 @@ export default function ChatClient({
       {/* Header */}
       <header className="bg-white px-4 py-3 flex items-center gap-3 shrink-0" style={{ borderBottom: "1px solid var(--border-faint)" }}>
         <button onClick={() => router.back()} className="text-2xl leading-none px-1" style={{ color: "var(--ink-3)" }}>‹</button>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ background: "var(--brand)" }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ background: "var(--ink)" }}>
           {creatorName.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm truncate" style={{ color: "var(--ink)" }}>{creatorName}</p>
+          {creatorSlug ? (
+            <a href={`/${creatorSlug}`} className="font-bold text-sm truncate block hover:underline" style={{ color: "var(--ink)" }}>{creatorName}</a>
+          ) : (
+            <p className="font-bold text-sm truncate" style={{ color: "var(--ink)" }}>{creatorName}</p>
+          )}
           {amountStr && <p className="text-xs" style={{ color: "var(--ink-4)" }}>{amountStr}</p>}
         </div>
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${statusMeta.bg} ${statusMeta.color}`}>

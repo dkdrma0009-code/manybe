@@ -7,13 +7,32 @@ export async function signUpAdvertiser(formData: FormData) {
   const email = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
   const companyName = (formData.get("company_name") as string)?.trim();
+  const businessNumber = (formData.get("business_number") as string)?.replace(/\D/g, "");
 
-  if (!email || !password || !companyName) {
+  if (!email || !password || !companyName || !businessNumber) {
     return { error: "모든 항목을 입력해주세요." };
   }
   if (password.length < 8) {
     return { error: "비밀번호는 8자 이상이어야 합니다." };
   }
+  if (businessNumber.length !== 10) {
+    return { error: "사업자등록번호는 10자리여야 합니다." };
+  }
+
+  // 사업자등록번호 국세청 검증
+  const validateRes = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/validate-business-number`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ b_no: businessNumber }),
+    }
+  );
+  const validateData = await validateRes.json();
+  if (!validateData.valid) return { error: validateData.message ?? "유효하지 않은 사업자등록번호입니다." };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -24,8 +43,12 @@ export async function signUpAdvertiser(formData: FormData) {
     user_id: data.user.id,
     company_name: companyName,
   });
-
   if (profileError) return { error: profileError.message };
+
+  await supabase
+    .from("profiles")
+    .update({ business_number: businessNumber, advertiser_onboarding_done: true })
+    .eq("id", data.user.id);
 
   redirect("/advertiser/dashboard");
 }

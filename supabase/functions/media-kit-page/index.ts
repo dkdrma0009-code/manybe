@@ -55,6 +55,9 @@ const PRICING_LABELS: Record<string, string> = {
   story:      '스토리 / 릴스',
   mention:    '제품 언급',
   dedicated:  '전체 광고 영상',
+  youtube:    'YouTube',
+  instagram:  'Instagram',
+  tiktok:     'TikTok',
 }
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -89,11 +92,11 @@ Deno.serve(async (req: Request) => {
   }
 
   // media_kit 조회
-  const { data: kit } = await supabase
+  const { data: kit, error: kitError } = await supabase
     .from('media_kits')
     .select('user_id, bio, pricing, past_brands, badges, theme, section_order, is_form_enabled, slug')
     .eq('slug', slug)
-    .single()
+    .maybeSingle()
 
   if (!kit) {
     return new Response(notFoundHtml(), {
@@ -124,7 +127,7 @@ Deno.serve(async (req: Request) => {
   const badges: string[]   = kit.badges ?? []
   const pricing            = kit.pricing ?? {}
   const pastBrands: string[] = kit.past_brands ?? []
-  const pricingEntries     = Object.entries(pricing).filter(([, v]) => (v as number) > 0)
+  const pricingEntries     = Object.entries(pricing).filter(([, v]) => v != null && v !== '' && v !== 0)
 
   function channelsSection(): string {
     if (!channels?.length) return ''
@@ -152,8 +155,8 @@ Deno.serve(async (req: Request) => {
       <div class="pricing-list">
         ${pricingEntries.map(([key, val]) => `
           <div class="pricing-row">
-            <span class="pricing-label">${esc(PRICING_LABELS[key] ?? key)}</span>
-            <span class="pricing-value">${Number(val).toLocaleString('ko-KR')}원~</span>
+            <span class="pricing-label">${esc(PRICING_LABELS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)))}</span>
+            <span class="pricing-value">${typeof val === 'number' ? val.toLocaleString('ko-KR') + '원~' : esc(String(val))}</span>
           </div>
         `).join('')}
       </div>

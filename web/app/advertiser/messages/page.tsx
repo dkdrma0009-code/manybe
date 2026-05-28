@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAdvertiserSession, createClient } from "@/lib/supabase-server";
-import { logoutAdvertiser } from "../signup/actions";
 import MessagesClient, { type Conversation } from "./MessagesClient";
-import Logo from "@/components/Logo";
+import AdvertiserNav from "@/components/AdvertiserNav";
 
 export const dynamic = "force-dynamic";
 
@@ -99,25 +98,9 @@ export default async function MessagesPage() {
 function MessagesPageShell({ session, children }: { session: { profile: { full_name: string | null } }; children: React.ReactNode }) {
   return (
     <>
-      <header className="bg-white border-b sticky top-0 z-10" style={{ borderColor: "var(--border-faint)" }}>
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/discover"><Logo size={18} period /></Link>
-            <span className="text-gray-200 text-xs">|</span>
-            <span className="text-xs font-medium" style={{ color: "var(--ink-3)" }}>메시지</span>
-          </div>
-          <nav className="flex items-center gap-1">
-            <span className="text-sm hidden sm:block mr-3" style={{ color: "var(--ink-3)" }}>{session.profile.full_name}</span>
-            <Link href="/advertiser/dashboard" className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-gray-100" style={{ color: "var(--ink-2)" }}>보낸 제안</Link>
-            <Link href="/discover" className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ color: "var(--brand)", background: "var(--brand-softer)" }}>크리에이터 찾기</Link>
-            <form action={logoutAdvertiser} className="ml-1">
-              <button className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-gray-100" style={{ color: "var(--ink-4)" }}>로그아웃</button>
-            </form>
-          </nav>
-        </div>
-      </header>
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <h1 className="text-xl font-extrabold tracking-tight mb-6" style={{ color: "var(--ink)" }}>메시지</h1>
+      <AdvertiserNav userName={session.profile.full_name ?? ""} current="messages" />
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <h1 className="text-xl font-bold tracking-tight mb-6" style={{ color: "var(--ink)" }}>메시지</h1>
         {children}
       </div>
     </>
