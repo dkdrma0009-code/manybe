@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { getAdvertiserSession } from "@/lib/supabase-server";
 import type { Metadata } from "next";
+import AdvertiserNav from "@/components/AdvertiserNav";
 import Logo from "@/components/Logo";
 
 interface MediaKit {
@@ -31,28 +32,14 @@ interface Profile {
 
 async function getMediaKit(slug: string) {
   const supabase = getSupabase();
-
-  const { data: kit } = await supabase
-    .from("media_kits")
-    .select("*")
-    .eq("slug", slug)
-    .single();
-
+  const { data: kit } = await supabase.from("media_kits").select("*").eq("slug", slug).single();
   if (!kit) return null;
-
   const [{ data: channels }, { data: profile }] = await Promise.all([
     supabase.from("social_channels").select("*").eq("user_id", kit.user_id),
     supabase.from("profiles").select("full_name, email").eq("id", kit.user_id).single(),
   ]);
-
-  // increment view count (fire and forget)
   supabase.from("media_kits").update({ view_count: (kit.view_count ?? 0) + 1 }).eq("id", kit.id);
-
-  return {
-    kit: kit as MediaKit,
-    channels: (channels ?? []) as SocialChannel[],
-    profile: profile as Profile | null,
-  };
+  return { kit: kit as MediaKit, channels: (channels ?? []) as SocialChannel[], profile: profile as Profile | null };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -73,173 +60,178 @@ function formatK(n: number): string {
   return n.toLocaleString("ko-KR");
 }
 
-const PLATFORM_META: Record<string, { label: string; color: string; textColor: string; icon: string }> = {
-  youtube:   { label: "YouTube",    color: "bg-red-50",    textColor: "text-red-600",    icon: "▶" },
-  instagram: { label: "Instagram",  color: "bg-pink-50",   textColor: "text-pink-600",   icon: "📸" },
-  tiktok:    { label: "TikTok",     color: "bg-gray-50",   textColor: "text-gray-800",   icon: "🎵" },
+const PLATFORM_META: Record<string, { label: string; icon: string; color: string }> = {
+  youtube:   { label: "YouTube",   icon: "YT", color: "#FF0000" },
+  instagram: { label: "Instagram", icon: "IG", color: "#E1306C" },
+  tiktok:    { label: "TikTok",    icon: "TK", color: "#010101" },
+};
+
+const PRICING_LABELS: Record<string, string> = {
+  short_form: "숏폼 (60초 이하)",
+  long_form:  "롱폼 (10분 이상)",
+  story:      "스토리 / 릴스",
+  mention:    "제품 언급",
+  dedicated:  "전체 광고 영상",
 };
 
 export default async function MediaKitPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [data, session] = await Promise.all([getMediaKit(slug), getAdvertiserSession()]);
-
   if (!data) notFound();
 
   const { kit, channels, profile } = data;
   const creatorName = profile?.full_name ?? slug;
-  const initial = creatorName.charAt(0).toUpperCase();
-  const PRICING_LABELS: Record<string, string> = {
-    short_form: "숏폼 (60초 이하)",
-    long_form:  "롱폼 (10분 이상)",
-    story:      "스토리 / 릴스",
-    mention:    "제품 언급",
-    dedicated:  "전체 광고 영상",
-  };
+  const totalSubs = channels.reduce((s, c) => s + (c.subscriber_count ?? 0), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 py-4 px-6">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/discover"><Logo size={18} period /></Link>
-          <span className="text-xs text-gray-400">미디어 키트</span>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-6 py-12 space-y-6">
-        {/* Profile card */}
-        <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
-          <div className="w-20 h-20 rounded-2xl bg-[#6C63FF] flex items-center justify-center mx-auto mb-4 text-3xl font-extrabold text-white">
-            {initial}
+      {session ? (
+        <AdvertiserNav userName={session.profile.full_name ?? ""} current="discover" />
+      ) : (
+        <header className="bg-white sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+          <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+            <Link href="/discover"><Logo size={18} period /></Link>
+            <Link href="/advertiser/login" className="text-sm font-semibold px-4 py-2 rounded-lg text-white" style={{ background: "var(--brand)" }}>로그인</Link>
           </div>
-          <h1 className="text-2xl font-extrabold text-gray-900 mb-1">{creatorName}</h1>
-          {kit.bio && <p className="text-gray-500 text-sm leading-relaxed max-w-sm mx-auto">{kit.bio}</p>}
-        </div>
+        </header>
+      )}
 
-        {/* Social channels */}
-        {channels.length > 0 && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h2 className="font-bold text-gray-900 text-lg mb-4">채널 현황</h2>
-            <div className="space-y-4">
-              {channels.map((ch) => {
-                const meta = PLATFORM_META[ch.platform] ?? { label: ch.platform, color: "bg-gray-50", textColor: "text-gray-700", icon: "📡" };
-                return (
-                  <div key={ch.platform} className={`${meta.color} rounded-xl p-4`}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center text-lg">
-                        {meta.icon}
-                      </div>
-                      <div>
-                        <p className={`font-bold text-sm ${meta.textColor}`}>{ch.channel_name}</p>
-                        <p className="text-xs text-gray-400">{meta.label}</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-2xl font-extrabold text-gray-900">{formatK(ch.subscriber_count)}</p>
-                        <p className="text-xs text-gray-500">구독자</p>
-                      </div>
-                      <div>
-                        <p className="text-2xl font-extrabold text-gray-900">{formatK(ch.view_count)}</p>
-                        <p className="text-xs text-gray-500">총 조회수</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="grid lg:grid-cols-3 gap-6">
 
-        {/* Pricing */}
-        {kit.pricing && Object.keys(kit.pricing).length > 0 && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h2 className="font-bold text-gray-900 text-lg mb-4">광고 단가</h2>
-            <div className="space-y-3">
-              {Object.entries(kit.pricing).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
-                  <span className="text-sm text-gray-600">{PRICING_LABELS[key] ?? key}</span>
-                  <span className="font-bold text-gray-900 text-sm">
-                    {(value as number).toLocaleString("ko-KR")}원~
-                  </span>
+          {/* 왼쪽: 프로필 + CTA */}
+          <div className="space-y-4">
+            {/* 프로필 카드 */}
+            <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
+              <img
+                src={`https://i.pravatar.cc/128?u=${encodeURIComponent(slug)}`}
+                alt={creatorName}
+                width={80} height={80}
+                className="w-20 h-20 rounded-2xl object-cover mb-4"
+              />
+              <h1 className="text-xl font-bold mb-1" style={{ color: "var(--ink)" }}>{creatorName}</h1>
+              {kit.bio && <p className="text-sm leading-relaxed" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>}
+
+              {totalSubs > 0 && (
+                <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border-faint)" }}>
+                  <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 팔로워</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Past brands */}
-        {kit.past_brands && kit.past_brands.length > 0 && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h2 className="font-bold text-gray-900 text-lg mb-4">협업 브랜드</h2>
-            <div className="flex flex-wrap gap-2">
-              {kit.past_brands.map((brand: string) => (
-                <span key={brand} className="bg-gray-100 text-gray-700 text-sm font-medium px-3 py-1.5 rounded-full">
-                  {brand}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Inquiry form CTA */}
-        {kit.is_form_enabled ? (
-          session ? (
-            <div className="bg-[#6C63FF] rounded-2xl p-8 text-center text-white">
-              <p className="text-xl font-extrabold mb-2">협찬 제안하기</p>
-              <p className="text-purple-200 text-sm mb-6">
-                {session.profile.full_name}으로 로그인됨 · 인증된 광고주
-              </p>
-              <a
-                href={`/${slug}/inquiry`}
-                className="inline-block bg-white text-[#6C63FF] font-bold px-8 py-3 rounded-xl hover:bg-purple-50 transition-colors"
-              >
-                제안서 작성하기
-              </a>
-            </div>
-          ) : (
-            <div className="bg-[#6C63FF] rounded-2xl p-8 text-center text-white">
-              <p className="text-xl font-extrabold mb-2">협찬 제안하기</p>
-              <p className="text-purple-200 text-sm mb-6">
-                광고주 로그인 후 크리에이터에게 제안을 보낼 수 있습니다
-              </p>
-              <a
-                href={`/advertiser/login?next=/${slug}/inquiry`}
-                className="inline-block bg-white text-[#6C63FF] font-bold px-8 py-3 rounded-xl hover:bg-purple-50 transition-colors"
-              >
-                로그인 후 제안하기
-              </a>
-              <p className="text-purple-300 text-xs mt-3">
-                계정이 없으신가요?{" "}
-                <a href="/advertiser/signup" className="text-white font-semibold underline">
-                  광고주 가입
-                </a>
-              </p>
-            </div>
-          )
-        ) : (
-          <div className="bg-gray-100 rounded-2xl p-6 text-center">
-            <p className="text-gray-500 text-sm">
-              협찬 문의는{" "}
-              {profile?.email && (
-                <a href={`mailto:${profile.email}`} className="text-[#6C63FF] font-semibold">
-                  {profile.email}
-                </a>
               )}
-              {!profile?.email && "크리에이터에게 직접 연락해주세요."}
-            </p>
+            </div>
+
+            {/* 제안 CTA */}
+            {kit.is_form_enabled ? (
+              session ? (
+                <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border-faint)" }}>
+                  <p className="text-sm font-semibold mb-1" style={{ color: "var(--ink)" }}>협찬 제안하기</p>
+                  <p className="text-xs mb-4" style={{ color: "var(--ink-3)" }}>{session.profile.full_name} · 인증된 광고주</p>
+                  <Link
+                    href={`/${slug}/inquiry`}
+                    className="block w-full text-center text-sm font-bold py-3 rounded-xl text-white hover:opacity-90 transition-opacity"
+                    style={{ background: "var(--brand)" }}
+                  >
+                    제안서 보내기
+                  </Link>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border-faint)" }}>
+                  <p className="text-sm font-semibold mb-1" style={{ color: "var(--ink)" }}>협찬 제안하기</p>
+                  <p className="text-xs mb-4" style={{ color: "var(--ink-3)" }}>광고주 로그인 후 제안을 보낼 수 있습니다</p>
+                  <Link
+                    href={`/advertiser/login?next=/${slug}/inquiry`}
+                    className="block w-full text-center text-sm font-bold py-3 rounded-xl text-white hover:opacity-90 transition-opacity"
+                    style={{ background: "var(--brand)" }}
+                  >
+                    로그인 후 제안하기
+                  </Link>
+                  <p className="text-center text-xs mt-3" style={{ color: "var(--ink-4)" }}>
+                    계정 없으신가요?{" "}
+                    <Link href="/advertiser/signup" className="font-semibold" style={{ color: "var(--brand)" }}>광고주 가입</Link>
+                  </p>
+                </div>
+              )
+            ) : (
+              <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border-faint)" }}>
+                <p className="text-sm" style={{ color: "var(--ink-3)" }}>
+                  현재 협찬 문의를 받지 않습니다.{profile?.email && (<>{" "}<a href={`mailto:${profile.email}`} className="font-semibold" style={{ color: "var(--brand)" }}>{profile.email}</a></>)}
+                </p>
+              </div>
+            )}
+
+            {/* 협업 브랜드 */}
+            {kit.past_brands && kit.past_brands.length > 0 && (
+              <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border-faint)" }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--ink-4)" }}>협업 브랜드</p>
+                <div className="flex flex-wrap gap-2">
+                  {kit.past_brands.map((brand) => (
+                    <span key={brand} className="text-xs font-medium px-2.5 py-1 rounded-full" style={{ background: "var(--surface-2)", color: "var(--ink-2)" }}>
+                      {brand}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        )}
 
-      </main>
+          {/* 오른쪽: 채널 통계 + 단가 */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* 채널 현황 */}
+            {channels.length > 0 && (
+              <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>채널 현황</p>
+                <div className="space-y-3">
+                  {channels.map((ch) => {
+                    const meta = PLATFORM_META[ch.platform] ?? { label: ch.platform, icon: "??", color: "#666" };
+                    return (
+                      <div key={ch.platform} className="flex items-center justify-between py-3 rounded-xl px-4" style={{ background: "var(--surface-2)" }}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: "#fff", color: meta.color }}>
+                            {meta.icon}
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{ch.channel_name}</p>
+                            <p className="text-xs" style={{ color: "var(--ink-4)" }}>{meta.label}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(ch.subscriber_count)}</p>
+                          <p className="text-xs" style={{ color: "var(--ink-4)" }}>구독자</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-      <footer className="text-center py-8 text-xs text-gray-400">
-        <p>
-          Powered by{" "}
-          <Link href="/discover" className="text-[#6C63FF] font-semibold hover:underline">
-            매니비
-          </Link>
-        </p>
+            {/* 광고 단가 */}
+            {kit.pricing && Object.keys(kit.pricing).length > 0 && (
+              <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>광고 단가</p>
+                <div className="space-y-0">
+                  {Object.entries(kit.pricing)
+                    .filter(([, v]) => v && v > 0)
+                    .map(([key, value], idx, arr) => (
+                      <div key={key} className="flex items-center justify-between py-3.5"
+                        style={{ borderBottom: idx < arr.length - 1 ? "1px solid var(--border-faint)" : "none" }}>
+                        <span className="text-sm" style={{ color: "var(--ink-2)" }}>{PRICING_LABELS[key] ?? key}</span>
+                        <span className="text-sm font-bold tabular-nums" style={{ color: "var(--ink)" }}>
+                          {(value as number).toLocaleString("ko-KR")}원~
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <footer className="text-center py-8 text-xs" style={{ color: "var(--ink-4)" }}>
+        Powered by{" "}
+        <Link href="/discover" className="font-semibold" style={{ color: "var(--brand)" }}>매니비</Link>
       </footer>
     </div>
   );

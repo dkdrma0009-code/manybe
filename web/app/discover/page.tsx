@@ -4,6 +4,7 @@ import { getAdvertiserSession } from "@/lib/supabase-server";
 import { logoutAdvertiser } from "../advertiser/signup/actions";
 import Logo from "@/components/Logo";
 import AdvertiserNav from "@/components/AdvertiserNav";
+import CreatorList from "./CreatorList";
 
 const CATEGORIES: { key: string; label: string }[] = [
   { key: "전체",         label: "전체" },
@@ -227,98 +228,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
               <p className="text-sm" style={{ color: "var(--ink-4)" }}>필터를 바꾸거나 검색어를 다르게 입력해보세요</p>
             </div>
           ) : (
-            <div className="rounded-xl overflow-hidden bg-white" style={{ border: "1px solid var(--border-faint)" }}>
-              {creators.map(({ kit, profile, channels: chs }, idx) => {
-                const name = profile?.full_name ?? kit.slug;
-                const initial = name.charAt(0).toUpperCase();
-                const topChannels = [...chs].sort((a, b) => (b.subscriber_count ?? 0) - (a.subscriber_count ?? 0)).slice(0, 2);
-                const totalSubs = chs.reduce((s, c) => s + (c.subscriber_count ?? 0), 0);
-
-                return (
-                  <Link
-                    key={kit.id}
-                    href={session ? `/${kit.slug}` : `/advertiser/login?next=/discover`}
-                    className="flex items-center gap-5 px-6 py-5 transition-colors hover:bg-[#FAFAFA] group"
-                    style={{ borderTop: idx === 0 ? "none" : "1px solid var(--border-faint)" }}
-                  >
-                    {/* 아바타 */}
-                    <img
-                      src={`https://i.pravatar.cc/96?u=${encodeURIComponent(kit.slug)}`}
-                      alt={name}
-                      width={48}
-                      height={48}
-                      className="w-12 h-12 rounded-xl object-cover shrink-0"
-                    />
-
-                    {/* 이름 + 카테고리 */}
-                    <div className="w-44 shrink-0">
-                      <p className="font-semibold text-sm truncate" style={{ color: "var(--ink)" }}>{name}</p>
-                      {kit.category && (
-                        <span className="inline-block text-xs px-2 py-0.5 rounded-full mt-1" style={{ background: "var(--surface-2)", color: "var(--ink-3)" }}>
-                          {kit.category}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* bio */}
-                    <div className="flex-1 min-w-0 hidden md:block">
-                      {session ? (
-                        kit.bio
-                          ? <p className="text-sm line-clamp-1 leading-relaxed" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>
-                          : null
-                      ) : (
-                        <p className="text-sm blur-sm select-none pointer-events-none" style={{ color: "var(--ink-3)" }}>
-                          로그인하면 크리에이터 소개를 확인할 수 있습니다
-                        </p>
-                      )}
-                    </div>
-
-                    {/* 채널 통계 */}
-                    <div className="shrink-0 hidden lg:flex flex-col gap-2 w-52">
-                      {session ? topChannels.map((ch) => (
-                        <div key={ch.platform} className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 tabular-nums"
-                              style={{ background: "var(--surface-2)", color: "var(--ink-3)", letterSpacing: "0.02em" }}>
-                              {PLATFORM_ICON[ch.platform] ?? "??"}
-                            </span>
-                            <span className="text-xs truncate" style={{ color: "var(--ink-3)" }}>{ch.channel_name}</span>
-                          </div>
-                          <span className="text-sm font-semibold tabular-nums shrink-0" style={{ color: "var(--ink)" }}>
-                            {formatK(ch.subscriber_count ?? 0)}
-                          </span>
-                        </div>
-                      )) : (
-                        <div className="flex items-center gap-1.5">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--ink-4)" }}>
-                            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                          </svg>
-                          <span className="text-xs" style={{ color: "var(--ink-4)" }}>로그인 후 확인</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 총 팔로워 */}
-                    <div className="shrink-0 text-right w-20">
-                      {session ? (
-                        totalSubs > 0 && (
-                          <>
-                            <p className="text-base font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</p>
-                            <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 팔로워</p>
-                          </>
-                        )
-                      ) : (
-                        <p className="text-base font-bold blur-sm select-none" style={{ color: "var(--ink)" }}>00만</p>
-                      )}
-                    </div>
-
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: "var(--ink-4)" }}>
-                      <path d="M9 18l6-6-6-6"/>
-                    </svg>
-                  </Link>
-                );
-              })}
-            </div>
+            <CreatorList creators={creators} isLoggedIn={!!session} />
           )}
 
           {/* 비로그인 배너 */}
