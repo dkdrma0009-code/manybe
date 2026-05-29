@@ -95,22 +95,31 @@ export default function SettingsScreen() {
             return (
               <React.Fragment key={platform}>
                 {i > 0 && <Divider />}
-                <View style={s.row}>
+                <TouchableOpacity
+                  style={s.row}
+                  activeOpacity={ch ? 1 : 0.7}
+                  onPress={() => {
+                    if (!ch && platform === 'youtube') navigation.navigate('YouTubeConnect');
+                  }}
+                >
                   <View style={[s.platformIcon, { backgroundColor: cfg.color + '15' }]}>
                     <Text style={[s.platformIconText, { color: cfg.color }]}>{cfg.icon}</Text>
                   </View>
                   <View style={s.rowInfo}>
                     <Text style={s.rowLabel}>{cfg.label}</Text>
-                    {!!handle && <Text style={s.rowSub}>{handle}</Text>}
+                    <Text style={s.rowSub}>{ch ? handle || '연결됨' : '연결되지 않음'}</Text>
                   </View>
                   <Switch
                     value={!!ch}
-                    onValueChange={() => {}}
+                    onValueChange={() => {
+                      if (!ch && platform === 'youtube') navigation.navigate('YouTubeConnect');
+                    }}
+                    disabled={!!ch}
                     trackColor={{ false: colors.border.default, true: '#3D5AFE' }}
                     thumbColor="#fff"
                     ios_backgroundColor={colors.border.default}
                   />
-                </View>
+                </TouchableOpacity>
               </React.Fragment>
             );
           })}

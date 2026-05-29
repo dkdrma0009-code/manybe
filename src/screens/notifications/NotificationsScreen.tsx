@@ -26,9 +26,9 @@ export default function NotificationsScreen() {
     } else if (target.screen === 'inquiries') {
       navigation.navigate('Inquiries');
     } else if (target.screen === 'calendar') {
-      navigation.navigate('Main', { screen: '캘린더' } as any);
+      navigation.navigate('Main', { screen: '일정' } as any);
     } else if (target.screen === 'revenue') {
-      navigation.navigate('Main', { screen: '수익' } as any);
+      navigation.navigate('Revenue' as any);
     } else if (target.screen === 'BrandDetail') {
       navigation.navigate('BrandDetail', { brand: target.brand });
     }

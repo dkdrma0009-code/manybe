@@ -700,7 +700,7 @@ export default function DealsScreen() {
           onSuccess={() => { setSelectedDeal(null); refetch(); }}
           onNavigateRevenue={() => {
             setSelectedDeal(null);
-            navigation.navigate('Main', { screen: '수익' } as any);
+            navigation.navigate('Revenue' as any);
           }}
           userId={user?.id}
           onNavigateBrand={(brand) => {
