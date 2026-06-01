@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import WaitlistForm from "@/components/WaitlistForm";
 
 const FEATURES = [
   {
@@ -95,24 +96,17 @@ export default function LandingPage() {
             <p className="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed mb-10">
               크리에이터가 쓰는 5~7개 앱을 하나로. 소셜 채널 자동 연동부터 협찬 CRM, 세금 계산까지 — 비즈니스 관리 OS.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center" id="download">
-              <a
-                href="#"
-                className="inline-flex items-center justify-center gap-3 bg-gray-900 text-white font-semibold px-8 py-4 rounded-2xl hover:bg-gray-800 transition-colors"
-              >
-                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
-                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                </svg>
-                App Store에서 다운로드
-              </a>
-              <a
-                href="#features"
-                className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 font-semibold px-8 py-4 rounded-2xl border border-gray-200 hover:border-gray-300 transition-colors"
-              >
-                기능 살펴보기
-                <span>↓</span>
-              </a>
+            {/* 사전등록 폼 */}
+            <div className="max-w-md mx-auto w-full" id="download">
+              <WaitlistForm />
             </div>
+            <a
+              href="#features"
+              className="inline-flex items-center gap-1.5 text-sm mt-2"
+              style={{ color: "var(--ink-3)" }}
+            >
+              기능 살펴보기 <span>↓</span>
+            </a>
           </div>
 
           {/* App preview mockup */}
@@ -328,16 +322,12 @@ export default function LandingPage() {
 
         {/* CTA */}
         <section className="py-24 bg-[#1A1A2E] text-white text-center">
-          <div className="max-w-2xl mx-auto px-6">
-            <h2 className="text-4xl font-extrabold mb-4">지금 바로 시작하세요</h2>
-            <p className="text-gray-400 text-lg mb-10">1만 구독자부터 100만 구독자까지. 매니비가 함께합니다.</p>
-            <a
-              href="#download"
-              className="inline-flex items-center justify-center gap-3 bg-[#6C63FF] text-white font-semibold px-10 py-4 rounded-2xl hover:bg-[#5B53EE] transition-colors text-lg"
-            >
-              App Store에서 다운로드
-            </a>
-            <p className="text-gray-600 text-sm mt-4">2026년 12월 iOS 출시 · 무료로 시작</p>
+          <div className="max-w-xl mx-auto px-6">
+            <h2 className="text-4xl font-extrabold mb-4">출시 알림 받기</h2>
+            <p className="text-gray-400 text-lg mb-10">2026년 12월 iOS 출시. 사전등록하면 가장 먼저 알려드립니다.</p>
+            <div className="bg-white/5 rounded-2xl p-6 backdrop-blur">
+              <WaitlistForm />
+            </div>
           </div>
         </section>
       </main>
