@@ -12,6 +12,7 @@ import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import type { CreatorBadge, BadgeId } from '../../types/mediaKit';
 import { BADGE_CATALOG, THEME_CATALOG } from '../../types/mediaKit';
+import { Image } from 'react-native';
 
 const SUPABASE_PROJECT = 'https://bewcgxzcvxuwzwxcqzmk.supabase.co'; // Edge Function base
 const WEB_BASE_URL = `${SUPABASE_PROJECT}/functions/v1/media-kit-page?slug`;
@@ -202,6 +203,29 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
             </View>
           )}
 
+          {/* 어필 섹션 (하이라이트) */}
+          {kitData?.highlights && kitData.highlights.length > 0 && (
+            <View style={styles.section}>
+              {kitData.highlights.map((hs) => (
+                <View key={hs.id} style={{ marginBottom: 16 }}>
+                  <Text style={styles.sectionTitle}>{hs.title}</Text>
+                  {hs.items.map((item, idx) => (
+                    <View key={idx} style={styles.hlItemRow}>
+                      {item.thumbnail ? (
+                        <Image source={{ uri: item.thumbnail }} style={styles.hlThumb} />
+                      ) : null}
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.hlLabel}>{item.label}</Text>
+                        {item.note ? <Text style={styles.hlNote}>{item.note}</Text> : null}
+                      </View>
+                      <Text style={styles.hlValue}>{item.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* 문의 폼 안내 */}
           {kitData?.isFormEnabled && kitData.slug && (
             <View style={[styles.section, styles.inquirySection]}>
@@ -380,4 +404,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A2E', borderRadius: 12, paddingVertical: 11, alignItems: 'center',
   },
   copyPitchBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  hlItemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  hlThumb: { width: 72, height: 50, borderRadius: 6, backgroundColor: '#E5E7EB' },
+  hlLabel: { fontSize: 13, fontWeight: '600', color: '#1A1A2E' },
+  hlNote: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  hlValue: { fontSize: 14, fontWeight: '800', color: colors.primary },
 });
