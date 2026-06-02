@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, ActivityIndicator, Alert, Switch,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, FlatList, Modal,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import {
 import type { BadgeId, MediaKitTheme, SectionId, HighlightSection } from '../../types/mediaKit';
 import { extractYoutubeThumbnail } from '../../types/mediaKit';
 import { Image } from 'react-native';
+import { ENV } from '../../config/env';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MediaKitEdit'>;
@@ -51,6 +52,10 @@ export default function MediaKitEditScreen({ navigation }: Props) {
   const [theme, setTheme] = useState<MediaKitTheme>('indigo');
   const [sectionOrder, setSectionOrder] = useState<SectionId[]>(DEFAULT_SECTION_ORDER);
   const [highlights, setHighlights] = useState<HighlightSection[]>([]);
+  const [ytVideos, setYtVideos] = useState<{ id: string; title: string; views: string; thumbnail: string }[]>([]);
+  const [ytModalVisible, setYtModalVisible] = useState(false);
+  const [ytLoading, setYtLoading] = useState(false);
+  const [targetSectionIdx, setTargetSectionIdx] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -96,6 +101,61 @@ export default function MediaKitEditScreen({ navigation }: Props) {
     } finally {
       setGeneratingBio(false);
     }
+  }
+
+  async function openYtPicker(sectionIdx: number) {
+    if (!ENV.YOUTUBE_API_KEY) { Alert.alert('YouTube API 키가 없습니다.'); return; }
+    setTargetSectionIdx(sectionIdx);
+    setYtModalVisible(true);
+    setYtLoading(true);
+    try {
+      const { data: channels } = await supabase
+        .from('social_channels')
+        .select('channel_id')
+        .eq('user_id', user!.id)
+        .eq('platform', 'youtube')
+        .limit(1);
+      const channelId = channels?.[0]?.channel_id;
+      if (!channelId) { Alert.alert('연결된 YouTube 채널이 없습니다.'); setYtModalVisible(false); return; }
+
+      const searchRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=viewCount&maxResults=10&key=${ENV.YOUTUBE_API_KEY}`
+      );
+      const searchData = await searchRes.json();
+      const videoIds = (searchData.items ?? []).map((v: any) => v.id.videoId).join(',');
+      if (!videoIds) { setYtVideos([]); return; }
+
+      const statsRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds}&key=${ENV.YOUTUBE_API_KEY}`
+      );
+      const statsData = await statsRes.json();
+      const videos = (statsData.items ?? []).map((v: any) => ({
+        id: v.id,
+        title: v.snippet.title,
+        views: Number(v.statistics.viewCount ?? 0).toLocaleString('ko-KR'),
+        thumbnail: v.snippet.thumbnails?.medium?.url ?? `https://img.youtube.com/vi/${v.id}/mqdefault.jpg`,
+      }));
+      setYtVideos(videos);
+    } catch {
+      Alert.alert('YouTube 영상을 불러오지 못했습니다.');
+      setYtModalVisible(false);
+    } finally {
+      setYtLoading(false);
+    }
+  }
+
+  function addVideoToHighlight(video: { id: string; title: string; views: string; thumbnail: string }) {
+    if (targetSectionIdx === null) return;
+    const newItem = {
+      label: video.title,
+      value: `조회수 ${video.views}`,
+      thumbnail: video.thumbnail,
+    };
+    setHighlights((prev) => prev.map((s, i) => i === targetSectionIdx
+      ? { ...s, items: [...s.items, newItem] }
+      : s,
+    ));
+    setYtModalVisible(false);
   }
 
   async function handleSave() {
@@ -162,6 +222,38 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* YouTube 영상 선택 모달 */}
+      <Modal visible={ytModalVisible} transparent animationType="slide" onRequestClose={() => setYtModalVisible(false)}>
+        <View style={styles.ytOverlay}>
+          <View style={styles.ytSheet}>
+            <View style={styles.ytHeader}>
+              <Text style={styles.ytTitle}>YouTube 인기 영상</Text>
+              <TouchableOpacity onPress={() => setYtModalVisible(false)}>
+                <Text style={styles.closeBtn}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {ytLoading ? (
+              <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+            ) : (
+              <FlatList
+                data={ytVideos}
+                keyExtractor={(v) => v.id}
+                contentContainerStyle={{ padding: 16, gap: 12 }}
+                ListEmptyComponent={<Text style={{ textAlign: 'center', color: '#9CA3AF', marginTop: 32 }}>영상을 찾을 수 없습니다</Text>}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={styles.ytItem} onPress={() => addVideoToHighlight(item)} activeOpacity={0.75}>
+                    <Image source={{ uri: item.thumbnail }} style={styles.ytThumb} />
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text style={styles.ytItemTitle} numberOfLines={2}>{item.title}</Text>
+                      <Text style={styles.ytItemViews}>조회수 {item.views}</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
@@ -501,14 +593,24 @@ export default function MediaKitEditScreen({ navigation }: Props) {
                   </View>
                 ))}
 
-                <TouchableOpacity
-                  style={styles.hlAddItemBtn}
-                  onPress={() => setHighlights((prev) => prev.map((s, i) => i === si
-                    ? { ...s, items: [...s.items, { label: '', value: '', note: undefined }] }
-                    : s))}
-                >
-                  <Text style={styles.hlAddItemText}>+ 항목 추가</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    style={styles.hlAddItemBtn}
+                    onPress={() => setHighlights((prev) => prev.map((s, i) => i === si
+                      ? { ...s, items: [...s.items, { label: '', value: '', note: undefined }] }
+                      : s))}
+                  >
+                    <Text style={styles.hlAddItemText}>+ 항목 추가</Text>
+                  </TouchableOpacity>
+                  {ENV.YOUTUBE_API_KEY ? (
+                    <TouchableOpacity
+                      style={[styles.hlAddItemBtn, { backgroundColor: '#FEE2E2' }]}
+                      onPress={() => openYtPicker(si)}
+                    >
+                      <Text style={[styles.hlAddItemText, { color: '#EF4444' }]}>▶ YouTube 영상 추가</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
               </View>
             ))}
 
@@ -685,4 +787,13 @@ const styles = StyleSheet.create({
   hlAddItemText: { fontSize: 13, fontWeight: '600', color: '#5566DF' },
   hlAddSectionBtn: { borderWidth: 1.5, borderColor: '#5566DF', borderStyle: 'dashed', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
   hlAddSectionText: { fontSize: 14, fontWeight: '700', color: '#5566DF' },
+  closeBtn: { fontSize: 18, color: '#9CA3AF', paddingHorizontal: 4 },
+  ytOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  ytSheet: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
+  ytHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  ytTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A2E' },
+  ytItem: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 12, padding: 10 },
+  ytThumb: { width: 100, height: 70, borderRadius: 8, backgroundColor: '#E5E7EB' },
+  ytItemTitle: { fontSize: 13, fontWeight: '600', color: '#1A1A2E', lineHeight: 18 },
+  ytItemViews: { fontSize: 12, color: '#6B7280' },
 });

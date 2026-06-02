@@ -154,6 +154,36 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
             type: 'other',
             start_time: nowISO,
           });
+
+          // 하이라이트 추가 제안
+          setTimeout(() => {
+            Alert.alert(
+              '🎉 정산 완료!',
+              `${brand.trim()} 협업을 미디어 키트 하이라이트에 추가할까요?\n수치는 나중에 편집할 수 있어요.`,
+              [
+                { text: '나중에', style: 'cancel' },
+                {
+                  text: '추가하기',
+                  onPress: async () => {
+                    const { data: kit } = await supabase
+                      .from('media_kits')
+                      .select('highlights')
+                      .eq('user_id', uid)
+                      .single();
+                    const current = (kit?.highlights ?? []) as any[];
+                    const SECTION_ID = 'collab_auto';
+                    const newItem = { label: brand.trim(), value: '성과 기록 필요', note: '미디어 키트 편집에서 수치를 입력해주세요' };
+                    const exists = current.find((s: any) => s.id === SECTION_ID);
+                    const updated = exists
+                      ? current.map((s: any) => s.id === SECTION_ID ? { ...s, items: [...s.items, newItem] } : s)
+                      : [...current, { id: SECTION_ID, title: '🤝 브랜드 협업 성과', items: [newItem] }];
+                    await supabase.from('media_kits').update({ highlights: updated }).eq('user_id', uid);
+                    Alert.alert('추가됐어요', '미디어 키트 편집에서 수치를 입력해주세요.');
+                  },
+                },
+              ],
+            );
+          }, 1500);
         }
       }
     }
