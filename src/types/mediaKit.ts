@@ -114,6 +114,13 @@ export interface HighlightItem {
   label: string;
   value: string;
   note?: string;
+  thumbnail?: string; // 이미지 URL (YouTube 썸네일 등)
+}
+
+export function extractYoutubeThumbnail(url: string): string | null {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (match) return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`;
+  return null;
 }
 
 export interface HighlightSection {

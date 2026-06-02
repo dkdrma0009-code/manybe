@@ -10,6 +10,7 @@ interface HighlightItem {
   label: string;
   value: string;
   note?: string;
+  thumbnail?: string;
 }
 
 interface HighlightSection {
@@ -244,19 +245,38 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
 
         {/* 크리에이터 하이라이트 */}
         {highlights.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {highlights.map((section) => (
               <div key={section.id}>
                 <p className="text-sm font-bold mb-3" style={{ color: "var(--ink)" }}>{section.title}</p>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {section.items.map((item, idx) => (
-                    <div key={idx} className="bg-white rounded-2xl p-5 flex items-center justify-between gap-4" style={{ border: "1px solid var(--border-faint)" }}>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate" style={{ color: "var(--ink)" }}>{item.label}</p>
-                        {item.note && <p className="text-xs mt-0.5 truncate" style={{ color: "var(--ink-4)" }}>{item.note}</p>}
+                    item.thumbnail ? (
+                      /* 썸네일 카드 */
+                      <div key={idx} className="bg-white rounded-2xl overflow-hidden flex" style={{ border: "1px solid var(--border-faint)" }}>
+                        <img
+                          src={item.thumbnail}
+                          alt={item.label}
+                          className="w-32 h-24 object-cover shrink-0"
+                        />
+                        <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+                          <div>
+                            <p className="text-sm font-semibold leading-snug" style={{ color: "var(--ink)" }}>{item.label}</p>
+                            {item.note && <p className="text-xs mt-1" style={{ color: "var(--ink-4)" }}>{item.note}</p>}
+                          </div>
+                          <p className="text-base font-extrabold tabular-nums mt-2" style={{ color: "var(--brand)" }}>{item.value}</p>
+                        </div>
                       </div>
-                      <p className="text-lg font-extrabold tabular-nums shrink-0" style={{ color: "var(--brand)" }}>{item.value}</p>
-                    </div>
+                    ) : (
+                      /* 일반 카드 */
+                      <div key={idx} className="bg-white rounded-2xl p-5 flex items-center justify-between gap-4" style={{ border: "1px solid var(--border-faint)" }}>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{item.label}</p>
+                          {item.note && <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>{item.note}</p>}
+                        </div>
+                        <p className="text-xl font-extrabold tabular-nums shrink-0" style={{ color: "var(--brand)" }}>{item.value}</p>
+                      </div>
+                    )
                   ))}
                 </div>
               </div>

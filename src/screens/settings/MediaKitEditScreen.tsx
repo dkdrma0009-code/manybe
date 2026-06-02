@@ -15,7 +15,9 @@ import { generateMediaKitIntelligence } from '../../services/MediaKitGenerator';
 import {
   BADGE_CATALOG, BADGE_CATEGORIES, THEME_CATALOG, THEME_IDS, SECTION_CATALOG, DEFAULT_SECTION_ORDER,
 } from '../../types/mediaKit';
-import type { BadgeId, MediaKitTheme, SectionId, HighlightSection, HighlightItem } from '../../types/mediaKit';
+import type { BadgeId, MediaKitTheme, SectionId, HighlightSection } from '../../types/mediaKit';
+import { extractYoutubeThumbnail } from '../../types/mediaKit';
+import { Image } from 'react-native';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MediaKitEdit'>;
@@ -431,7 +433,33 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
                 {hs.items.map((item, ii) => (
                   <View key={ii} style={styles.hlItem}>
+                    {item.thumbnail && (
+                      <Image source={{ uri: item.thumbnail }} style={styles.hlThumb} />
+                    )}
                     <View style={{ flex: 1, gap: 4 }}>
+                      {/* YouTube URL 입력 */}
+                      <TextInput
+                        style={[styles.hlItemInput, { color: '#5566DF' }]}
+                        value={item.thumbnail ? `썸네일 등록됨 ✓` : ''}
+                        placeholder="YouTube URL 붙여넣기 (선택)"
+                        placeholderTextColor="#C4C4C4"
+                        onChangeText={(t) => {
+                          const thumb = extractYoutubeThumbnail(t);
+                          if (thumb) {
+                            setHighlights((prev) => prev.map((s, i) => i === si
+                              ? { ...s, items: s.items.map((it, j) => j === ii ? { ...it, thumbnail: thumb } : it) }
+                              : s));
+                          }
+                        }}
+                        editable={!item.thumbnail}
+                      />
+                      {item.thumbnail && (
+                        <TouchableOpacity onPress={() => setHighlights((prev) => prev.map((s, i) => i === si
+                          ? { ...s, items: s.items.map((it, j) => j === ii ? { ...it, thumbnail: undefined } : it) }
+                          : s))}>
+                          <Text style={{ fontSize: 11, color: '#EF4444' }}>썸네일 제거</Text>
+                        </TouchableOpacity>
+                      )}
                       <TextInput
                         style={styles.hlItemInput}
                         value={item.label}
@@ -650,6 +678,7 @@ const styles = StyleSheet.create({
   hlSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hlSectionTitle: { flex: 1, fontSize: 14, fontWeight: '700', color: '#1A1A2E', padding: 0 },
   hlItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  hlThumb: { width: 80, height: 56, borderRadius: 8, backgroundColor: '#E5E7EB' },
   hlItemInput: { fontSize: 13, color: '#374151', backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7, borderWidth: 1, borderColor: '#E5E7EB' },
   hlDeleteBtn: { fontSize: 14, color: '#9CA3AF', paddingTop: 2 },
   hlAddItemBtn: { alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#EEF2FF', borderRadius: 8 },
