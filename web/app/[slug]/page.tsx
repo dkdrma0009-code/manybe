@@ -118,198 +118,168 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
   const sectionOrder = kit.section_order ?? ["channels", "pricing", "brands"];
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface-2)", "--brand": theme.primary, "--brand-soft": theme.bg, "--brand-softer": theme.accent } as React.CSSProperties}>
+    <div className="min-h-screen bg-white" style={{ "--brand": theme.primary, "--brand-soft": theme.bg, "--brand-softer": theme.accent } as React.CSSProperties}>
       {/* Header */}
       {session ? (
         <AdvertiserNav userName={session.profile.full_name ?? ""} current="discover" />
       ) : (
-        <header className="bg-white sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
-          <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <header className="bg-white/80 backdrop-blur sticky top-0 z-10" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+          <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
             <Link href="/discover"><Logo size={18} period /></Link>
             <Link href="/advertiser/login" className="text-sm font-semibold px-4 py-2 rounded-lg text-white" style={{ background: "var(--brand)" }}>로그인</Link>
           </div>
         </header>
       )}
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-6">
-
-          {/* 왼쪽: 프로필 + CTA */}
-          <div className="space-y-4">
-            {/* 프로필 카드 */}
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border-faint)" }}>
-              <div className="h-20" style={{ background: `linear-gradient(135deg, var(--brand-soft) 0%, var(--brand-softer) 100%)` }} />
-              <div className="px-6 pb-6">
-                <img
-                  src={`https://i.pravatar.cc/128?u=${encodeURIComponent(slug)}`}
-                  alt={creatorName}
-                  width={80} height={80}
-                  className="w-20 h-20 rounded-2xl object-cover border-4 border-white -mt-10 mb-3"
-                />
-                <div className="flex items-start gap-2 mb-1">
-                  <h1 className="text-xl font-bold flex-1" style={{ color: "var(--ink)" }}>{creatorName}</h1>
-                  {kit.category && (
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 mt-0.5" style={{ background: "var(--brand-soft)", color: "var(--brand)" }}>
-                      {kit.category}
-                    </span>
-                  )}
-                </div>
-                {kit.bio && <p className="text-sm leading-relaxed" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>}
-
+      {/* Hero */}
+      <section style={{ background: `linear-gradient(160deg, var(--brand-soft) 0%, var(--brand-softer) 60%, #fff 100%)` }}>
+        <div className="max-w-4xl mx-auto px-6 py-12">
+          <div className="flex flex-col md:flex-row md:items-center gap-8">
+            {/* 프로필 */}
+            <div className="flex items-start gap-5 flex-1">
+              <img
+                src={`https://i.pravatar.cc/128?u=${encodeURIComponent(slug)}`}
+                alt={creatorName}
+                width={96} height={96}
+                className="w-24 h-24 rounded-3xl object-cover shadow-md shrink-0"
+              />
+              <div>
+                {kit.category && (
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "var(--brand)", color: "#fff" }}>
+                    {kit.category}
+                  </span>
+                )}
+                <h1 className="text-3xl font-extrabold mt-2 mb-1 tracking-tight" style={{ color: "var(--ink)" }}>{creatorName}</h1>
+                {kit.bio && <p className="text-sm leading-relaxed max-w-md" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>}
                 {creatorBadges.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-3">
-                    {creatorBadges.slice(0, 6).map((id) => {
+                    {creatorBadges.slice(0, 5).map((id) => {
                       const b = BADGE_CATALOG[id];
                       if (!b) return null;
                       return (
-                        <span key={id} className="text-xs font-medium px-2 py-1 rounded-full" style={{ background: "var(--brand-soft)", color: "var(--brand)" }}>
+                        <span key={id} className="text-xs font-medium px-2.5 py-1 rounded-full bg-white/70" style={{ color: "var(--brand)" }}>
                           {b.emoji} {b.label}
                         </span>
                       );
                     })}
                   </div>
                 )}
-
-                {totalSubs > 0 && (
-                  <div className="mt-4 pt-4 flex gap-6" style={{ borderTop: "1px solid var(--border-faint)" }}>
-                    <div>
-                      <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</p>
-                      <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 팔로워</p>
-                    </div>
-                    {totalViews > 0 && (
-                      <div>
-                        <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalViews)}</p>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 조회수</p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* 제안 CTA */}
-            {kit.is_form_enabled ? (
-              session ? (
-                <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border-faint)" }}>
-                  <p className="text-sm font-semibold mb-1" style={{ color: "var(--ink)" }}>협찬 제안하기</p>
-                  <p className="text-xs mb-4" style={{ color: "var(--ink-3)" }}>{session.profile.full_name} · 인증된 광고주</p>
-                  <Link
-                    href={`/${slug}/inquiry`}
-                    className="block w-full text-center text-sm font-bold py-3 rounded-xl text-white hover:opacity-90 transition-opacity"
-                    style={{ background: "var(--brand)" }}
-                  >
-                    제안서 보내기
+            {/* 스탯 + CTA */}
+            <div className="flex flex-col gap-5 md:items-end shrink-0">
+              <div className="flex gap-6">
+                {totalSubs > 0 && (
+                  <div className="text-center">
+                    <p className="text-3xl font-extrabold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 팔로워</p>
+                  </div>
+                )}
+                {totalViews > 0 && (
+                  <div className="text-center">
+                    <p className="text-3xl font-extrabold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalViews)}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 조회수</p>
+                  </div>
+                )}
+                <div className="text-center">
+                  <p className="text-3xl font-extrabold tabular-nums" style={{ color: "var(--ink)" }}>{channels.length}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>채널</p>
+                </div>
+              </div>
+
+              {kit.is_form_enabled ? (
+                session ? (
+                  <Link href={`/${slug}/inquiry`}
+                    className="px-8 py-3 rounded-2xl text-white font-bold text-sm shadow-md hover:opacity-90 transition-opacity"
+                    style={{ background: "var(--brand)" }}>
+                    협찬 제안하기 →
                   </Link>
-                </div>
-              ) : (
-                <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border-faint)" }}>
-                  <p className="text-sm font-semibold mb-1" style={{ color: "var(--ink)" }}>협찬 제안하기</p>
-                  <p className="text-xs mb-4" style={{ color: "var(--ink-3)" }}>광고주 로그인 후 제안을 보낼 수 있습니다</p>
-                  <Link
-                    href={`/advertiser/login?next=/${slug}/inquiry`}
-                    className="block w-full text-center text-sm font-bold py-3 rounded-xl text-white hover:opacity-90 transition-opacity"
-                    style={{ background: "var(--brand)" }}
-                  >
-                    로그인 후 제안하기
-                  </Link>
-                  <p className="text-center text-xs mt-3" style={{ color: "var(--ink-4)" }}>
-                    계정 없으신가요?{" "}
-                    <Link href="/advertiser/signup" className="font-semibold" style={{ color: "var(--brand)" }}>광고주 가입</Link>
-                  </p>
-                </div>
-              )
-            ) : (
-              <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border-faint)" }}>
-                <p className="text-sm" style={{ color: "var(--ink-3)" }}>
-                  현재 협찬 문의를 받지 않습니다.{profile?.email && (<>{" "}<a href={`mailto:${profile.email}`} className="font-semibold" style={{ color: "var(--brand)" }}>{profile.email}</a></>)}
-                </p>
-              </div>
-            )}
-
-            {/* 협업 브랜드 */}
-            {kit.past_brands && kit.past_brands.length > 0 && (
-              <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border-faint)" }}>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--ink-4)" }}>협업 브랜드</p>
-                <div className="flex flex-wrap gap-2">
-                  {kit.past_brands.map((brand) => (
-                    <span key={brand} className="text-xs font-medium px-2.5 py-1 rounded-full" style={{ background: "var(--surface-2)", color: "var(--ink-2)" }}>
-                      {brand}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 오른쪽: 채널 통계 + 단가 */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* 채널 현황 */}
-            {sectionOrder[0] === "pricing" && kit.pricing && Object.entries(kit.pricing).some(([, v]) => v > 0) && (
-              <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>광고 단가</p>
-                <div className="space-y-0">
-                  {Object.entries(kit.pricing).filter(([, v]) => v && v > 0).map(([key, value], idx, arr) => (
-                    <div key={key} className="flex items-center justify-between py-3.5"
-                      style={{ borderBottom: idx < arr.length - 1 ? "1px solid var(--border-faint)" : "none" }}>
-                      <span className="text-sm" style={{ color: "var(--ink-2)" }}>{PRICING_LABELS[key] ?? key}</span>
-                      <span className="text-sm font-bold tabular-nums" style={{ color: "var(--ink)" }}>{(value as number).toLocaleString("ko-KR")}원~</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {channels.length > 0 && (
-              <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>채널 현황</p>
-                <div className="space-y-3">
-                  {channels.map((ch) => {
-                    const meta = PLATFORM_META[ch.platform] ?? { label: ch.platform, icon: "??", color: "#666" };
-                    return (
-                      <div key={ch.platform} className="flex items-center justify-between py-3 rounded-xl px-4" style={{ background: "var(--surface-2)" }}>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: "#fff", color: meta.color }}>
-                            {meta.icon}
-                          </span>
-                          <div>
-                            <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{ch.channel_name}</p>
-                            <p className="text-xs" style={{ color: "var(--ink-4)" }}>{meta.label}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(ch.subscriber_count)}</p>
-                          <p className="text-xs" style={{ color: "var(--ink-4)" }}>구독자</p>
-                          {ch.view_count > 0 && (
-                            <p className="text-xs tabular-nums mt-0.5" style={{ color: "var(--ink-4)" }}>조회 {formatK(ch.view_count)}</p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* 광고 단가 */}
-            {kit.pricing && Object.entries(kit.pricing).some(([, v]) => v > 0) && (
-              <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>광고 단가</p>
-                <div className="space-y-0">
-                  {Object.entries(kit.pricing)
-                    .filter(([, v]) => v && v > 0)
-                    .map(([key, value], idx, arr) => (
-                      <div key={key} className="flex items-center justify-between py-3.5"
-                        style={{ borderBottom: idx < arr.length - 1 ? "1px solid var(--border-faint)" : "none" }}>
-                        <span className="text-sm" style={{ color: "var(--ink-2)" }}>{PRICING_LABELS[key] ?? key}</span>
-                        <span className="text-sm font-bold tabular-nums" style={{ color: "var(--ink)" }}>
-                          {(value as number).toLocaleString("ko-KR")}원~
-                        </span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
+                ) : (
+                  <div className="flex flex-col items-end gap-1.5">
+                    <Link href={`/advertiser/login?next=/${slug}/inquiry`}
+                      className="px-8 py-3 rounded-2xl text-white font-bold text-sm shadow-md hover:opacity-90 transition-opacity"
+                      style={{ background: "var(--brand)" }}>
+                      로그인 후 제안하기 →
+                    </Link>
+                    <p className="text-xs" style={{ color: "var(--ink-4)" }}>
+                      계정 없으신가요?{" "}
+                      <Link href="/advertiser/signup" className="font-semibold" style={{ color: "var(--brand)" }}>광고주 가입</Link>
+                    </p>
+                  </div>
+                )
+              ) : profile?.email && (
+                <a href={`mailto:${profile.email}`} className="text-sm font-semibold" style={{ color: "var(--brand)" }}>
+                  {profile.email}로 문의하기
+                </a>
+              )}
+            </div>
           </div>
         </div>
+      </section>
+
+      {/* 콘텐츠 */}
+      <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+
+        {/* 채널 현황 */}
+        {channels.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--ink-4)" }}>채널 현황</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {channels.map((ch) => {
+                const meta = PLATFORM_META[ch.platform] ?? { label: ch.platform, icon: "??", color: "#666" };
+                return (
+                  <div key={ch.platform} className="bg-white rounded-2xl p-5 flex items-center gap-4" style={{ border: "1px solid var(--border-faint)" }}>
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xs font-extrabold text-white shrink-0" style={{ background: meta.color }}>
+                      {meta.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate" style={{ color: "var(--ink)" }}>{ch.channel_name}</p>
+                      <p className="text-xs" style={{ color: "var(--ink-4)" }}>{meta.label}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xl font-extrabold tabular-nums" style={{ color: "var(--brand)" }}>{formatK(ch.subscriber_count)}</p>
+                      <p className="text-xs" style={{ color: "var(--ink-4)" }}>구독자</p>
+                      {ch.view_count > 0 && <p className="text-xs tabular-nums" style={{ color: "var(--ink-4)" }}>조회 {formatK(ch.view_count)}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 광고 단가 */}
+        {kit.pricing && Object.entries(kit.pricing).some(([, v]) => v > 0) && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--ink-4)" }}>광고 단가</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Object.entries(kit.pricing).filter(([, v]) => v && v > 0).map(([key, value]) => (
+                <div key={key} className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border-faint)" }}>
+                  <p className="text-xs mb-2" style={{ color: "var(--ink-4)" }}>{PRICING_LABELS[key] ?? key}</p>
+                  <p className="text-2xl font-extrabold tabular-nums" style={{ color: "var(--brand)" }}>
+                    {(value as number).toLocaleString("ko-KR")}
+                    <span className="text-sm font-normal ml-1" style={{ color: "var(--ink-4)" }}>원~</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 협업 브랜드 */}
+        {kit.past_brands && kit.past_brands.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--ink-4)" }}>협업 브랜드</p>
+            <div className="bg-white rounded-2xl p-5 flex flex-wrap gap-2" style={{ border: "1px solid var(--border-faint)" }}>
+              {kit.past_brands.map((brand) => (
+                <span key={brand} className="text-sm font-semibold px-3 py-1.5 rounded-full" style={{ background: "var(--brand-soft)", color: "var(--brand)" }}>
+                  {brand}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <footer className="text-center py-8 text-xs" style={{ color: "var(--ink-4)" }}>
