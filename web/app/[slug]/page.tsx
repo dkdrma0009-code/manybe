@@ -16,6 +16,9 @@ interface MediaKit {
   is_form_enabled: boolean;
   view_count: number;
   category: string | null;
+  badges: string[] | null;
+  theme: string | null;
+  section_order: string[] | null;
 }
 
 interface SocialChannel {
@@ -75,6 +78,32 @@ const PRICING_LABELS: Record<string, string> = {
   dedicated:  "전체 광고 영상",
 };
 
+const THEME_CATALOG: Record<string, { primary: string; bg: string; accent: string }> = {
+  indigo:  { primary: "#5566DF", bg: "#F0EFFE", accent: "#E8E4FF" },
+  rose:    { primary: "#E11D48", bg: "#FFF1F2", accent: "#FFE4E6" },
+  emerald: { primary: "#059669", bg: "#ECFDF5", accent: "#D1FAE5" },
+  amber:   { primary: "#D97706", bg: "#FFFBEB", accent: "#FEF3C7" },
+  slate:   { primary: "#334155", bg: "#F1F5F9", accent: "#E2E8F0" },
+};
+
+const BADGE_CATALOG: Record<string, { emoji: string; label: string }> = {
+  sub_100k: { emoji: "🔥", label: "10만 구독" }, sub_500k: { emoji: "⚡", label: "50만 구독" },
+  sub_1m: { emoji: "💎", label: "100만 구독" }, high_engagement: { emoji: "📈", label: "높은 참여율" },
+  fast_growth: { emoji: "🚀", label: "빠른 성장" }, viral: { emoji: "🌊", label: "바이럴 경험" },
+  reliable: { emoji: "✅", label: "신뢰할 수 있는" }, on_time: { emoji: "⏰", label: "기한 엄수" },
+  good_comm: { emoji: "💬", label: "소통 잘됨" }, creative: { emoji: "🎨", label: "크리에이티브" },
+  data_driven: { emoji: "📊", label: "데이터 중심" }, long_term: { emoji: "🤝", label: "장기 협업 선호" },
+  food: { emoji: "🍔", label: "푸드" }, travel: { emoji: "✈️", label: "여행" },
+  beauty: { emoji: "💄", label: "뷰티" }, tech: { emoji: "💻", label: "테크" },
+  fashion: { emoji: "👗", label: "패션" }, fitness: { emoji: "🏋️", label: "피트니스" },
+  family: { emoji: "👨‍👩‍👧", label: "가족 콘텐츠" }, education: { emoji: "📚", label: "교육" },
+  entertainment: { emoji: "😂", label: "엔터테인먼트" }, gaming: { emoji: "🎮", label: "게이밍" },
+  finance: { emoji: "💰", label: "경제/재테크" }, pet: { emoji: "🐾", label: "반려동물" },
+  kids: { emoji: "👶", label: "키즈" }, studio: { emoji: "🎬", label: "스튜디오 보유" },
+  overseas: { emoji: "🌏", label: "해외 거주" }, multi_platform: { emoji: "📱", label: "멀티 플랫폼" },
+  brand_safe: { emoji: "🛡️", label: "브랜드 세이프" },
+};
+
 export default async function MediaKitPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [data, session] = await Promise.all([getMediaKit(slug), getAdvertiserSession()]);
@@ -84,9 +113,12 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
   const creatorName = profile?.full_name ?? slug;
   const totalSubs = channels.reduce((s, c) => s + (c.subscriber_count ?? 0), 0);
   const totalViews = channels.reduce((s, c) => s + (c.view_count ?? 0), 0);
+  const theme = THEME_CATALOG[kit.theme ?? "indigo"] ?? THEME_CATALOG.indigo;
+  const creatorBadges = kit.badges ?? [];
+  const sectionOrder = kit.section_order ?? ["channels", "pricing", "brands"];
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
+    <div className="min-h-screen" style={{ background: "var(--surface-2)", "--brand": theme.primary, "--brand-soft": theme.bg, "--brand-softer": theme.accent } as React.CSSProperties}>
       {/* Header */}
       {session ? (
         <AdvertiserNav userName={session.profile.full_name ?? ""} current="discover" />
@@ -106,7 +138,7 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
           <div className="space-y-4">
             {/* 프로필 카드 */}
             <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border-faint)" }}>
-              <div className="h-20" style={{ background: "linear-gradient(135deg, var(--brand-soft) 0%, #EEF2FF 100%)" }} />
+              <div className="h-20" style={{ background: `linear-gradient(135deg, var(--brand-soft) 0%, var(--brand-softer) 100%)` }} />
               <div className="px-6 pb-6">
                 <img
                   src={`https://i.pravatar.cc/128?u=${encodeURIComponent(slug)}`}
@@ -123,6 +155,20 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
                   )}
                 </div>
                 {kit.bio && <p className="text-sm leading-relaxed" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>}
+
+                {creatorBadges.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {creatorBadges.slice(0, 6).map((id) => {
+                      const b = BADGE_CATALOG[id];
+                      if (!b) return null;
+                      return (
+                        <span key={id} className="text-xs font-medium px-2 py-1 rounded-full" style={{ background: "var(--brand-soft)", color: "var(--brand)" }}>
+                          {b.emoji} {b.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {totalSubs > 0 && (
                   <div className="mt-4 pt-4 flex gap-6" style={{ borderTop: "1px solid var(--border-faint)" }}>
@@ -198,6 +244,20 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
           {/* 오른쪽: 채널 통계 + 단가 */}
           <div className="lg:col-span-2 space-y-4">
             {/* 채널 현황 */}
+            {sectionOrder[0] === "pricing" && kit.pricing && Object.entries(kit.pricing).some(([, v]) => v > 0) && (
+              <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>광고 단가</p>
+                <div className="space-y-0">
+                  {Object.entries(kit.pricing).filter(([, v]) => v && v > 0).map(([key, value], idx, arr) => (
+                    <div key={key} className="flex items-center justify-between py-3.5"
+                      style={{ borderBottom: idx < arr.length - 1 ? "1px solid var(--border-faint)" : "none" }}>
+                      <span className="text-sm" style={{ color: "var(--ink-2)" }}>{PRICING_LABELS[key] ?? key}</span>
+                      <span className="text-sm font-bold tabular-nums" style={{ color: "var(--ink)" }}>{(value as number).toLocaleString("ko-KR")}원~</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {channels.length > 0 && (
               <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
                 <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>채널 현황</p>
