@@ -15,6 +15,7 @@ interface MediaKit {
   past_brands: string[] | null;
   is_form_enabled: boolean;
   view_count: number;
+  category: string | null;
 }
 
 interface SocialChannel {
@@ -82,6 +83,7 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
   const { kit, channels, profile } = data;
   const creatorName = profile?.full_name ?? slug;
   const totalSubs = channels.reduce((s, c) => s + (c.subscriber_count ?? 0), 0);
+  const totalViews = channels.reduce((s, c) => s + (c.view_count ?? 0), 0);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--surface-2)" }}>
@@ -103,22 +105,40 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
           {/* 왼쪽: 프로필 + CTA */}
           <div className="space-y-4">
             {/* 프로필 카드 */}
-            <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
-              <img
-                src={`https://i.pravatar.cc/128?u=${encodeURIComponent(slug)}`}
-                alt={creatorName}
-                width={80} height={80}
-                className="w-20 h-20 rounded-2xl object-cover mb-4"
-              />
-              <h1 className="text-xl font-bold mb-1" style={{ color: "var(--ink)" }}>{creatorName}</h1>
-              {kit.bio && <p className="text-sm leading-relaxed" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>}
-
-              {totalSubs > 0 && (
-                <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border-faint)" }}>
-                  <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 팔로워</p>
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border-faint)" }}>
+              <div className="h-20" style={{ background: "linear-gradient(135deg, var(--brand-soft) 0%, #EEF2FF 100%)" }} />
+              <div className="px-6 pb-6">
+                <img
+                  src={`https://i.pravatar.cc/128?u=${encodeURIComponent(slug)}`}
+                  alt={creatorName}
+                  width={80} height={80}
+                  className="w-20 h-20 rounded-2xl object-cover border-4 border-white -mt-10 mb-3"
+                />
+                <div className="flex items-start gap-2 mb-1">
+                  <h1 className="text-xl font-bold flex-1" style={{ color: "var(--ink)" }}>{creatorName}</h1>
+                  {kit.category && (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 mt-0.5" style={{ background: "var(--brand-soft)", color: "var(--brand)" }}>
+                      {kit.category}
+                    </span>
+                  )}
                 </div>
-              )}
+                {kit.bio && <p className="text-sm leading-relaxed" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>}
+
+                {totalSubs > 0 && (
+                  <div className="mt-4 pt-4 flex gap-6" style={{ borderTop: "1px solid var(--border-faint)" }}>
+                    <div>
+                      <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 팔로워</p>
+                    </div>
+                    {totalViews > 0 && (
+                      <div>
+                        <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalViews)}</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 조회수</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 제안 CTA */}
@@ -198,6 +218,9 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
                         <div className="text-right">
                           <p className="text-lg font-bold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(ch.subscriber_count)}</p>
                           <p className="text-xs" style={{ color: "var(--ink-4)" }}>구독자</p>
+                          {ch.view_count > 0 && (
+                            <p className="text-xs tabular-nums mt-0.5" style={{ color: "var(--ink-4)" }}>조회 {formatK(ch.view_count)}</p>
+                          )}
                         </div>
                       </div>
                     );
@@ -207,7 +230,7 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
             )}
 
             {/* 광고 단가 */}
-            {kit.pricing && Object.keys(kit.pricing).length > 0 && (
+            {kit.pricing && Object.entries(kit.pricing).some(([, v]) => v > 0) && (
               <div className="bg-white rounded-2xl p-6" style={{ border: "1px solid var(--border-faint)" }}>
                 <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--ink-4)" }}>광고 단가</p>
                 <div className="space-y-0">
