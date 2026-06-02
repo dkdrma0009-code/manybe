@@ -107,3 +107,17 @@ export const SECTION_CATALOG: Record<SectionId, { label: string; icon: string }>
 };
 
 export const DEFAULT_SECTION_ORDER: SectionId[] = ['channels', 'pricing', 'brands'];
+
+// ── 하이라이트 ────────────────────────────────────────────────────
+
+export interface HighlightItem {
+  label: string;
+  value: string;
+  note?: string;
+}
+
+export interface HighlightSection {
+  id: string;
+  title: string;
+  items: HighlightItem[];
+}

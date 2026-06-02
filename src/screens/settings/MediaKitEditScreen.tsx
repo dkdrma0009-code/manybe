@@ -15,7 +15,7 @@ import { generateMediaKitIntelligence } from '../../services/MediaKitGenerator';
 import {
   BADGE_CATALOG, BADGE_CATEGORIES, THEME_CATALOG, THEME_IDS, SECTION_CATALOG, DEFAULT_SECTION_ORDER,
 } from '../../types/mediaKit';
-import type { BadgeId, MediaKitTheme, SectionId } from '../../types/mediaKit';
+import type { BadgeId, MediaKitTheme, SectionId, HighlightSection, HighlightItem } from '../../types/mediaKit';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MediaKitEdit'>;
@@ -48,6 +48,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
   const [selectedBadges, setSelectedBadges] = useState<BadgeId[]>([]);
   const [theme, setTheme] = useState<MediaKitTheme>('indigo');
   const [sectionOrder, setSectionOrder] = useState<SectionId[]>(DEFAULT_SECTION_ORDER);
+  const [highlights, setHighlights] = useState<HighlightSection[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -58,7 +59,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
     setLoading(true);
     const { data } = await supabase
       .from('media_kits')
-      .select('bio, pricing, past_brands, is_form_enabled, badges, theme, section_order')
+      .select('bio, pricing, past_brands, is_form_enabled, badges, theme, section_order, highlights')
       .eq('user_id', user!.id)
       .limit(1);
 
@@ -76,6 +77,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
       setSelectedBadges((kit.badges ?? []) as BadgeId[]);
       setTheme((kit.theme ?? 'indigo') as MediaKitTheme);
       setSectionOrder((kit.section_order ?? DEFAULT_SECTION_ORDER) as SectionId[]);
+      setHighlights((kit.highlights ?? []) as HighlightSection[]);
     }
     setLoading(false);
   }
@@ -117,6 +119,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
           badges: selectedBadges,
           theme,
           section_order: sectionOrder,
+          highlights,
         })
         .eq('user_id', user!.id);
 
@@ -406,6 +409,92 @@ export default function MediaKitEditScreen({ navigation }: Props) {
             })}
           </View>
 
+          {/* 하이라이트 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>어필 섹션</Text>
+            <Text style={styles.sectionDesc}>인기 영상, 협업 성과 등 광고주에게 어필할 내용을 자유롭게 추가하세요</Text>
+
+            {highlights.map((hs, si) => (
+              <View key={hs.id} style={styles.hlSection}>
+                <View style={styles.hlSectionHeader}>
+                  <TextInput
+                    style={styles.hlSectionTitle}
+                    value={hs.title}
+                    onChangeText={(t) => setHighlights((prev) => prev.map((s, i) => i === si ? { ...s, title: t } : s))}
+                    placeholder="섹션 제목 (예: 🔥 인기 영상 TOP 3)"
+                    placeholderTextColor="#C4C4C4"
+                  />
+                  <TouchableOpacity onPress={() => setHighlights((prev) => prev.filter((_, i) => i !== si))}>
+                    <Text style={styles.hlDeleteBtn}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {hs.items.map((item, ii) => (
+                  <View key={ii} style={styles.hlItem}>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <TextInput
+                        style={styles.hlItemInput}
+                        value={item.label}
+                        onChangeText={(t) => setHighlights((prev) => prev.map((s, i) => i === si
+                          ? { ...s, items: s.items.map((it, j) => j === ii ? { ...it, label: t } : it) }
+                          : s))}
+                        placeholder="항목명 (예: 스킨케어 루틴 영상)"
+                        placeholderTextColor="#C4C4C4"
+                      />
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <TextInput
+                          style={[styles.hlItemInput, { flex: 1 }]}
+                          value={item.value}
+                          onChangeText={(t) => setHighlights((prev) => prev.map((s, i) => i === si
+                            ? { ...s, items: s.items.map((it, j) => j === ii ? { ...it, value: t } : it) }
+                            : s))}
+                          placeholder="수치 (예: 조회수 120만)"
+                          placeholderTextColor="#C4C4C4"
+                        />
+                        <TextInput
+                          style={[styles.hlItemInput, { flex: 1 }]}
+                          value={item.note ?? ''}
+                          onChangeText={(t) => setHighlights((prev) => prev.map((s, i) => i === si
+                            ? { ...s, items: s.items.map((it, j) => j === ii ? { ...it, note: t || undefined } : it) }
+                            : s))}
+                          placeholder="부연설명 (선택)"
+                          placeholderTextColor="#C4C4C4"
+                        />
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={{ paddingLeft: 8 }}
+                      onPress={() => setHighlights((prev) => prev.map((s, i) => i === si
+                        ? { ...s, items: s.items.filter((_, j) => j !== ii) }
+                        : s))}
+                    >
+                      <Text style={styles.hlDeleteBtn}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                <TouchableOpacity
+                  style={styles.hlAddItemBtn}
+                  onPress={() => setHighlights((prev) => prev.map((s, i) => i === si
+                    ? { ...s, items: [...s.items, { label: '', value: '', note: undefined }] }
+                    : s))}
+                >
+                  <Text style={styles.hlAddItemText}>+ 항목 추가</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={styles.hlAddSectionBtn}
+              onPress={() => setHighlights((prev) => [
+                ...prev,
+                { id: String(Date.now()), title: '', items: [{ label: '', value: '' }] },
+              ])}
+            >
+              <Text style={styles.hlAddSectionText}>+ 새 섹션 추가</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* 인바운드 폼 */}
           <View style={styles.section}>
             <View style={styles.toggleRow}>
@@ -557,4 +646,14 @@ const styles = StyleSheet.create({
   orderBtnText: { fontSize: 10, fontWeight: '700', color: '#374151' },
   sectionRowIcon: { fontSize: 16 },
   sectionRowLabel: { fontSize: 14, fontWeight: '500', color: '#1A1A2E', flex: 1 },
+  hlSection: { backgroundColor: '#F9FAFB', borderRadius: 12, padding: 12, marginBottom: 10, gap: 8 },
+  hlSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hlSectionTitle: { flex: 1, fontSize: 14, fontWeight: '700', color: '#1A1A2E', padding: 0 },
+  hlItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  hlItemInput: { fontSize: 13, color: '#374151', backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7, borderWidth: 1, borderColor: '#E5E7EB' },
+  hlDeleteBtn: { fontSize: 14, color: '#9CA3AF', paddingTop: 2 },
+  hlAddItemBtn: { alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#EEF2FF', borderRadius: 8 },
+  hlAddItemText: { fontSize: 13, fontWeight: '600', color: '#5566DF' },
+  hlAddSectionBtn: { borderWidth: 1.5, borderColor: '#5566DF', borderStyle: 'dashed', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  hlAddSectionText: { fontSize: 14, fontWeight: '700', color: '#5566DF' },
 });

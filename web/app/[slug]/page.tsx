@@ -6,6 +6,18 @@ import type { Metadata } from "next";
 import AdvertiserNav from "@/components/AdvertiserNav";
 import Logo from "@/components/Logo";
 
+interface HighlightItem {
+  label: string;
+  value: string;
+  note?: string;
+}
+
+interface HighlightSection {
+  id: string;
+  title: string;
+  items: HighlightItem[];
+}
+
 interface MediaKit {
   id: string;
   user_id: string;
@@ -20,6 +32,7 @@ interface MediaKit {
   theme: string | null;
   section_order: string[] | null;
   cover_image_url: string | null;
+  highlights: HighlightSection[] | null;
 }
 
 interface SocialChannel {
@@ -116,7 +129,7 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
   const totalViews = channels.reduce((s, c) => s + (c.view_count ?? 0), 0);
   const theme = THEME_CATALOG[kit.theme ?? "indigo"] ?? THEME_CATALOG.indigo;
   const creatorBadges = kit.badges ?? [];
-  const sectionOrder = kit.section_order ?? ["channels", "pricing", "brands"];
+  const highlights = kit.highlights ?? [];
   const hasCover = !!kit.cover_image_url;
   const heroText = hasCover ? "#ffffff" : "var(--ink)";
   const heroSubText = hasCover ? "rgba(255,255,255,0.75)" : "var(--ink-3)";
@@ -140,7 +153,7 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
         ? { backgroundImage: `url(${kit.cover_image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
         : { background: `linear-gradient(160deg, var(--brand-soft) 0%, var(--brand-softer) 60%, #fff 100%)` }
       }>
-        {kit.cover_image_url && <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.45)" }} />}
+        {kit.cover_image_url && <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.62)" }} />}
         <div className="relative max-w-4xl mx-auto px-6 py-12">
           <div className="flex flex-col md:flex-row md:items-center gap-8">
             {/* 프로필 */}
@@ -228,6 +241,28 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
 
       {/* 콘텐츠 */}
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+
+        {/* 크리에이터 하이라이트 */}
+        {highlights.length > 0 && (
+          <div className="space-y-4">
+            {highlights.map((section) => (
+              <div key={section.id}>
+                <p className="text-sm font-bold mb-3" style={{ color: "var(--ink)" }}>{section.title}</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {section.items.map((item, idx) => (
+                    <div key={idx} className="bg-white rounded-2xl p-5 flex items-center justify-between gap-4" style={{ border: "1px solid var(--border-faint)" }}>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: "var(--ink)" }}>{item.label}</p>
+                        {item.note && <p className="text-xs mt-0.5 truncate" style={{ color: "var(--ink-4)" }}>{item.note}</p>}
+                      </div>
+                      <p className="text-lg font-extrabold tabular-nums shrink-0" style={{ color: "var(--brand)" }}>{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 채널 현황 */}
         {channels.length > 0 && (
