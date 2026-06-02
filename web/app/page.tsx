@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import WaitlistForm from "@/components/WaitlistForm";
+import AnimationInit from "@/components/AnimationInit";
 
 const FEATURES = [
   {
@@ -81,9 +82,10 @@ export default function LandingPage() {
         </div>
       </header>
 
+      <AnimationInit />
       <main className="flex-1">
         {/* Hero */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-[#F5F3FF] to-white pt-24 pb-32">
+        <section className="relative overflow-hidden hero-gradient pt-24 pb-32">
           <div className="max-w-4xl mx-auto px-6 text-center">
             <div className="inline-flex items-center gap-2 bg-white border border-purple-200 rounded-full px-4 py-1.5 mb-8 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-[#6C63FF] animate-pulse" />
@@ -147,8 +149,8 @@ export default function LandingPage() {
               { value: "1분", label: "평균 가입 소요 시간" },
               { value: "0%", label: "수동 입력 비율" },
               { value: "7→1", label: "대체하는 앱 수" },
-            ].map((s) => (
-              <div key={s.label}>
+            ].map((s, i) => (
+              <div key={s.label} data-animate data-delay={i * 100}>
                 <p className="text-4xl font-extrabold text-[#6C63FF] mb-1">{s.value}</p>
                 <p className="text-sm text-gray-500">{s.label}</p>
               </div>
@@ -164,8 +166,8 @@ export default function LandingPage() {
               <p className="text-gray-500 text-lg">크리에이터 비즈니스에 필요한 것들을 하나씩 모았습니다.</p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {FEATURES.map((f) => (
-                <div key={f.title} className="bg-white border border-gray-100 rounded-2xl p-6 hover:border-gray-200 hover:shadow-sm transition-all">
+              {FEATURES.map((f, i) => (
+                <div key={f.title} data-animate data-delay={i * 70} className="bg-white border border-gray-100 rounded-2xl p-6 card-hover">
                   <h3 className="font-bold text-gray-900 text-base mb-2">{f.title}</h3>
                   <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
                 </div>
@@ -181,8 +183,8 @@ export default function LandingPage() {
               <h2 className="text-4xl font-extrabold text-gray-900 mb-4">3단계로 시작하세요</h2>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
-              {STEPS.map((s) => (
-                <div key={s.num} className="bg-white rounded-2xl p-6 shadow-sm">
+              {STEPS.map((s, i) => (
+                <div key={s.num} data-animate data-delay={i * 120} className="bg-white rounded-2xl p-6 shadow-sm card-hover">
                   <p className="text-5xl font-extrabold text-[#6C63FF]/20 mb-3">{s.num}</p>
                   <h3 className="font-bold text-gray-900 text-lg mb-2">{s.title}</h3>
                   <p className="text-gray-500 text-sm leading-relaxed">{s.desc}</p>
