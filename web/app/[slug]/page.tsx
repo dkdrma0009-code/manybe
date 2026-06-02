@@ -19,6 +19,7 @@ interface MediaKit {
   badges: string[] | null;
   theme: string | null;
   section_order: string[] | null;
+  cover_image_url: string | null;
 }
 
 interface SocialChannel {
@@ -116,6 +117,9 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
   const theme = THEME_CATALOG[kit.theme ?? "indigo"] ?? THEME_CATALOG.indigo;
   const creatorBadges = kit.badges ?? [];
   const sectionOrder = kit.section_order ?? ["channels", "pricing", "brands"];
+  const hasCover = !!kit.cover_image_url;
+  const heroText = hasCover ? "#ffffff" : "var(--ink)";
+  const heroSubText = hasCover ? "rgba(255,255,255,0.75)" : "var(--ink-3)";
 
   return (
     <div className="min-h-screen bg-white" style={{ "--brand": theme.primary, "--brand-soft": theme.bg, "--brand-softer": theme.accent } as React.CSSProperties}>
@@ -132,8 +136,12 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
       )}
 
       {/* Hero */}
-      <section style={{ background: `linear-gradient(160deg, var(--brand-soft) 0%, var(--brand-softer) 60%, #fff 100%)` }}>
-        <div className="max-w-4xl mx-auto px-6 py-12">
+      <section className="relative" style={kit.cover_image_url
+        ? { backgroundImage: `url(${kit.cover_image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
+        : { background: `linear-gradient(160deg, var(--brand-soft) 0%, var(--brand-softer) 60%, #fff 100%)` }
+      }>
+        {kit.cover_image_url && <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.45)" }} />}
+        <div className="relative max-w-4xl mx-auto px-6 py-12">
           <div className="flex flex-col md:flex-row md:items-center gap-8">
             {/* 프로필 */}
             <div className="flex items-start gap-5 flex-1">
@@ -149,8 +157,8 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
                     {kit.category}
                   </span>
                 )}
-                <h1 className="text-3xl font-extrabold mt-2 mb-1 tracking-tight" style={{ color: "var(--ink)" }}>{creatorName}</h1>
-                {kit.bio && <p className="text-sm leading-relaxed max-w-md" style={{ color: "var(--ink-3)" }}>{kit.bio}</p>}
+                <h1 className="text-3xl font-extrabold mt-2 mb-1 tracking-tight" style={{ color: heroText }}>{creatorName}</h1>
+                {kit.bio && <p className="text-sm leading-relaxed max-w-md" style={{ color: heroSubText }}>{kit.bio}</p>}
                 {creatorBadges.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {creatorBadges.slice(0, 5).map((id) => {
@@ -172,19 +180,19 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
               <div className="flex gap-6">
                 {totalSubs > 0 && (
                   <div className="text-center">
-                    <p className="text-3xl font-extrabold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalSubs)}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 팔로워</p>
+                    <p className="text-3xl font-extrabold tabular-nums" style={{ color: heroText }}>{formatK(totalSubs)}</p>
+                    <p className="text-xs mt-0.5" style={{ color: heroSubText }}>총 팔로워</p>
                   </div>
                 )}
                 {totalViews > 0 && (
                   <div className="text-center">
-                    <p className="text-3xl font-extrabold tabular-nums" style={{ color: "var(--ink)" }}>{formatK(totalViews)}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>총 조회수</p>
+                    <p className="text-3xl font-extrabold tabular-nums" style={{ color: heroText }}>{formatK(totalViews)}</p>
+                    <p className="text-xs mt-0.5" style={{ color: heroSubText }}>총 조회수</p>
                   </div>
                 )}
                 <div className="text-center">
-                  <p className="text-3xl font-extrabold tabular-nums" style={{ color: "var(--ink)" }}>{channels.length}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--ink-4)" }}>채널</p>
+                  <p className="text-3xl font-extrabold tabular-nums" style={{ color: heroText }}>{channels.length}</p>
+                  <p className="text-xs mt-0.5" style={{ color: heroSubText }}>채널</p>
                 </div>
               </div>
 
