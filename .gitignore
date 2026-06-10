@@ -44,3 +44,6 @@ yarn-error.*
 /android
 web/.next/
 web/.env.local
+
+# Supabase CLI scratch (schema dumps, test payloads)
+supabase/.temp/
