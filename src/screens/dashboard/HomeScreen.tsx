@@ -280,7 +280,9 @@ const QUICK_ACTIONS = [
   { icon: 'chatbubble-outline'   as const, label: '문의함',     screen: 'Inquiries'  },
 ] as const;
 
-function QuickActions({ onPress }: { onPress: (screen: string) => void }) {
+type QuickActionScreen = (typeof QUICK_ACTIONS)[number]['screen'];
+
+function QuickActions({ onPress }: { onPress: (screen: QuickActionScreen) => void }) {
   return (
     <View style={qa.wrap}>
       {QUICK_ACTIONS.map((a) => (
@@ -422,8 +424,8 @@ export default function HomeScreen() {
 
         {/* 퀵 액션 */}
         <QuickActions onPress={(screen) => {
-          if (screen === 'Main') navigation.navigate('Main', { screen: '협찬' } as any);
-          else navigation.navigate(screen as any);
+          if (screen === 'Main') navigation.navigate('Main', { screen: '협찬' });
+          else navigation.navigate(screen);
         }} />
 
         {/* 오늘 우선 처리 */}
@@ -464,7 +466,7 @@ export default function HomeScreen() {
             <SectionHeader
               title="브랜드 협업"
               count={data.activeDeals.length}
-              onMore={() => navigation.navigate('Main', { screen: '협찬' } as any)}
+              onMore={() => navigation.navigate('Main', { screen: '협찬' })}
             />
             <Card>
               {data.activeDeals.slice(0, 4).map((deal, i) => (
@@ -477,7 +479,7 @@ export default function HomeScreen() {
                     sub={`${deal.statusLabel} · ${deal.amount > 0 ? formatWon(deal.amount) : '금액 미정'}`}
                     statusLabel={deal.statusLabel}
                     statusColor={deal.statusColor}
-                    onPress={() => navigation.navigate('Main', { screen: '협찬' } as any)}
+                    onPress={() => navigation.navigate('Main', { screen: '협찬' })}
                   />
                 </React.Fragment>
               ))}

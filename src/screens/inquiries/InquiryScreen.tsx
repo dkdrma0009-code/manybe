@@ -240,7 +240,7 @@ export default function InquiryScreen() {
               prev.map((i) => i.id === selectedInquiry?.id ? { ...i, deal_id: dealId } : i)
             );
             setSelectedInquiry(null);
-            navigation.navigate('Main', { screen: '협찬' } as any);
+            navigation.navigate('Main', { screen: '협찬' });
           }}
           onNavigateBrand={(brand) => {
             setSelectedInquiry(null);

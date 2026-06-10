@@ -23,13 +23,13 @@ export default function NotificationsScreen() {
     if (!item.navigateTo) return;
     const target = item.navigateTo;
     if (target.screen === 'deals') {
-      navigation.navigate('Main', { screen: '협찬' } as any);
+      navigation.navigate('Main', { screen: '협찬' });
     } else if (target.screen === 'inquiries') {
       navigation.navigate('Inquiries');
     } else if (target.screen === 'calendar') {
-      navigation.navigate('Main', { screen: '일정' } as any);
+      navigation.navigate('Main', { screen: '일정' });
     } else if (target.screen === 'revenue') {
-      navigation.navigate('Revenue' as any);
+      navigation.navigate('Revenue');
     } else if (target.screen === 'BrandDetail') {
       navigation.navigate('BrandDetail', { brand: target.brand });
     }
