@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Session, User } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -91,6 +92,9 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    // 기기에 남은 역할 선택을 초기화 — 다음 로그인 시 역할을 다시 고르게 한다.
+    // (지우지 않으면 다른 계정으로 로그인해도 이전 역할 화면에 갇힌다)
+    await AsyncStorage.multiRemove(['user_role', 'advertiser_onboarding_done']);
     await supabase.auth.signOut();
   };
 
