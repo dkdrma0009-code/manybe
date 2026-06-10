@@ -5,8 +5,10 @@ import { DollarSign, TrendingUp, Receipt } from 'lucide-react';
 export const metadata = { title: '수익 & 세금' };
 
 const TYPE_LABEL: Record<string, string> = {
-  sponsorship: '협찬', adsense: 'AdSense', affiliate: '제휴', etc: '기타',
+  platform: '플랫폼 광고', sponsorship: '브랜드 협찬', affiliate: '제휴 수익', other: '기타',
 };
+
+const TAX_RATE = 0.033; // 사업소득 원천징수 3.3%
 
 function fmtKRW(n: number) {
   if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}억원`;
@@ -19,23 +21,25 @@ export default async function RevenuePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/creator/login?next=/creator/revenue');
 
-  const { data: creator } = await supabase
-    .from('creator_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
   const currentYear = new Date().getFullYear().toString();
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   const { data: records } = await supabase
-    .from('revenue_records')
-    .select('*')
-    .eq('creator_id', creator?.id ?? '')
-    .gte('year_month', `${currentYear}-01`)
-    .order('year_month', { ascending: false });
+    .from('revenues')
+    .select('id, amount, category, description, date')
+    .eq('user_id', user.id)
+    .gte('date', `${currentYear}-01-01`)
+    .order('date', { ascending: false });
 
-  const list = records ?? [];
+  // 모바일 revenues 스키마 → 화면 모델 매핑 (세금은 3.3% 추정 계산)
+  const list = (records ?? []).map(r => ({
+    id: r.id,
+    amount: r.amount,
+    tax_withheld: Math.round(r.amount * TAX_RATE),
+    year_month: String(r.date).slice(0, 7),
+    type: r.category as string | null,
+    notes: r.description as string | null,
+  }));
 
   const yearTotal = list.reduce((s, r) => s + r.amount, 0);
   const yearTax = list.reduce((s, r) => s + r.tax_withheld, 0);

@@ -12,16 +12,11 @@ export default function InboundBadge() {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return;
 
-      const { data: creator } = await sb
-        .from('creator_profiles').select('id').eq('user_id', user.id).single();
-      if (!creator) return;
-
       const { count: c } = await sb
-        .from('deals')
-        .select('*', { count: 'exact', head: true })
-        .eq('creator_id', creator.id)
-        .eq('status', 'proposed')
-        .not('contact_info', 'is', null);
+        .from('media_kit_inquiries')
+        .select('id, media_kits!inner(user_id)', { count: 'exact', head: true })
+        .eq('media_kits.user_id', user.id)
+        .eq('is_read', false);
 
       setCount(c ?? 0);
     })();

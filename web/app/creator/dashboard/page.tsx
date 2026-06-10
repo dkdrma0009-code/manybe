@@ -9,12 +9,11 @@ import PricingCard from './PricingCard';
 export const metadata = { title: '크리에이터 대시보드' };
 
 const DEAL_STAGE_LABEL: Record<string, { label: string; color: string }> = {
-  proposed:    { label: '제안 수신',  color: '#6366F1' },
-  negotiating: { label: '협상 중',   color: '#F59E0B' },
-  producing:   { label: '제작 중',   color: '#0EA5E9' },
-  completed:   { label: '납품 완료', color: '#10B981' },
-  settled:     { label: '정산 완료', color: '#6B7280' },
-  cancelled:   { label: '취소',      color: '#EF4444' },
+  inquiry:     { label: '문의',       color: '#6366F1' },
+  reviewing:   { label: '검토 중',    color: '#F59E0B' },
+  in_progress: { label: '진행 중',    color: '#0EA5E9' },
+  uploaded:    { label: '업로드 완료', color: '#10B981' },
+  settled:     { label: '정산 완료',  color: '#6B7280' },
 };
 
 function fmt(n: number) {
@@ -90,35 +89,39 @@ export default async function CreatorDashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/creator/login?next=/creator/dashboard');
 
-  const { data: creator } = await supabase
-    .from('creator_profiles')
-    .select('*, channels:creator_channels(*)')
-    .eq('user_id', user.id)
-    .single();
-
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const nextMonth = new Date();
+  nextMonth.setMonth(nextMonth.getMonth() + 1);
+  const nextMonthStart = nextMonth.toISOString().slice(0, 7) + '-01';
 
-  const [{ data: revenue }, { data: activeDeals }, { count: kitViews }] = await Promise.all([
-    supabase.from('revenue_records').select('amount, tax_withheld')
-      .eq('creator_id', creator?.id ?? '').eq('year_month', currentMonth),
-    supabase.from('deals').select('id, title, status, amount, updated_at')
-      .eq('creator_id', creator?.id ?? '').not('status', 'in', '("settled","cancelled")')
+  const [
+    { data: channelRows }, { data: kit }, { data: profile },
+    { data: revenue }, { data: activeDeals }, { count: kitViews },
+  ] = await Promise.all([
+    supabase.from('social_channels').select('*').eq('user_id', user.id),
+    supabase.from('media_kits').select('slug').eq('user_id', user.id).maybeSingle(),
+    supabase.from('profiles').select('niche').eq('id', user.id).maybeSingle(),
+    supabase.from('revenues').select('amount')
+      .eq('user_id', user.id)
+      .gte('date', `${currentMonth}-01`).lt('date', nextMonthStart),
+    supabase.from('deals').select('id, title, brand, status, amount, updated_at')
+      .eq('user_id', user.id).neq('status', 'settled')
       .order('updated_at', { ascending: false }).limit(5),
     supabase.from('media_kit_views').select('*', { count: 'exact', head: true })
-      .eq('creator_id', creator?.id ?? '').gte('created_at', `${currentMonth}-01`),
+      .eq('user_id', user.id).gte('created_at', `${currentMonth}-01`),
   ]);
 
   const totalRevenue = revenue?.reduce((s, r) => s + r.amount, 0) ?? 0;
-  const totalTax     = revenue?.reduce((s, r) => s + r.tax_withheld, 0) ?? 0;
+  const totalTax     = Math.round(totalRevenue * 0.033); // 원천징수 3.3% 추정
 
   type Channel = {
     platform: string; channel_name: string | null; profile_image_url: string | null;
     subscriber_count: number | null; avg_views: number | null; engagement_rate: number | null;
-    last_synced_at: string | null;
+    updated_at: string | null;
     subscriber_history: Array<{ date: string; count: number }> | null;
     views_history: Array<{ date: string; views: number }> | null;
   };
-  const channels = (creator?.channels ?? []) as Channel[];
+  const channels = (channelRows ?? []) as Channel[];
   const yt = channels.find(c => c.platform === 'youtube') ?? null;
 
   const subHistory = (yt?.subscriber_history ?? []).slice(-60);
@@ -145,8 +148,8 @@ export default async function CreatorDashboardPage() {
     },
     {
       label: '미디어 키트 상태', icon: ExternalLink, color: '#10B981',
-      value: creator?.media_kit_enabled ? '공개 중' : '비공개',
-      sub: creator ? `manybe.io/${creator.handle}` : undefined,
+      value: kit?.slug ? '공개 중' : '미설정',
+      sub: kit?.slug ? `manybe.io/${kit.slug}` : undefined,
     },
   ];
 
@@ -175,9 +178,9 @@ export default async function CreatorDashboardPage() {
               )}
               <div>
                 <p className="font-bold text-slate-900 text-sm">{yt.channel_name ?? 'YouTube 채널'}</p>
-                {yt.last_synced_at && (
+                {yt.updated_at && (
                   <p className="text-[11px] text-slate-400">
-                    {new Date(yt.last_synced_at).toLocaleDateString('ko-KR')} 동기화
+                    {new Date(yt.updated_at).toLocaleDateString('ko-KR')} 동기화
                   </p>
                 )}
               </div>
@@ -267,7 +270,7 @@ export default async function CreatorDashboardPage() {
         <PricingCard
           avgViews={yt!.avg_views!}
           er={yt?.engagement_rate ? Number(yt.engagement_rate) : null}
-          defaultCategory={(creator as any)?.category ?? undefined}
+          defaultCategory={profile?.niche ?? undefined}
         />
       )}
 
@@ -310,7 +313,7 @@ export default async function CreatorDashboardPage() {
                 const stage = DEAL_STAGE_LABEL[deal.status] ?? { label: deal.status, color: '#6B7280' };
                 return (
                   <tr key={deal.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-800">{deal.title}</td>
+                    <td className="px-4 py-3 font-medium text-slate-800">{deal.title || deal.brand}</td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
                         style={{ backgroundColor: stage.color + '15', color: stage.color }}>

@@ -105,6 +105,9 @@ Deno.serve(async (req: Request) => {
     })
   }
 
+  // 조회 기록 (대시보드 방문자 통계용 — 실패해도 페이지 렌더는 계속)
+  await supabase.from('media_kit_views').insert({ user_id: kit.user_id })
+
   // 프로필 조회
   const { data: profile } = await supabase
     .from('profiles')

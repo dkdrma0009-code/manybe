@@ -1,24 +1,27 @@
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
-import { Calendar, Plus, Circle, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Calendar, Plus, Circle, CheckCircle2, Clock, Users } from 'lucide-react';
 
 export const metadata = { title: '콘텐츠 캘린더' };
 
-const STATUS_META: Record<string, { label: string; icon: typeof Clock; color: string }> = {
-  planned:   { label: '예정',   icon: Clock,        color: '#6366F1' },
-  producing: { label: '제작 중', icon: Circle,       color: '#F59E0B' },
-  uploaded:  { label: '업로드됨', icon: CheckCircle2, color: '#10B981' },
-  cancelled: { label: '취소',   icon: XCircle,      color: '#EF4444' },
+const TYPE_META: Record<string, { label: string; icon: typeof Clock; color: string }> = {
+  content:  { label: '업로드 예정', icon: Clock,        color: '#6366F1' },
+  deadline: { label: '협찬 마감',   icon: Circle,       color: '#F59E0B' },
+  meeting:  { label: '미팅',        icon: Users,        color: '#0EA5E9' },
+  other:    { label: '기타',        icon: CheckCircle2, color: '#10B981' },
 };
 
-const PLATFORM_LABEL: Record<string, string> = {
-  youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok',
+type Schedule = {
+  id: string;
+  title: string;
+  type: string | null;
+  start_time: string;
 };
 
-function groupByMonth(schedules: any[]) {
-  const groups: Record<string, any[]> = {};
+function groupByMonth(schedules: Schedule[]) {
+  const groups: Record<string, Schedule[]> = {};
   for (const s of schedules) {
-    const month = s.scheduled_at.substring(0, 7);
+    const month = s.start_time.substring(0, 7);
     if (!groups[month]) groups[month] = [];
     groups[month].push(s);
   }
@@ -30,39 +33,32 @@ export default async function CalendarPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/creator/login?next=/creator/calendar');
 
-  const { data: creator } = await supabase
-    .from('creator_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
   const now = new Date();
   const from = now.toISOString().slice(0, 7) + '-01';
   const to = new Date(now.getFullYear(), now.getMonth() + 4, 1).toISOString().slice(0, 10);
 
   const { data: upcoming } = await supabase
-    .from('content_schedules')
-    .select('*, deal:deals(title)')
-    .eq('creator_id', creator?.id ?? '')
-    .gte('scheduled_at', from)
-    .lt('scheduled_at', to)
-    .order('scheduled_at', { ascending: true });
+    .from('schedules')
+    .select('id, title, type, start_time')
+    .eq('user_id', user.id)
+    .gte('start_time', from)
+    .lt('start_time', to)
+    .order('start_time', { ascending: true });
 
   const { data: past } = await supabase
-    .from('content_schedules')
-    .select('*, deal:deals(title)')
-    .eq('creator_id', creator?.id ?? '')
-    .eq('status', 'uploaded')
-    .lt('scheduled_at', from)
-    .order('scheduled_at', { ascending: false })
+    .from('schedules')
+    .select('id, title, type, start_time')
+    .eq('user_id', user.id)
+    .lt('start_time', from)
+    .order('start_time', { ascending: false })
     .limit(5);
 
-  const groups = groupByMonth(upcoming ?? []);
+  const groups = groupByMonth((upcoming ?? []) as Schedule[]);
   const months = Object.keys(groups).sort();
 
-  const upcomingCount = (upcoming ?? []).filter(s => s.status !== 'cancelled').length;
+  const upcomingCount = (upcoming ?? []).length;
   const thisMonthStr = now.toISOString().slice(0, 7);
-  const thisMonthCount = groups[thisMonthStr]?.filter(s => s.status !== 'cancelled').length ?? 0;
+  const thisMonthCount = groups[thisMonthStr]?.length ?? 0;
 
   return (
     <div className="p-6 max-w-3xl space-y-6">
@@ -112,9 +108,9 @@ export default async function CalendarPage() {
               </div>
               <div className="divide-y divide-slate-50">
                 {items.map(item => {
-                  const meta = STATUS_META[item.status] ?? STATUS_META.planned;
+                  const meta = TYPE_META[item.type ?? 'other'] ?? TYPE_META.other;
                   const Icon = meta.icon;
-                  const date = new Date(item.scheduled_at);
+                  const date = new Date(item.start_time);
                   return (
                     <div key={item.id} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors cursor-pointer group">
                       <div className="w-12 text-center flex-shrink-0">
@@ -128,16 +124,6 @@ export default async function CalendarPage() {
 
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-slate-800 text-sm truncate">{item.title}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {item.platform && (
-                            <span className="text-xs text-slate-400">
-                              {PLATFORM_LABEL[item.platform] ?? item.platform}
-                            </span>
-                          )}
-                          {item.deal?.title && (
-                            <span className="text-xs text-slate-400">· {item.deal.title}</span>
-                          )}
-                        </div>
                       </div>
 
                       <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -159,24 +145,18 @@ export default async function CalendarPage() {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <h2 className="font-semibold text-sm text-slate-800">최근 업로드 완료</h2>
+            <h2 className="font-semibold text-sm text-slate-800">지난 일정</h2>
           </div>
           <div className="divide-y divide-slate-50">
-            {past!.map(item => (
+            {(past as Schedule[]).map(item => (
               <div key={item.id} className="px-5 py-3.5 flex items-center justify-between opacity-70">
                 <div>
                   <p className="font-medium text-slate-700 text-sm">{item.title}</p>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    {new Date(item.scheduled_at).toLocaleDateString('ko-KR')}
-                    {item.platform && ` · ${PLATFORM_LABEL[item.platform] ?? item.platform}`}
+                    {new Date(item.start_time).toLocaleDateString('ko-KR')}
+                    {item.type && ` · ${(TYPE_META[item.type] ?? TYPE_META.other).label}`}
                   </p>
                 </div>
-                {item.content_url && (
-                  <a href={item.content_url} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-indigo-600 hover:underline">
-                    보기
-                  </a>
-                )}
               </div>
             ))}
           </div>

@@ -8,9 +8,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { Eye, EyeOff, ExternalLink, CheckCircle, Save, RefreshCw, Lock, MessageSquare, BarChart2, Tag } from 'lucide-react';
 import { CREATOR_CATEGORIES } from '@/lib/categories';
 
+// 모바일 MediaKitEditScreen과 동일한 키 — 같은 media_kits.pricing jsonb를 공유한다
 const PRICING_KEYS = [
-  '유튜브 통합편집', '유튜브 브랜디드', '인스타그램 릴스', '인스타그램 피드', 'TikTok',
-];
+  { key: 'short_form', label: '숏폼 (60초 이하)' },
+  { key: 'long_form',  label: '롱폼 (10분 이상)' },
+  { key: 'story',      label: '스토리 / 릴스' },
+  { key: 'mention',    label: '제품 언급' },
+  { key: 'dedicated',  label: '전체 광고 영상' },
+] as const;
 
 interface Badge {
   id: string;
@@ -25,7 +30,7 @@ interface Channel {
   channel_name: string | null;
   profile_image_url: string | null;
   subscriber_count: number | null;
-  last_synced_at: string | null;
+  updated_at: string | null;
 }
 
 function formatSub(n: number) {
@@ -43,7 +48,7 @@ export default function MediaKitPage() {
   const [syncing, startSync]      = useTransition();
   const [saved, setSaved]         = useState(false);
 
-  const [creatorId, setCreatorId] = useState<string | null>(null);
+  const [userId, setUserId]       = useState<string | null>(null);
   const [handle, setHandle]       = useState('');
   const [bio, setBio]             = useState('');
   const [enabled, setEnabled]     = useState(false);
@@ -65,22 +70,30 @@ export default function MediaKitPage() {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) { window.location.href = '/creator/login?next=/creator/media-kit'; return; }
 
-      const { data } = await sb
-        .from('creator_profiles')
-        .select('id, handle, bio, media_kit_enabled, inbound_enabled, pricing_guide, badge_data, channels:creator_channels(platform, channel_name, profile_image_url, subscriber_count, last_synced_at)')
-        .eq('user_id', user.id)
-        .single();
+      const [{ data }, { data: channelRows }, { data: profile }] = await Promise.all([
+        sb.from('media_kits')
+          .select('slug, bio, is_form_enabled, pricing, badge_data')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        sb.from('social_channels')
+          .select('platform, channel_name, profile_image_url, subscriber_count, updated_at')
+          .eq('user_id', user.id),
+        sb.from('profiles')
+          .select('niche')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ]);
 
       if (data) {
-        setCreatorId(data.id);
-        setHandle(data.handle ?? '');
+        setUserId(user.id);
+        setHandle(data.slug ?? '');
         setBio(data.bio ?? '');
-        setEnabled(data.media_kit_enabled ?? false);
-        setInboundEnabled((data as any).inbound_enabled ?? false);
-        setIsPremium((data as any).inbound_enabled ?? false);
-        setCategory((data as any).category ?? '');
+        setEnabled(!!data.slug);
+        setInboundEnabled(data.is_form_enabled ?? false);
+        setIsPremium(data.is_form_enabled ?? false);
+        setCategory(profile?.niche ?? '');
         setBadges((data.badge_data as Badge[]) ?? []);
-        setChannels((data.channels as Channel[]) ?? []);
+        setChannels((channelRows as Channel[]) ?? []);
 
         const since30 = new Date();
         since30.setDate(since30.getDate() - 29);
@@ -88,7 +101,7 @@ export default function MediaKitPage() {
         const { data: views } = await sb
           .from('media_kit_views')
           .select('created_at')
-          .eq('creator_id', data.id)
+          .eq('user_id', user.id)
           .gte('created_at', since30.toISOString());
 
         if (views) {
@@ -115,10 +128,10 @@ export default function MediaKitPage() {
           });
         }
 
-        const guide = (data.pricing_guide ?? {}) as Record<string, number>;
+        const guide = (data.pricing ?? {}) as Record<string, number>;
         const strGuide: Record<string, string> = {};
-        for (const k of PRICING_KEYS) {
-          strGuide[k] = guide[k] ? String(Math.round(guide[k] / 10000)) : '';
+        for (const { key } of PRICING_KEYS) {
+          strGuide[key] = guide[key] ? String(Math.round(guide[key] / 10000)) : '';
         }
         setPricing(strGuide);
       }
@@ -127,17 +140,22 @@ export default function MediaKitPage() {
   }, []);
 
   function handleSave() {
-    if (!creatorId) return;
+    if (!userId) return;
     startSave(async () => {
       const guide: Record<string, number> = {};
       for (const [k, v] of Object.entries(pricing)) {
         const n = parseInt(v.replace(/,/g, ''), 10);
         if (!isNaN(n) && n > 0) guide[k] = n * 10000;
       }
-      await getSb()
-        .from('creator_profiles')
-        .update({ bio, media_kit_enabled: enabled, inbound_enabled: inboundEnabled, pricing_guide: guide, category: category || null })
-        .eq('id', creatorId);
+      const sb = getSb();
+      await Promise.all([
+        sb.from('media_kits')
+          .update({ bio: bio.trim() || null, is_form_enabled: inboundEnabled, pricing: Object.keys(guide).length > 0 ? guide : null })
+          .eq('user_id', userId),
+        sb.from('profiles')
+          .update({ niche: category || null })
+          .eq('id', userId),
+      ]);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     });
@@ -187,17 +205,16 @@ export default function MediaKitPage() {
               {handle ? `manybe.io/${handle}` : '핸들이 설정되지 않았습니다'}
             </p>
           </div>
-          <button
-            onClick={() => setEnabled(v => !v)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+          <span
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${
               enabled
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'bg-slate-100 text-slate-500 border border-slate-200'
             }`}
           >
             {enabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            {enabled ? '공개 중' : '비공개'}
-          </button>
+            {enabled ? '공개 중' : '핸들 미설정'}
+          </span>
         </div>
         {enabled && handle && (
           <a href={`/${handle}`} target="_blank" rel="noopener noreferrer"
@@ -277,7 +294,7 @@ export default function MediaKitPage() {
                 <p className="text-sm font-semibold text-slate-800 truncate">{ch.channel_name ?? ch.platform}</p>
                 <p className="text-xs text-slate-400">
                   {ch.subscriber_count ? `${formatSub(ch.subscriber_count)} 구독자` : '–'}
-                  {ch.last_synced_at && ` · ${new Date(ch.last_synced_at).toLocaleDateString('ko-KR')} 동기화`}
+                  {ch.updated_at && ` · ${new Date(ch.updated_at).toLocaleDateString('ko-KR')} 동기화`}
                 </p>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-500 flex-shrink-0">
@@ -434,9 +451,9 @@ export default function MediaKitPage() {
           <p className="text-xs text-slate-400 mt-1">광고주에게 예상 단가 범위를 제공합니다 (만원 단위)</p>
         </div>
         <div className="space-y-3">
-          {PRICING_KEYS.map(key => (
+          {PRICING_KEYS.map(({ key, label }) => (
             <div key={key} className="flex items-center gap-3">
-              <label className="text-sm text-slate-600 w-36 flex-shrink-0">{key}</label>
+              <label className="text-sm text-slate-600 w-36 flex-shrink-0">{label}</label>
               <div className="flex items-center gap-2 flex-1">
                 <input
                   type="number"

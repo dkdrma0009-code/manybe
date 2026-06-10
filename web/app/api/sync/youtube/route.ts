@@ -7,18 +7,10 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: profile } = await supabase
-    .from('creator_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-
   const { data: channels } = await supabase
-    .from('creator_channels')
-    .select('*')
-    .eq('creator_id', profile.id);
+    .from('social_channels')
+    .select('platform, subscriber_count, avg_views, engagement_rate, subscriber_history')
+    .eq('user_id', user.id);
 
   if (!channels?.length) return NextResponse.json({ error: 'No channels' }, { status: 404 });
 
@@ -31,9 +23,9 @@ export async function POST() {
   })));
 
   await supabase
-    .from('creator_profiles')
+    .from('media_kits')
     .update({ badge_data: badges })
-    .eq('id', profile.id);
+    .eq('user_id', user.id);
 
   return NextResponse.json({ badges });
 }
