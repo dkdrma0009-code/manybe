@@ -23,16 +23,11 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { useRealtime } from '../../context/RealtimeContext';
 import { useProposals, Proposal } from '../../hooks/useProposals';
+import { formatWon } from '../../utils/formatters';
 
 const { colors, space, radius, shadows, typography } = theme;
 
 const PIPELINE_ORDER: DisplayStatus[] = ['문의', '검토중', '진행중', '업로드됨', '정산완료'];
-
-function formatWon(n: number): string {
-  if (n >= 100_000_000) return `${Math.floor(n / 100_000_000)}억원`;
-  if (n >= 10_000) return `${Math.floor(n / 10_000)}만원`;
-  return n.toLocaleString('ko-KR') + '원';
-}
 
 const FILTER_EMPTY: Record<DisplayStatus, { icon: string; title: string; desc: string }> = {
   '문의':     { icon: '📬', title: '답변 대기 중인 문의가 없어요',   desc: '미디어 키트로 인바운드 문의를 받아보세요' },

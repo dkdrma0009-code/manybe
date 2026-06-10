@@ -11,6 +11,7 @@ import type { AdvertiserRootStackParamList } from '../../navigation/AdvertiserNa
 import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { tokens } from '../../constants/tokens';
+import { formatCountKo as formatCount } from '../../utils/formatters';
 
 type Nav = NativeStackNavigationProp<AdvertiserRootStackParamList>;
 
@@ -40,12 +41,6 @@ const PLATFORM_COLOR: Record<string, string> = {
 const PLATFORM_LABEL: Record<string, string> = {
   youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok',
 };
-
-function formatCount(n: number): string {
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
-  if (n >= 1000)  return `${(n / 1000).toFixed(1)}천`;
-  return String(n);
-}
 
 function getPrimaryChannel(c: Creator, platformKey: string | null): Channel | null {
   const chs = c.social_channels ?? [];

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../api/supabase';
 import { ENV } from '../config/env';
 import { makeLogger } from '../utils/logger';
+import { formatCount } from '../utils/formatters';
 
 const log = makeLogger('useSocialChannels');
 
@@ -19,13 +20,6 @@ export interface SocialChannel {
 }
 
 const YOUTUBE_API_KEY = ENV.YOUTUBE_API_KEY;
-
-function formatCount(n: number): string {
-  if (n >= 100000000) return `${(n / 100000000).toFixed(1)}억`;
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
-  return String(n);
-}
 
 // 채널 URL 또는 ID에서 채널 ID 추출
 function extractChannelId(input: string): string {

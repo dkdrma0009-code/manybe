@@ -12,6 +12,7 @@ import { useRealtime } from '../../context/RealtimeContext';
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
+import { daysAgo as timeAgo } from '../../utils/formatters';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -42,14 +43,6 @@ const STATUS_BG: Record<string, string> = {
   accepted: tokens.successBg,
   rejected: tokens.urgentBg,
 };
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const d = Math.floor(diff / 86_400_000);
-  if (d === 0) return '오늘';
-  if (d === 1) return '어제';
-  return `${d}일 전`;
-}
 
 export default function IncomingProposalsScreen() {
   const insets = useSafeAreaInsets();

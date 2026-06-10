@@ -26,14 +26,9 @@ import { useActivation } from '../../hooks/useActivation';
 import type { MemoryEntry } from '../../services/OperationalMemory';
 import type { TabParamList } from '../../navigation/TabNavigator';
 import { tokens } from '../../constants/tokens';
+import { formatKRW, formatWon, timeAgo } from '../../utils/formatters';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
-
-function formatKRW(n: number): string {
-  if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}억`;
-  if (n >= 10_000) return `${Math.floor(n / 10_000)}만원`;
-  return n.toLocaleString('ko-KR') + '원';
-}
 
 function riskColor(risk: 'high' | 'medium' | 'low'): string {
   return risk === 'high' ? tokens.urgent : risk === 'medium' ? tokens.reviewing : tokens.uploaded;
@@ -73,12 +68,6 @@ function urgencyColor(u: 'critical' | 'high' | 'medium'): string {
   return u === 'critical' ? tokens.urgent : u === 'high' ? tokens.reviewing : tokens.inProgress;
 }
 
-function formatWon(n: number): string {
-  if (n >= 100_000_000) return `${Math.floor(n / 100_000_000)}억원`;
-  if (n >= 10_000)      return `${Math.floor(n / 10_000)}만원`;
-  return n.toLocaleString('ko-KR') + '원';
-}
-
 type HealthFactor = { name: string; impact: 'positive' | 'negative'; detail: string };
 type ToolResult<T> = { data: T; explanation: string; confidence: number };
 
@@ -114,16 +103,6 @@ function forecastRevenueTool(
     explanation: `예상 이번 달 수익 ${formatWon(f.projectedThisMonth)} (신뢰도 ${f.forecastConfidence}%). 트렌드: ${trendLabel2}.`,
     confidence: f.forecastConfidence,
   };
-}
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60_000);
-  if (m < 1) return '방금';
-  if (m < 60) return `${m}분 전`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
-  return `${Math.floor(h / 24)}일 전`;
 }
 
 function eventLabel(type: MemoryEntry['type']): { icon: string; label: string } {

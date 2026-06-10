@@ -11,14 +11,9 @@ import { RevenueBarChart } from './RevenueBarChart';
 import { loadDemoProfile, generateDemoData, type DemoIntelligence } from '../services/DemoDataService';
 import { tokens } from '../constants/tokens';
 import type { TabParamList } from '../navigation/TabNavigator';
+import { formatKRW } from '../utils/formatters';
 
 type TabNav = BottomTabNavigationProp<TabParamList>;
-
-function formatKRW(n: number): string {
-  if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}억`;
-  if (n >= 10_000) return `${Math.floor(n / 10_000)}만원`;
-  return n.toLocaleString('ko-KR') + '원';
-}
 
 // ─── Demo sub-components ──────────────────────────────────────────────────────
 

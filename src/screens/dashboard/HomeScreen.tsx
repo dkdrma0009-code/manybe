@@ -16,6 +16,7 @@ import { supabase } from '../../api/supabase';
 import { theme } from '../../constants/theme';
 import { tokens } from '../../constants/tokens';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+import { formatWon } from '../../utils/formatters';
 
 const { colors, space, radius, shadows, typography } = theme;
 
@@ -35,11 +36,6 @@ function formatDate(): string {
   return `${days[now.getDay()]}요일 · ${now.getMonth() + 1}월 ${now.getDate()}일`;
 }
 
-function formatWon(n: number): string {
-  if (n >= 100_000_000) return `${Math.floor(n / 100_000_000)}억원`;
-  if (n >= 10_000) return `${Math.floor(n / 10_000)}만원`;
-  return n.toLocaleString('ko-KR') + '원';
-}
 
 
 // ─── Priority Card ────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@
 
 import { MorningBriefing, WeeklyReview, BriefingMode, BriefingItem, BriefingRisk } from '../types/autonomous';
 import { AutomationDeal, AutomationInquiry } from './AutomationEngine';
+import { formatWon } from '../utils/formatters';
 
 interface RevenueEntry {
   amount: number;
@@ -9,12 +10,6 @@ interface RevenueEntry {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatWon(n: number): string {
-  if (n >= 100_000_000) return `${Math.floor(n / 100_000_000)}억원`;
-  if (n >= 10_000)      return `${Math.floor(n / 10_000)}만원`;
-  return n.toLocaleString('ko-KR') + '원';
-}
 
 function determineBriefingMode(criticalRiskCount: number, revGrowthPct: number): BriefingMode {
   if (criticalRiskCount >= 2) return 'critical';

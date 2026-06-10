@@ -11,6 +11,7 @@ import type { AdvertiserRootStackParamList } from '../../navigation/AdvertiserNa
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
+import { formatCountKo as formatCount } from '../../utils/formatters';
 
 type Nav = NativeStackNavigationProp<AdvertiserRootStackParamList>;
 
@@ -39,12 +40,6 @@ const SUB_RANGES = [
   { label: '10만+', min: 100000, max: Infinity },
 ] as const;
 type SubRange = (typeof SUB_RANGES)[number];
-
-function formatCount(n: number): string {
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
-  if (n >= 1000)  return `${(n / 1000).toFixed(1)}천`;
-  return String(n);
-}
 
 const PLATFORM_KEY: Record<PlatformFilter, string | null> = {
   '전체': null,

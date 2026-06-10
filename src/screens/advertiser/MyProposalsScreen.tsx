@@ -11,6 +11,7 @@ import type { AdvertiserRootStackParamList } from '../../navigation/AdvertiserNa
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../api/supabase';
 import { tokens } from '../../constants/tokens';
+import { daysAgo as timeAgo } from '../../utils/formatters';
 
 type Nav = NativeStackNavigationProp<AdvertiserRootStackParamList>;
 
@@ -37,14 +38,6 @@ type StatusTab = (typeof STATUS_TABS)[number];
 const STATUS_TAB_KEY: Record<StatusTab, string | null> = {
   '전체': null, '검토중': 'pending', '수락됨': 'accepted', '거절됨': 'rejected',
 };
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const d = Math.floor(diff / 86_400_000);
-  if (d === 0) return '오늘';
-  if (d === 1) return '어제';
-  return `${d}일 전`;
-}
 
 export default function MyProposalsScreen() {
   const insets    = useSafeAreaInsets();

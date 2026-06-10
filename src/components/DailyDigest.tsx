@@ -4,16 +4,11 @@ import {
   View, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { OperationalSnapshot, DailyDigestItem } from '../hooks/useOperationalContext';
+import { formatWon } from '../utils/formatters';
 
 interface Props {
   snapshot: OperationalSnapshot;
   onNavigate: (target: string) => void;
-}
-
-function formatWon(n: number): string {
-  if (n >= 100_000_000) return `${Math.floor(n / 100_000_000)}억원`;
-  if (n >= 10_000) return `${Math.floor(n / 10_000)}만원`;
-  return n.toLocaleString('ko-KR') + '원';
 }
 
 export function DailyDigest({ snapshot, onNavigate }: Props) {

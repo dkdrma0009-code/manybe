@@ -12,6 +12,7 @@ import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
+import { formatCountKo as formatCount } from '../../utils/formatters';
 
 type Nav  = NativeStackNavigationProp<AdvertiserRootStackParamList>;
 type Route = RouteProp<AdvertiserRootStackParamList, 'CreatorProfile'>;
@@ -40,12 +41,6 @@ const PRICING_LABELS: Record<PricingKey, string> = {
   mention:    '제품 언급',
   dedicated:  '전체 광고 영상',
 };
-
-function formatCount(n: number): string {
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}천`;
-  return String(n);
-}
 
 export default function CreatorProfileScreen() {
   const insets = useSafeAreaInsets();
