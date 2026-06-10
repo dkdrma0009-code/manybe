@@ -141,17 +141,36 @@ function SectionCard({ children }: { children: React.ReactNode }) {
   return <View style={s.card}>{children}</View>;
 }
 
-function SectionTitle({ title, badge, badgeColor }: {
-  title: string; badge?: string; badgeColor?: string;
+function SectionTitle({ title, badge, badgeColor, pro }: {
+  title: string; badge?: string; badgeColor?: string; pro?: boolean;
 }) {
   return (
     <View style={s.sectionTitleRow}>
-      <Text style={s.sectionTitle}>{title}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Text style={s.sectionTitle}>{title}</Text>
+        {pro && (
+          <View style={s.proBadge}>
+            <Text style={s.proBadgeText}>PRO</Text>
+          </View>
+        )}
+      </View>
       {badge ? (
         <View style={[s.chip, { backgroundColor: (badgeColor ?? tokens.primary) + '22' }]}>
           <Text style={[s.chipText, { color: badgeColor ?? tokens.primary }]}>{badge}</Text>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+function ProDivider() {
+  return (
+    <View style={s.proDividerWrap}>
+      <View style={s.proDividerLine} />
+      <View style={s.proDividerChip}>
+        <Text style={s.proDividerText}>✦ PRO 전용</Text>
+      </View>
+      <View style={s.proDividerLine} />
     </View>
   );
 }
@@ -204,7 +223,7 @@ function ScoreRing({ score, trend }: {
         <Text style={[s.scoreNumber, { color: ringColor }]}>{score}</Text>
         <Text style={s.scoreMax}>/100</Text>
       </View>
-      <Text style={[s.scoreTrend, { color: tc }]}>{trend }</Text>
+      <Text style={[s.scoreTrend, { color: tc }]}>{trendText}</Text>
     </View>
   );
 }
@@ -391,7 +410,7 @@ export default function AnalyticsScreen() {
     return (
       <View style={[s.loader, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={tokens.primary} />
-        <Text style={s.loaderText}>인텔리전스 분석 중...</Text>
+        <Text style={s.loaderText}>데이터 분석 중...</Text>
       </View>
     );
   }
@@ -422,7 +441,9 @@ export default function AnalyticsScreen() {
         )}
       </View>
 
-      {/* ── 1. Creator Health ────────────────────────────────────── */}
+      {/* ══════════════ 무료 기능 ══════════════ */}
+
+      {/* ── 1. Creator Health ─────────────────────────────────────── */}
       {intelligence && p && f && (
         <SectionCard>
           <SectionTitle
@@ -468,12 +489,18 @@ export default function AnalyticsScreen() {
         </SectionCard>
       )}
 
-      {/* ── 2. Channel AI 분석 ──────────────────────────────────── */}
+      {/* ══════════════ PRO 전용 기능 ══════════════ */}
+      <ProDivider />
+
+      {/* ── 2. Channel AI 분석 ───────────────────────────────────── */}
       {ytChannelId && (
         <SectionCard>
           <PremiumGate feature="channel_analysis" previewHeight={200}>
           <View style={s.sectionTitleRow}>
-            <Text style={s.sectionTitle}>채널 AI 분석</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={s.sectionTitle}>채널 분석</Text>
+              <View style={s.proBadge}><Text style={s.proBadgeText}>PRO</Text></View>
+            </View>
             <TouchableOpacity
               onPress={runAnalysis}
               disabled={analyzing}
@@ -508,7 +535,7 @@ export default function AnalyticsScreen() {
                     <Text style={{ fontSize: 11, color: tokens.ink4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 }}>유입 키워드</Text>
                     <View style={[s.chip, { backgroundColor: chAnalysis.inflow_source === 'analytics' ? tokens.uploaded + '22' : tokens.ink4 + '18', paddingVertical: 2, paddingHorizontal: 6 }]}>
                       <Text style={{ fontSize: 9, fontWeight: '700', color: chAnalysis.inflow_source === 'analytics' ? tokens.uploaded : tokens.ink4 }}>
-                        {chAnalysis.inflow_source === 'analytics' ? '실측' : 'AI추정'}
+                        {chAnalysis.inflow_source === 'analytics' ? '실측' : '추정'}
                       </Text>
                     </View>
                   </View>
@@ -531,7 +558,7 @@ export default function AnalyticsScreen() {
                     <Text style={{ fontSize: 11, color: tokens.ink4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 }}>시청자 관심 카테고리</Text>
                     <View style={[s.chip, { backgroundColor: chAnalysis.audience_categories_source === 'analytics' ? tokens.uploaded + '22' : tokens.ink4 + '18', paddingVertical: 2, paddingHorizontal: 6 }]}>
                       <Text style={{ fontSize: 9, fontWeight: '700', color: chAnalysis.audience_categories_source === 'analytics' ? tokens.uploaded : tokens.ink4 }}>
-                        {chAnalysis.audience_categories_source === 'analytics' ? '실측' : 'AI추정'}
+                        {chAnalysis.audience_categories_source === 'analytics' ? '실측' : '추정'}
                       </Text>
                     </View>
                   </View>
@@ -631,7 +658,7 @@ export default function AnalyticsScreen() {
       {f && forecast && (
         <SectionCard>
           <SectionTitle
-            title="수익 인텔리전스"
+            title="수익 분석"
             badge={trendLabel(f.monthlyTrend)}
             badgeColor={trendColor(f.monthlyTrend)}
           />
@@ -661,7 +688,8 @@ export default function AnalyticsScreen() {
         <SectionCard>
           <PremiumGate feature="forecast_intelligence">
           <SectionTitle
-            title="예측 인텔리전스"
+            pro
+            title="수익 예측"
             badge={`신뢰도 ${f.forecastConfidence}%`}
             badgeColor={f.forecastConfidence >= 70 ? tokens.uploaded : tokens.reviewing}
           />
@@ -710,6 +738,7 @@ export default function AnalyticsScreen() {
         <SectionCard>
           <PremiumGate feature="revenue_stability">
           <SectionTitle
+            pro
             title="수익 안정성"
             badge={`안정성 ${stabilityScore}/100`}
             badgeColor={stabilityScore >= 70 ? tokens.uploaded : stabilityScore >= 45 ? tokens.reviewing : tokens.urgent}
@@ -763,7 +792,8 @@ export default function AnalyticsScreen() {
         <SectionCard>
           <PremiumGate feature="advanced_analytics">
             <SectionTitle
-              title="AI 분석"
+              pro
+              title="운영 진단"
               badge={`신뢰도 ${healthExplanation.confidence}%`}
               badgeColor={tokens.primary}
             />
@@ -778,7 +808,7 @@ export default function AnalyticsScreen() {
                 </View>
               ))
             ) : (
-              <EmptyState message="협찬을 계속 기록하면 AI 인사이트가 생성됩니다." />
+              <EmptyState message="협찬을 계속 기록하면 인사이트가 생성됩니다." />
             )}
             <View style={s.explanationRow}>
               <Text style={s.explanationText}>{healthExplanation.explanation}</Text>
@@ -792,6 +822,7 @@ export default function AnalyticsScreen() {
         <SectionCard>
           <PremiumGate feature="ai_coach">
             <SectionTitle
+              pro
               title="주간 리뷰"
               badge={weeklyReview.burnoutRisk ? '번아웃 주의' : `완결률 ${weeklyReview.completionRate}%`}
               badgeColor={weeklyReview.burnoutRisk ? tokens.urgent : tokens.uploaded}
@@ -824,7 +855,7 @@ export default function AnalyticsScreen() {
       {(weeklyReview || healthExplanation) && (
         <SectionCard>
           <PremiumGate feature="ai_coach">
-            <SectionTitle title="AI 코치" badge="주간" badgeColor={tokens.primary} />
+            <SectionTitle pro title="성장 코치" badge="주간" badgeColor={tokens.primary} />
             {healthExplanation?.data.factors.filter((f) => f.impact === 'positive').slice(0, 2).map((f, idx) => (
               <CoachItem
                 key={`pos-${idx}`}
@@ -863,7 +894,8 @@ export default function AnalyticsScreen() {
         <SectionCard>
           <PremiumGate feature="brand_risk">
             <SectionTitle
-              title="브랜드 인텔리전스"
+              pro
+              title="브랜드 분석"
               badge={`의존도 ${riskLabel(r.dependencyRisk)}`}
               badgeColor={riskColor(r.dependencyRisk)}
             />
@@ -909,7 +941,7 @@ export default function AnalyticsScreen() {
                       <View style={{ flex: 1 }} />
                       <Text style={s.brandRepeat}>재방문 {Math.round(brand.repeatProbability * 100)}%</Text>
                       <View style={[s.brandStatusChip, { backgroundColor: statusBg }]}>
-                        <Text style={[s.brandStatusText, { color: statusColor }]}>{status }</Text>
+                        <Text style={[s.brandStatusText, { color: statusColor }]}>{statusText}</Text>
                       </View>
                     </View>
                   );
@@ -924,7 +956,7 @@ export default function AnalyticsScreen() {
       {intelligence && p && f && r && op && (
         <SectionCard>
           <PremiumGate feature="trend_intelligence">
-            <SectionTitle title="트렌드 스냅샷" badge="현재 상태" badgeColor={tokens.ink4} />
+            <SectionTitle pro title="트렌드 스냅샷" badge="현재 상태" badgeColor={tokens.ink4} />
             <TrendRow
               label="번아웃 위험"
               value={riskLabel(p.burnoutRisk)}
@@ -968,7 +1000,7 @@ export default function AnalyticsScreen() {
       {op && (
         <SectionCard>
           <SectionTitle
-            title="운영 인텔리전스"
+            title="운영 현황"
             badge={op.timelineCongestion ? '일정 혼잡 ⚠' : '일정 정상'}
             badgeColor={op.timelineCongestion ? tokens.urgent : tokens.uploaded}
           />
@@ -1000,7 +1032,7 @@ export default function AnalyticsScreen() {
       {decisionItems.length > 0 && (
         <SectionCard>
           <SectionTitle
-            title="AI 추천 액션"
+            title="추천 액션"
             badge={`${decisionItems.length}건`}
             badgeColor={tokens.primary}
           />
@@ -1049,7 +1081,7 @@ export default function AnalyticsScreen() {
             );
           })
         ) : (
-          <EmptyState message="아직 활동 기록 없음 — AI 추천을 수락하거나 협찬을 업데이트하면 기록됩니다." />
+          <EmptyState message="아직 활동 기록 없음 — 추천 액션을 수락하거나 협찬을 업데이트하면 기록됩니다." />
         )}
       </SectionCard>
 
@@ -1253,4 +1285,21 @@ const s = StyleSheet.create({
 
   emptyState: { paddingVertical: 16, paddingHorizontal: 16, alignItems: 'center' },
   emptyText: { fontSize: 13, color: tokens.ink4, textAlign: 'center', lineHeight: 18 },
+
+  // PRO badge & divider
+  proBadge: {
+    backgroundColor: '#7C3AED', borderRadius: 5,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  proBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  proDividerWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 16, marginVertical: 8, gap: 10,
+  },
+  proDividerLine: { flex: 1, height: 1, backgroundColor: '#7C3AED33' },
+  proDividerChip: {
+    backgroundColor: '#7C3AED', borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 5,
+  },
+  proDividerText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 });

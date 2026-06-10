@@ -19,6 +19,8 @@ interface RealtimeContextValue {
   schedulesVersion: number;
   /** Increments whenever a revenue row changes */
   revenuesVersion: number;
+  /** Increments whenever an advertiser_proposals row changes (creator side) */
+  proposalsVersion: number;
   /** Unread inquiry count — synced from realtime + initial load */
   unreadInquiryCount: number;
   /** Call from InquiryScreen after it marks rows as read */
@@ -36,6 +38,7 @@ const DEFAULT: RealtimeContextValue = {
   inquiriesVersion: 0,
   schedulesVersion: 0,
   revenuesVersion: 0,
+  proposalsVersion: 0,
   unreadInquiryCount: 0,
   syncUnreadCount: () => {},
   unreadProposalMessageCount: 0,
@@ -61,6 +64,7 @@ export function RealtimeProvider({ userId, children }: Props) {
   const [inquiriesVersion, setInquiriesVersion] = useState(0);
   const [schedulesVersion, setSchedulesVersion] = useState(0);
   const [revenuesVersion,  setRevenuesVersion]  = useState(0);
+  const [proposalsVersion, setProposalsVersion] = useState(0);
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0);
   const [unreadProposalMessageCount, setUnreadProposalMessageCount] = useState(0);
 
@@ -105,7 +109,7 @@ export function RealtimeProvider({ userId, children }: Props) {
     mountedRef.current = true;
 
     // Batch rapid changes within a 120ms window to avoid N re-renders per bulk op
-    function scheduleBump(table: 'deals' | 'inquiries' | 'schedules' | 'revenues') {
+    function scheduleBump(table: 'deals' | 'inquiries' | 'schedules' | 'revenues' | 'proposals') {
       if (!mountedRef.current) return;
       pendingBumps.current.add(table);
       if (batchTimer.current) clearTimeout(batchTimer.current);
@@ -117,6 +121,7 @@ export function RealtimeProvider({ userId, children }: Props) {
         if (bumps.has('inquiries'))  setInquiriesVersion((v) => v + 1);
         if (bumps.has('schedules'))  setSchedulesVersion((v) => v + 1);
         if (bumps.has('revenues'))   setRevenuesVersion((v) => v + 1);
+        if (bumps.has('proposals'))  setProposalsVersion((v) => v + 1);
       }, 120);
     }
 
@@ -177,7 +182,16 @@ export function RealtimeProvider({ userId, children }: Props) {
         })
         .subscribe();
 
-      channelsRef.current = [deals, inquiries, schedules, revenues, chatMessages];
+      // 광고주가 보낸 협찬 제안 — 크리에이터가 실시간으로 새 제안을 받도록
+      const proposals = supabase
+        .channel(`realtime:proposals:${userId}`)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'advertiser_proposals',
+          filter: `creator_id=eq.${userId}`,
+        }, () => scheduleBump('proposals'))
+        .subscribe();
+
+      channelsRef.current = [deals, inquiries, schedules, revenues, chatMessages, proposals];
     }
 
     setup();
@@ -196,6 +210,7 @@ export function RealtimeProvider({ userId, children }: Props) {
           setInquiriesVersion((v) => v + 1);
           setSchedulesVersion((v) => v + 1);
           setRevenuesVersion((v) => v + 1);
+          setProposalsVersion((v) => v + 1);
         }
       } else if (next.match(/inactive|background/)) {
         // Going to background — release channels to save server connections.
@@ -224,6 +239,7 @@ export function RealtimeProvider({ userId, children }: Props) {
     setInquiriesVersion((v) => v + 1);
     setSchedulesVersion((v) => v + 1);
     setRevenuesVersion((v) => v + 1);
+    setProposalsVersion((v) => v + 1);
   }, []);
 
   return (
@@ -232,6 +248,7 @@ export function RealtimeProvider({ userId, children }: Props) {
       inquiriesVersion,
       schedulesVersion,
       revenuesVersion,
+      proposalsVersion,
       unreadInquiryCount,
       syncUnreadCount,
       unreadProposalMessageCount,

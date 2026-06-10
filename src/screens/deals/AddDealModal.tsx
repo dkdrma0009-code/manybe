@@ -143,7 +143,7 @@ function Field({ label, value, onChangeText, placeholder, keyboardType }: {
       <TextInput
         style={styles.input}
         value={value}
-        onChangeText={onChange }
+        onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#C4C4C4"
         keyboardType={keyboardType ?? 'default'}

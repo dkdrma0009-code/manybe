@@ -349,7 +349,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { data, loading, refetch } = useHomeData(user?.id);
   const { channels, formatCount } = useSocialChannels(user?.id);
-  const { dealsVersion } = useRealtime();
+  const { dealsVersion, proposalsVersion } = useRealtime();
 
   const [dismissedPriority, setDismissedPriority] = useState(false);
   const [pendingProposalCount, setPendingProposalCount] = useState(0);
@@ -364,7 +364,7 @@ export default function HomeScreen() {
       .eq('creator_id', user.id)
       .eq('status', 'pending')
       .then(({ count }) => { setPendingProposalCount(count ?? 0); });
-  }, [user?.id]);
+  }, [user?.id, proposalsVersion]);
 
   const userName = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? '크리에이터';
   const priorityDeal = data.activeDeals[0];

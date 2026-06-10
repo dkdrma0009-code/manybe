@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
+import { useRealtime } from '../../context/RealtimeContext';
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
@@ -54,6 +55,7 @@ export default function IncomingProposalsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const { user } = useAuth();
+  const { proposalsVersion } = useRealtime();
   const [proposals, setProposals] = useState<IncomingProposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,7 +92,7 @@ export default function IncomingProposalsScreen() {
     }
   }, [user]);
 
-  useEffect(() => { fetchProposals(); }, [fetchProposals]);
+  useEffect(() => { fetchProposals(); }, [fetchProposals, proposalsVersion]);
 
   function handleRespond(proposalId: string, status: 'accepted' | 'rejected') {
     const label = status === 'accepted' ? '수락' : '거절';

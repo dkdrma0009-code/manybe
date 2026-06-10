@@ -300,7 +300,7 @@ export default function ChatScreen() {
         <TextInput
           style={cs.input}
           value={text}
-          onChangeText={set }
+          onChangeText={setText}
           placeholder="메시지를 입력하세요..."
           placeholderTextColor={colors.text.muted}
           multiline
