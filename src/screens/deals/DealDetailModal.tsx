@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useState } from 'react';
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
+  Modal, View, TextInput, TouchableOpacity,
   StyleSheet, ScrollView, ActivityIndicator, Alert,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
@@ -343,7 +344,7 @@ function Field({ label, value, onChangeText, placeholder, keyboardType }: {
       <TextInput
         style={styles.input}
         value={value}
-        onChangeText={onChangeText}
+        onChangeText={onChange }
         placeholder={placeholder}
         placeholderTextColor="#C4C4C4"
         keyboardType={keyboardType ?? 'default'}

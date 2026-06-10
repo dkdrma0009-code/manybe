@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { OperationalSnapshot, DailyDigestItem } from '../hooks/useOperationalContext';
 

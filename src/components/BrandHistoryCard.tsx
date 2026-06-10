@@ -1,5 +1,6 @@
+import { Text } from '@/components/Text';
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { useBrandHistory } from '../hooks/useBrandHistory';
 
 interface Props {

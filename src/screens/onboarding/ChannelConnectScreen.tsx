@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, TextInput, TouchableOpacity,
   StyleSheet, ScrollView, ActivityIndicator, Linking,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';

@@ -95,4 +95,10 @@ export const tokens = {
   energySoft: '#FEF0EE',
   urgent:     '#E8472A',
   urgentBg:   '#FEF0EE',
+  // ── Typography ────────────────────────────────────────────────────────────
+  fontRegular:    'Pretendard-Regular',
+  fontMedium:     'Pretendard-Medium',
+  fontSemiBold:   'Pretendard-SemiBold',
+  fontBold:       'Pretendard-Bold',
+  fontExtraBold:  'Pretendard-ExtraBold',
 } as const;

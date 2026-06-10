@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  View, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -203,7 +204,7 @@ function ScoreRing({ score, trend }: {
         <Text style={[s.scoreNumber, { color: ringColor }]}>{score}</Text>
         <Text style={s.scoreMax}>/100</Text>
       </View>
-      <Text style={[s.scoreTrend, { color: tc }]}>{trendText}</Text>
+      <Text style={[s.scoreTrend, { color: tc }]}>{trend }</Text>
     </View>
   );
 }
@@ -470,7 +471,7 @@ export default function AnalyticsScreen() {
       {/* ── 2. Channel AI 분석 ──────────────────────────────────── */}
       {ytChannelId && (
         <SectionCard>
-          <PremiumGate feature="channel_analysis" previewHeight={52}>
+          <PremiumGate feature="channel_analysis" previewHeight={200}>
           <View style={s.sectionTitleRow}>
             <Text style={s.sectionTitle}>채널 AI 분석</Text>
             <TouchableOpacity
@@ -500,6 +501,52 @@ export default function AnalyticsScreen() {
 
           {chAnalysis && !analyzing && (
             <>
+              {/* 유입 키워드 — 최상단 배치 */}
+              {chAnalysis.inflow_keywords && chAnalysis.inflow_keywords.length > 0 && (
+                <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                    <Text style={{ fontSize: 11, color: tokens.ink4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 }}>유입 키워드</Text>
+                    <View style={[s.chip, { backgroundColor: chAnalysis.inflow_source === 'analytics' ? tokens.uploaded + '22' : tokens.ink4 + '18', paddingVertical: 2, paddingHorizontal: 6 }]}>
+                      <Text style={{ fontSize: 9, fontWeight: '700', color: chAnalysis.inflow_source === 'analytics' ? tokens.uploaded : tokens.ink4 }}>
+                        {chAnalysis.inflow_source === 'analytics' ? '실측' : 'AI추정'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {chAnalysis.inflow_keywords.map((kw) => (
+                      <View key={kw} style={[s.chip, { backgroundColor: tokens.reviewing + '18' }]}>
+                        <Text style={[s.chipText, { color: tokens.reviewing }]}>🔍 {kw}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <Divider />
+
+              {/* 시청자 관심 카테고리 */}
+              {chAnalysis.audience_categories && chAnalysis.audience_categories.length > 0 && (
+                <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                    <Text style={{ fontSize: 11, color: tokens.ink4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 }}>시청자 관심 카테고리</Text>
+                    <View style={[s.chip, { backgroundColor: chAnalysis.audience_categories_source === 'analytics' ? tokens.uploaded + '22' : tokens.ink4 + '18', paddingVertical: 2, paddingHorizontal: 6 }]}>
+                      <Text style={{ fontSize: 9, fontWeight: '700', color: chAnalysis.audience_categories_source === 'analytics' ? tokens.uploaded : tokens.ink4 }}>
+                        {chAnalysis.audience_categories_source === 'analytics' ? '실측' : 'AI추정'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {chAnalysis.audience_categories.map((cat) => (
+                      <View key={cat} style={[s.chip, { backgroundColor: tokens.uploaded + '18' }]}>
+                        <Text style={[s.chipText, { color: tokens.uploaded }]}>✦ {cat}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <Divider />
+
               {/* 감성 점수 */}
               <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -862,7 +909,7 @@ export default function AnalyticsScreen() {
                       <View style={{ flex: 1 }} />
                       <Text style={s.brandRepeat}>재방문 {Math.round(brand.repeatProbability * 100)}%</Text>
                       <View style={[s.brandStatusChip, { backgroundColor: statusBg }]}>
-                        <Text style={[s.brandStatusText, { color: statusColor }]}>{statusText}</Text>
+                        <Text style={[s.brandStatusText, { color: statusColor }]}>{status }</Text>
                       </View>
                     </View>
                   );

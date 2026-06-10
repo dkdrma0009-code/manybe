@@ -36,6 +36,10 @@ export const ENV = {
   // YouTube — optional; feature-gated if missing
   YOUTUBE_API_KEY: process.env.EXPO_PUBLIC_YOUTUBE_API_KEY ?? '',
 
+  // Google OAuth Web Client ID — YouTube Analytics 연동에 사용
+  // Google Cloud Console → OAuth 2.0 클라이언트 ID → 웹 애플리케이션 유형
+  GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
+
   // ── URL architecture (app.manybe.site) ─────────────────────────────────────
   // Future sub-domains for web / admin / API separation:
   //   app.manybe.site   → creator app (web)

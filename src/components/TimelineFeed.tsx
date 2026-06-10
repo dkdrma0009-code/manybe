@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
+  View, TouchableOpacity, StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { TimelineGroup, TimelineItem } from '../types/timeline';
 

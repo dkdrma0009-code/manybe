@@ -1,7 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,

@@ -1,5 +1,6 @@
+import { Text } from '@/components/Text';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { DealHealthResult } from '../utils/dealHealth';
 
 interface Props {

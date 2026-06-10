@@ -1,5 +1,6 @@
+import { Text } from '@/components/Text';
 import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { colors } from '../constants/colors';
 import { motion } from '../constants/motion';
 import { typography } from '../constants/typography';

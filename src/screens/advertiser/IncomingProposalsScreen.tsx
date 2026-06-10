@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, ActivityIndicator,
+  View, StyleSheet, FlatList, ActivityIndicator,
   TouchableOpacity, RefreshControl, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

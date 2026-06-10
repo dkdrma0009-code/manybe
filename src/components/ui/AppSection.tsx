@@ -1,5 +1,6 @@
+import { Text } from '@/components/Text';
 import React from 'react';
-import { View, Text, StyleSheet, ViewProps } from 'react-native';
+import { View, StyleSheet, ViewProps } from 'react-native';
 import { theme } from '../../constants/theme';
 
 interface AppSectionProps extends ViewProps {

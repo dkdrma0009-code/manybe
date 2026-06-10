@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  View, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';

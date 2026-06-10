@@ -1,8 +1,10 @@
+import { Text } from '@/components/Text';
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  View, ScrollView, TouchableOpacity,
   StyleSheet, RefreshControl,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,6 +14,7 @@ import { useSocialChannels } from '../../hooks/useSocialChannels';
 import { useRealtime } from '../../context/RealtimeContext';
 import { supabase } from '../../api/supabase';
 import { theme } from '../../constants/theme';
+import { tokens } from '../../constants/tokens';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 
 const { colors, space, radius, shadows, typography } = theme;
@@ -38,11 +41,6 @@ function formatWon(n: number): string {
   return n.toLocaleString('ko-KR') + '원';
 }
 
-const PLATFORM_CONFIG: Record<string, { icon: string; color: string }> = {
-  youtube:   { icon: '▶', color: '#FF0000' },
-  instagram: { icon: '◎', color: '#E1306C' },
-  tiktok:    { icon: '♪', color: '#010101' },
-};
 
 // ─── Priority Card ────────────────────────────────────────────────────────────
 
@@ -157,42 +155,79 @@ const sh = StyleSheet.create({
   count: { ...typography.caption, color: colors.text.tertiary },
 });
 
-// ─── Channel Row ──────────────────────────────────────────────────────────────
+// ─── Channel Card ─────────────────────────────────────────────────────────────
 
-function ChannelRow({
-  platform,
-  name,
-  lastActivity,
-  hasActivity,
+const PLATFORM_ICON: Record<string, { name: React.ComponentProps<typeof Ionicons>['name']; color: string }> = {
+  youtube:   { name: 'logo-youtube',   color: '#FF0000' },
+  instagram: { name: 'logo-instagram', color: '#E1306C' },
+  tiktok:    { name: 'logo-tiktok',    color: '#010101' },
+};
+
+function ChannelCard({
+  ch,
+  formatCount,
+  onPress,
 }: {
-  platform: string;
-  name: string;
-  lastActivity: string;
-  hasActivity?: boolean;
+  ch: import('../../hooks/useSocialChannels').SocialChannel;
+  formatCount: (n: number) => string;
+  onPress: () => void;
 }) {
-  const cfg = PLATFORM_CONFIG[platform] ?? { icon: '●', color: '#888' };
+  const cfg = PLATFORM_ICON[ch.platform] ?? { name: 'globe-outline' as const, color: '#888' };
+  const syncedAt = new Date(ch.updated_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
   return (
-    <View style={cr.row}>
-      <View style={[cr.icon, { backgroundColor: cfg.color + '15' }]}>
-        <Text style={[cr.iconText, { color: cfg.color }]}>{cfg.icon}</Text>
+    <TouchableOpacity style={cc.card} onPress={onPress} activeOpacity={0.85}>
+      <View style={cc.top}>
+        <View style={[cc.iconWrap, { backgroundColor: cfg.color + '12' }]}>
+          <Ionicons name={cfg.name} size={20} color={cfg.color} />
+        </View>
+        <View style={cc.titleWrap}>
+          <Text style={cc.name} numberOfLines={1}>
+            {ch.handle ? `@${ch.handle.replace(/^@/, '')}` : ch.channel_name}
+          </Text>
+          <Text style={cc.sync}>{syncedAt} 동기화</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={colors.text.muted} />
       </View>
-      <View style={cr.info}>
-        <Text style={cr.name}>{name || platform}</Text>
-        <Text style={cr.activity}>{lastActivity}</Text>
+      <View style={cc.stats}>
+        <View style={cc.stat}>
+          <Text style={cc.statVal}>{formatCount(ch.subscriber_count)}</Text>
+          <Text style={cc.statLabel}>구독자</Text>
+        </View>
+        <View style={cc.divider} />
+        <View style={cc.stat}>
+          <Text style={cc.statVal}>{formatCount(ch.view_count)}</Text>
+          <Text style={cc.statLabel}>총 조회수</Text>
+        </View>
+        <View style={cc.divider} />
+        <View style={cc.stat}>
+          <Text style={cc.statVal}>{ch.video_count.toLocaleString()}</Text>
+          <Text style={cc.statLabel}>영상 수</Text>
+        </View>
       </View>
-      <View style={[cr.dot, { backgroundColor: hasActivity ? colors.brand.default : colors.border.default }]} />
-    </View>
+    </TouchableOpacity>
   );
 }
 
-const cr = StyleSheet.create({
-  row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: space.sm + 2, gap: space.md },
-  icon:     { width: 34, height: 34, borderRadius: radius.sm + 2, alignItems: 'center', justifyContent: 'center' },
-  iconText: { fontSize: 14, fontWeight: '700' },
-  info:     { flex: 1 },
-  name:     { ...typography.bodyStrong, color: colors.text.primary },
-  activity: { ...typography.caption, color: colors.text.tertiary, marginTop: 1 },
-  dot:      { width: 7, height: 7, borderRadius: 4 },
+const cc = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.faint,
+    padding: space.lg,
+    marginBottom: space.sm,
+    ...shadows.sm,
+  },
+  top:       { flexDirection: 'row', alignItems: 'center', marginBottom: space.md, gap: space.md },
+  iconWrap:  { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  titleWrap: { flex: 1 },
+  name:      { ...typography.bodyStrong, color: colors.text.primary },
+  sync:      { ...typography.caption, color: colors.text.tertiary, marginTop: 2 },
+  stats:     { flexDirection: 'row', backgroundColor: colors.bg, borderRadius: radius.md, padding: space.md },
+  stat:      { flex: 1, alignItems: 'center' },
+  statVal:   { fontSize: 16, fontWeight: '700', color: colors.text.primary, letterSpacing: -0.3 },
+  statLabel: { ...typography.caption, color: colors.text.tertiary, marginTop: 2 },
+  divider:   { width: 1, backgroundColor: colors.border.faint, marginVertical: 2 },
 });
 
 // ─── Deal Row ─────────────────────────────────────────────────────────────────
@@ -240,6 +275,43 @@ const dr = StyleSheet.create({
   arrow:      { fontSize: 16, color: colors.text.muted, marginLeft: 2 },
 });
 
+// ─── Quick Actions ────────────────────────────────────────────────────────────
+
+const QUICK_ACTIONS = [
+  { icon: 'analytics-outline'    as const, label: '채널 분석',  screen: 'Analytics'  },
+  { icon: 'briefcase-outline'    as const, label: '협찬 관리',  screen: 'Main'       },
+  { icon: 'wallet-outline'       as const, label: '수익 기록',  screen: 'Revenue'    },
+  { icon: 'chatbubble-outline'   as const, label: '문의함',     screen: 'Inquiries'  },
+] as const;
+
+function QuickActions({ onPress }: { onPress: (screen: string) => void }) {
+  return (
+    <View style={qa.wrap}>
+      {QUICK_ACTIONS.map((a) => (
+        <TouchableOpacity key={a.label} style={qa.item} onPress={() => onPress(a.screen)} activeOpacity={0.75}>
+          <View style={qa.iconWrap}>
+            <Ionicons name={a.icon} size={22} color={colors.brand.default} />
+          </View>
+          <Text style={qa.label}>{a.label}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+const qa = StyleSheet.create({
+  wrap:     { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.xl },
+  item:     { alignItems: 'center', gap: space.xs + 1, flex: 1 },
+  iconWrap: {
+    width: 52, height: 52, borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border.faint,
+    alignItems: 'center', justifyContent: 'center',
+    ...shadows.sm,
+  },
+  label: { ...typography.caption, color: colors.text.secondary, fontWeight: '500' },
+});
+
 // ─── Divider ──────────────────────────────────────────────────────────────────
 
 function Divider() {
@@ -276,7 +348,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const { data, loading, refetch } = useHomeData(user?.id);
-  const { channels } = useSocialChannels(user?.id);
+  const { channels, formatCount } = useSocialChannels(user?.id);
   const { dealsVersion } = useRealtime();
 
   const [dismissedPriority, setDismissedPriority] = useState(false);
@@ -304,26 +376,14 @@ export default function HomeScreen() {
       <View style={s.header}>
         <Text style={s.logo}>manybe</Text>
         <View style={s.headerRight}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Revenue')}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={s.bell}>💰</Text>
+          <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Revenue')} activeOpacity={0.7}>
+            <Ionicons name="wallet-outline" size={20} color={tokens.ink2} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Analytics')}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={s.bell}>📊</Text>
+          <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Analytics')} activeOpacity={0.7}>
+            <Ionicons name="analytics-outline" size={20} color={tokens.ink2} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Notifications')}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={s.bell}>🔔</Text>
+          <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Notifications')} activeOpacity={0.7}>
+            <Ionicons name="notifications-outline" size={20} color={tokens.ink2} />
           </TouchableOpacity>
         </View>
       </View>
@@ -364,6 +424,12 @@ export default function HomeScreen() {
 
         <View style={s.gap} />
 
+        {/* 퀵 액션 */}
+        <QuickActions onPress={(screen) => {
+          if (screen === 'Main') navigation.navigate('Main', { screen: '협찬' } as any);
+          else navigation.navigate(screen as any);
+        }} />
+
         {/* 오늘 우선 처리 */}
         {showPriority && (
           <PriorityCard
@@ -377,27 +443,22 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* 내 작업실 */}
+        {/* 내 채널 */}
         {channels.length > 0 && (
           <>
             <SectionHeader
-              title="내 작업실"
+              title="내 채널"
               count={channels.length}
               onMore={() => navigation.navigate('YouTubeConnect')}
             />
-            <Card>
-              {channels.map((ch, i) => (
-                <React.Fragment key={ch.id}>
-                  {i > 0 && <Divider />}
-                  <ChannelRow
-                    platform={ch.platform}
-                    name={ch.handle ? `@${ch.handle}` : ch.channel_name}
-                    lastActivity={ch.platform === 'youtube' ? '이제 업로드' : '최근 업데이트'}
-                    hasActivity={i === 0}
-                  />
-                </React.Fragment>
-              ))}
-            </Card>
+            {channels.map((ch) => (
+              <ChannelCard
+                key={ch.id}
+                ch={ch}
+                formatCount={formatCount}
+                onPress={() => navigation.navigate('Analytics')}
+              />
+            ))}
           </>
         )}
 
@@ -459,8 +520,12 @@ const s = StyleSheet.create({
     color: colors.text.primary,
     letterSpacing: -0.3,
   },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  bell: { fontSize: 18 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBtn: {
+    width: 36, height: 36, borderRadius: 12,
+    backgroundColor: '#F0EEF8',
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   scroll: { paddingHorizontal: space.screen, paddingTop: space.sm },
 

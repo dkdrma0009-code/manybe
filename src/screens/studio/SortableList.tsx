@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useRef, useState } from 'react';
 import {
-  Animated, PanResponder, View, Text, TouchableOpacity,
+  Animated, PanResponder, View, TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import { theme } from '../../constants/theme';

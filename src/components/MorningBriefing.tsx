@@ -1,5 +1,6 @@
+import { Text } from '@/components/Text';
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { MorningBriefing as BriefingData, BriefingMode } from '../types/autonomous';
 import { shadows } from '../constants/shadows';
 

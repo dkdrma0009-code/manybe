@@ -1,9 +1,9 @@
+import { Text } from '@/components/Text';
 import React from 'react';
 import {
   TouchableOpacity,
   TouchableOpacityProps,
   View,
-  Text,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';

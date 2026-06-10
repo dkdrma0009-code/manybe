@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList,
+  View, TextInput, TouchableOpacity, FlatList,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
   Modal, Pressable,
 } from 'react-native';
@@ -299,7 +300,7 @@ export default function ChatScreen() {
         <TextInput
           style={cs.input}
           value={text}
-          onChangeText={setText}
+          onChangeText={set }
           placeholder="메시지를 입력하세요..."
           placeholderTextColor={colors.text.muted}
           multiline

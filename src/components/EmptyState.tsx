@@ -1,5 +1,6 @@
+import { Text } from '@/components/Text';
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { tokens } from '../constants/tokens';
 import { typography } from '../constants/typography';
 

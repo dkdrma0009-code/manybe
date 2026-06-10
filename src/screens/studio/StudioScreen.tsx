@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  View, ScrollView, TouchableOpacity,
   StyleSheet, Linking, Modal,
 } from 'react-native';
 import { SortableList } from './SortableList';

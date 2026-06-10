@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { SmartRecommendation } from '../types/automation';
 

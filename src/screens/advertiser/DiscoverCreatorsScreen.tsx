@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, TextInput, ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

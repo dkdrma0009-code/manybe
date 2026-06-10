@@ -1,5 +1,6 @@
+import { Text } from '@/components/Text';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { tokens } from '../constants/tokens';
 
 export interface ChartBar {

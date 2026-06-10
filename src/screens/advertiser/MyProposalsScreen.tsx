@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, ActivityIndicator,
+  View, StyleSheet, FlatList, ActivityIndicator,
   TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +21,7 @@ interface Proposal {
   message: string;
   amount: number;
   status: 'pending' | 'accepted' | 'rejected';
+  rejection_reason: string | null;
   created_at: string;
   creator_name: string | null;
 }
@@ -59,7 +61,7 @@ export default function MyProposalsScreen() {
     try {
       const { data } = await supabase
         .from('advertiser_proposals')
-        .select('id, creator_id, brand_name, message, amount, status, created_at')
+        .select('id, creator_id, brand_name, message, amount, status, rejection_reason, created_at')
         .eq('advertiser_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -185,6 +187,14 @@ export default function MyProposalsScreen() {
 
                 {/* 메시지 미리보기 */}
                 <Text style={s.message} numberOfLines={2}>{item.message}</Text>
+
+                {/* 거절 사유 */}
+                {item.status === 'rejected' && item.rejection_reason && (
+                  <View style={s.rejectionBox}>
+                    <Text style={s.rejectionLabel}>거절 사유</Text>
+                    <Text style={s.rejectionText}>{item.rejection_reason}</Text>
+                  </View>
+                )}
               </View>
             );
           }}
@@ -272,6 +282,15 @@ const s = StyleSheet.create({
   brandName:       { fontSize: 16, fontWeight: '700', color: tokens.ink },
   amount:          { fontSize: 14, fontWeight: '700', color: tokens.action },
   message:         { fontSize: 13, color: tokens.ink3, lineHeight: 19 },
+
+  rejectionBox: {
+    backgroundColor: tokens.errorBg,
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 4,
+  },
+  rejectionLabel: { fontSize: 11, fontWeight: '600', color: tokens.error, marginBottom: 3 },
+  rejectionText:  { fontSize: 13, color: tokens.error, lineHeight: 18 },
 
   empty:      { alignItems: 'center', paddingTop: 80, gap: 12 },
   emptyIcon:  { fontSize: 40 },

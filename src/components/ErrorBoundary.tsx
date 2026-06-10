@@ -1,5 +1,6 @@
+import { Text } from '@/components/Text';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { makeLogger } from '../utils/logger';
 
 const log = makeLogger('ErrorBoundary');

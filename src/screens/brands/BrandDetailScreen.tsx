@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator,
+  View, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';

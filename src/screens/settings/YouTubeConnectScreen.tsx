@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { Text } from '@/components/Text';
+import React, { useState, useEffect } from 'react';
 import { makeLogger } from '../../utils/logger';
 
 const log = makeLogger('YouTubeConnectScreen');
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -13,10 +13,16 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import { useAuth } from '../../hooks/useAuth';
 import { useSocialChannels, SocialChannel } from '../../hooks/useSocialChannels';
+import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
+import { ENV } from '../../config/env';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'YouTubeConnect'>;
@@ -88,6 +94,11 @@ const card = StyleSheet.create({
   divider: { width: 1, height: 32, backgroundColor: 'rgba(110,86,240,0.15)' },
 });
 
+// YouTube Analytics OAuth 설정
+const ANALYTICS_SCOPES = [
+  'https://www.googleapis.com/auth/yt-analytics.readonly',
+]
+
 export default function YouTubeConnectScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -97,6 +108,81 @@ export default function YouTubeConnectScreen({ navigation }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [analyticsLinked, setAnalyticsLinked] = useState(false);
+  const [analyticsLinking, setAnalyticsLinking] = useState(false);
+
+  // Analytics 연동 여부 확인
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('social_channels')
+      .select('youtube_access_token')
+      .eq('user_id', user.id)
+      .eq('platform', 'youtube')
+      .single()
+      .then(({ data }) => {
+        setAnalyticsLinked(!!data?.youtube_access_token);
+      });
+  }, [user?.id, channels]);
+
+  // expo-auth-session으로 Google OAuth 요청
+  const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+
+  const discovery = {
+    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenEndpoint: 'https://oauth2.googleapis.com/token',
+  };
+
+  const [request, , promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: ENV.GOOGLE_WEB_CLIENT_ID,
+      redirectUri,
+      scopes: ANALYTICS_SCOPES,
+      responseType: AuthSession.ResponseType.Code,
+      extraParams: { access_type: 'offline', prompt: 'consent' },
+    },
+    discovery,
+  );
+
+  async function handleAnalyticsConnect() {
+    if (!user?.id || !request) return;
+    const ytChannel = channels.find((c) => c.platform === 'youtube');
+    if (!ytChannel) {
+      setErrorMsg('먼저 YouTube 채널을 연동해주세요.');
+      return;
+    }
+
+    setAnalyticsLinking(true);
+    setErrorMsg('');
+
+    try {
+      const result = await promptAsync();
+      if (result.type !== 'success') {
+        setAnalyticsLinking(false);
+        return;
+      }
+
+      const { data, error: fnError } = await supabase.functions.invoke('youtube-analytics-auth', {
+        body: {
+          code: result.params.code,
+          redirectUri,
+          userId: user.id,
+        },
+      });
+
+      if (fnError || data?.error) {
+        setErrorMsg(data?.error ?? '연동에 실패했습니다.');
+      } else {
+        setAnalyticsLinked(true);
+        setSuccessMsg('✓ 채널 및 Analytics 연동 완료! 실제 유입 데이터를 수집합니다.');
+        setTimeout(() => setSuccessMsg(''), 4000);
+      }
+    } catch (e: any) {
+      setErrorMsg(e.message ?? '오류가 발생했습니다.');
+    } finally {
+      setAnalyticsLinking(false);
+    }
+  }
 
   log.debug('render:', { channelCount: channels.length, loading });
 
@@ -109,8 +195,14 @@ export default function YouTubeConnectScreen({ navigation }: Props) {
     setSyncing(false);
     if (err) {
       setErrorMsg(err);
+      return;
+    }
+    setInput('');
+    // 채널 연동 성공 → Analytics OAuth 자동 진행
+    if (!analyticsLinked) {
+      setSuccessMsg('✓ 채널 연동 완료! Analytics 권한을 요청합니다...');
+      await handleAnalyticsConnect();
     } else {
-      setInput('');
       setSuccessMsg('✓ 채널이 연동됐습니다!');
       setTimeout(() => setSuccessMsg(''), 3000);
     }
@@ -186,6 +278,34 @@ export default function YouTubeConnectScreen({ navigation }: Props) {
             }
           </TouchableOpacity>
         </View>
+
+        {/* YouTube Analytics 연동 카드 */}
+        {channels.some((c) => c.platform === 'youtube') && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>📊 YouTube Analytics 연동</Text>
+            <Text style={styles.cardDesc}>
+              실제 검색 유입 키워드를 확인하려면 Google 계정 권한이 필요합니다.
+            </Text>
+
+            {analyticsLinked ? (
+              <View style={styles.successBox}>
+                <Text style={styles.successText}>✓ Analytics 연동됨 — 실제 유입 키워드 수집 중</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.connectBtn, { backgroundColor: '#4285F4' }, analyticsLinking && styles.connectBtnDisabled]}
+                onPress={handleAnalyticsConnect}
+                disabled={analyticsLinking || !request}
+                activeOpacity={0.85}
+              >
+                {analyticsLinking
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={styles.connectBtnText}>🔗 Google 계정으로 Analytics 연동</Text>
+                }
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* 연동된 채널 목록 */}
         {loading ? (

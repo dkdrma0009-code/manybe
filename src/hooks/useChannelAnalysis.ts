@@ -13,6 +13,10 @@ export interface ChannelAnalysis {
   audience_keywords: string[]
   ad_ratio: number
   insights: ChannelInsight[]
+  inflow_keywords: string[]
+  audience_categories: string[]
+  inflow_source: 'analytics' | 'ai'
+  audience_categories_source: 'analytics' | 'ai'
   sample_size: number
   computed_at: string
 }

@@ -1,6 +1,7 @@
+import { Text } from '@/components/Text';
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, TouchableOpacity, StyleSheet,
   Dimensions, KeyboardAvoidingView, Platform, Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

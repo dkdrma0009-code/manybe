@@ -1,5 +1,7 @@
+import { Text } from '@/components/Text';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen     from '../screens/dashboard/HomeScreen';
@@ -20,12 +22,14 @@ export type TabParamList = {
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
-const TAB_ICONS: Record<string, string> = {
-  홈:   '⌂',
-  협찬:  '◎',
-  일정:  '▦',
-  메시지: '◻',
-  설정:  '⚙',
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TAB_ICONS: Record<string, { default: IoniconName; focused: IoniconName }> = {
+  홈:    { default: 'home-outline',         focused: 'home' },
+  협찬:   { default: 'briefcase-outline',    focused: 'briefcase' },
+  일정:   { default: 'calendar-outline',     focused: 'calendar' },
+  메시지:  { default: 'chatbubble-outline',   focused: 'chatbubble' },
+  설정:   { default: 'settings-outline',     focused: 'settings' },
 };
 
 export default function TabNavigator() {
@@ -54,18 +58,21 @@ export default function TabNavigator() {
         tabBarInactiveTintColor: tokens.ink4,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '500',
+          fontFamily: 'Pretendard-Medium',
           marginTop: 2,
           letterSpacing: 0.1,
         },
         tabBarIcon: ({ focused }) => {
           const msgBadgeCount = unreadInquiryCount + unreadProposalMessageCount;
           const showBadge = route.name === '메시지' && msgBadgeCount > 0;
+          const icons = TAB_ICONS[route.name];
           return (
             <View style={[s.wrapper, focused && s.wrapperActive]}>
-              <Text style={[s.icon, { color: focused ? tokens.primary : tokens.ink4 }]}>
-                {TAB_ICONS[route.name]}
-              </Text>
+              <Ionicons
+                name={focused ? icons.focused : icons.default}
+                size={22}
+                color={focused ? tokens.primary : tokens.ink4}
+              />
               {showBadge && (
                 <View style={s.badge}>
                   <Text style={s.badgeText}>
