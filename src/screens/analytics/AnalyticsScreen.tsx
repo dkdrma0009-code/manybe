@@ -1,255 +1,28 @@
 import { Text } from '@/components/Text';
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import {
   View, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Platform,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
-import { useIntelligence } from '../../hooks/useIntelligence';
-import { useChannelAnalysis } from '../../hooks/useChannelAnalysis';
-import { useAnalytics } from '../../hooks/useAnalytics';
-import { useDecisionEngine } from '../../hooks/useDecisionEngine';
-import { useBusinessGraph } from '../../hooks/useBusinessGraph';
-import { useWeeklyReview } from '../../hooks/useWeeklyReview';
-import { useRevenueData } from '../../hooks/useRevenueData';
-import { getRecentEvents } from '../../services/OperationalMemory';
-import type { CreatorIntelligence } from '../../services/IntelligenceLayer';
 import { RevenueBarChart } from '../../components/RevenueBarChart';
-import type { ChartBar } from '../../components/RevenueBarChart';
 import { PremiumGate } from '../../components/PremiumGate';
 import { EmptyStateIntelligence } from '../../components/EmptyStateIntelligence';
-import { useActivation } from '../../hooks/useActivation';
-import type { MemoryEntry } from '../../services/OperationalMemory';
 import type { TabParamList } from '../../navigation/TabNavigator';
 import { tokens } from '../../constants/tokens';
-import { formatKRW, formatWon, timeAgo } from '../../utils/formatters';
-
-// ─── Utilities ────────────────────────────────────────────────────────────────
-
-function riskColor(risk: 'high' | 'medium' | 'low'): string {
-  return risk === 'high' ? tokens.urgent : risk === 'medium' ? tokens.reviewing : tokens.uploaded;
-}
-
-function riskBg(risk: 'high' | 'medium' | 'low'): string {
-  return risk === 'high' ? tokens.urgentBg : risk === 'medium' ? tokens.reviewingBg : tokens.uploadedBg;
-}
-
-function riskLabel(risk: 'high' | 'medium' | 'low'): string {
-  return risk === 'high' ? '높음' : risk === 'medium' ? '중간' : '낮음';
-}
-
-function trendColor(trend: 'growing' | 'improving' | 'stable' | 'declining'): string {
-  if (trend === 'growing' || trend === 'improving') return tokens.uploaded;
-  if (trend === 'stable') return tokens.inProgress;
-  return tokens.urgent;
-}
-
-function trendLabel(trend: 'growing' | 'stable' | 'declining'): string {
-  return trend === 'growing' ? '↑ 성장' : trend === 'stable' ? '→ 안정' : '↓ 하락';
-}
-
-function rhythmLabel(rhythm: 'consistent' | 'sporadic' | 'declining'): string {
-  return rhythm === 'consistent' ? '일정적' : rhythm === 'sporadic' ? '산발적' : '감소 중';
-}
-
-function stageLabel(stage: string): string {
-  const map: Record<string, string> = {
-    inquiry: '문의', reviewing: '검토중', in_progress: '진행중',
-    uploaded: '업로드', settled: '정산완료',
-  };
-  return map[stage] ?? stage;
-}
-
-function urgencyColor(u: 'critical' | 'high' | 'medium'): string {
-  return u === 'critical' ? tokens.urgent : u === 'high' ? tokens.reviewing : tokens.inProgress;
-}
-
-type HealthFactor = { name: string; impact: 'positive' | 'negative'; detail: string };
-type ToolResult<T> = { data: T; explanation: string; confidence: number };
-
-function explainHealthScore(
-  intelligence: CreatorIntelligence,
-  prevScore: number | null,
-): ToolResult<{ score: number; factors: HealthFactor[] }> {
-  const { personal: p, financial: f, relationship: r } = intelligence;
-  const score = intelligence.compositeScore;
-  const factors: HealthFactor[] = [];
-  if (p.burnoutRisk === 'high')          factors.push({ name: '번아웃 위험', impact: 'negative', detail: '활성 협찬 과부하 + 정체 건수 많음' });
-  if (f.monthlyTrend === 'declining')    factors.push({ name: '수익 감소', impact: 'negative', detail: '이번 달 수익이 전월 대비 감소' });
-  if (r.dependencyRisk === 'high')       factors.push({ name: '브랜드 집중 위험', impact: 'negative', detail: '특정 브랜드 의존도 60% 초과' });
-  if (f.revenueVolatility === 'high')    factors.push({ name: '수익 변동성 높음', impact: 'negative', detail: '월별 수익 편차가 큼' });
-  if (p.activityRhythm === 'consistent') factors.push({ name: '일관된 활동', impact: 'positive', detail: '최근 꾸준히 협찬 완료' });
-  if (f.settlementReliability >= 80)     factors.push({ name: '정산 신뢰도 높음', impact: 'positive', detail: `정산 완료율 ${f.settlementReliability}%` });
-  if (f.monthlyTrend === 'growing')      factors.push({ name: '수익 성장', impact: 'positive', detail: '이번 달 수익이 전월 대비 증가' });
-  const negFactors = factors.filter((fac) => fac.impact === 'negative').map((fac) => fac.name);
-  const prevDiff = prevScore !== null ? score - prevScore : null;
-  const explanation = prevDiff !== null
-    ? `운영점수 ${score}점${prevDiff >= 0 ? ` (+${prevDiff})` : ` (${prevDiff})`}. ${negFactors.length ? `하락 요인: ${negFactors.join(', ')}.` : ''}`
-    : `현재 운영점수 ${score}점. ${negFactors.length ? `주요 리스크: ${negFactors[0]}.` : '전반적으로 안정적이에요.'}`;
-  return { data: { score, factors }, explanation, confidence: 85 };
-}
-
-function forecastRevenueTool(
-  intelligence: CreatorIntelligence,
-): ToolResult<{ projected: number; confidence: number; trend: string }> {
-  const { financial: f } = intelligence;
-  const trendLabel2 = f.monthlyTrend === 'growing' ? '성장' : f.monthlyTrend === 'declining' ? '감소' : '안정';
-  return {
-    data: { projected: f.projectedThisMonth, confidence: f.forecastConfidence, trend: f.monthlyTrend },
-    explanation: `예상 이번 달 수익 ${formatWon(f.projectedThisMonth)} (신뢰도 ${f.forecastConfidence}%). 트렌드: ${trendLabel2}.`,
-    confidence: f.forecastConfidence,
-  };
-}
-
-function eventLabel(type: MemoryEntry['type']): { icon: string; label: string } {
-  switch (type) {
-    case 'recommendation_actioned':  return { icon: '✅', label: '추천 수락' };
-    case 'recommendation_dismissed': return { icon: '✕', label: '추천 무시' };
-    case 'deal_status_changed':      return { icon: '↔', label: '상태 변경' };
-    case 'automation_fired':         return { icon: '⚡', label: '자동화 실행' };
-  }
-}
-
-// ─── Primitive Components ─────────────────────────────────────────────────────
-
-function SectionCard({ children }: { children: React.ReactNode }) {
-  return <View style={s.card}>{children}</View>;
-}
-
-function SectionTitle({ title, badge, badgeColor, pro }: {
-  title: string; badge?: string; badgeColor?: string; pro?: boolean;
-}) {
-  return (
-    <View style={s.sectionTitleRow}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Text style={s.sectionTitle}>{title}</Text>
-        {pro && (
-          <View style={s.proBadge}>
-            <Text style={s.proBadgeText}>PRO</Text>
-          </View>
-        )}
-      </View>
-      {badge ? (
-        <View style={[s.chip, { backgroundColor: (badgeColor ?? tokens.primary) + '22' }]}>
-          <Text style={[s.chipText, { color: badgeColor ?? tokens.primary }]}>{badge}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-function ProDivider() {
-  return (
-    <View style={s.proDividerWrap}>
-      <View style={s.proDividerLine} />
-      <View style={s.proDividerChip}>
-        <Text style={s.proDividerText}>✦ PRO 전용</Text>
-      </View>
-      <View style={s.proDividerLine} />
-    </View>
-  );
-}
-
-function Divider() { return <View style={s.divider} />; }
-
-function ProgressBar({ value, color = tokens.primary }: { value: number; color?: string }) {
-  return (
-    <View style={s.progressTrack}>
-      <View style={[s.progressFill, {
-        width: `${Math.min(Math.max(value, 0), 100)}%`, backgroundColor: color,
-      }]} />
-    </View>
-  );
-}
-
-function MetricRow({ label, value, sub, valueColor }: {
-  label: string; value: string; sub?: string; valueColor?: string;
-}) {
-  return (
-    <View style={s.metricRow}>
-      <Text style={s.metricLabel}>{label}</Text>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text style={[s.metricValue, valueColor ? { color: valueColor } : null]}>{value}</Text>
-        {sub ? <Text style={s.metricSub}>{sub}</Text> : null}
-      </View>
-    </View>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <View style={s.emptyState}>
-      <Text style={s.emptyText}>{message}</Text>
-    </View>
-  );
-}
-
-// ─── Score Ring ───────────────────────────────────────────────────────────────
-
-function ScoreRing({ score, trend }: {
-  score: number; trend: 'improving' | 'stable' | 'declining';
-}) {
-  const ringColor = score >= 70 ? tokens.uploaded : score >= 45 ? tokens.reviewing : tokens.urgent;
-  const tc = trendColor(trend);
-  const trendText = trend === 'improving' ? '↑ 개선 중' : trend === 'stable' ? '→ 유지 중' : '↓ 하락 중';
-  return (
-    <View style={s.scoreRingContainer}>
-      <View style={[s.scoreRing, { borderColor: ringColor }]}>
-        <Text style={[s.scoreNumber, { color: ringColor }]}>{score}</Text>
-        <Text style={s.scoreMax}>/100</Text>
-      </View>
-      <Text style={[s.scoreTrend, { color: tc }]}>{trendText}</Text>
-    </View>
-  );
-}
-
-function StatBlock({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
-  return (
-    <View style={s.statBlock}>
-      <Text style={[s.statValue, valueColor ? { color: valueColor } : null]}>{value}</Text>
-      <Text style={s.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
-// ─── Trend row ────────────────────────────────────────────────────────────────
-
-function TrendRow({ label, value, status, statusColor, icon }: {
-  label: string; value: string;
-  status: '개선' | '안정' | '주의' | '위험';
-  statusColor: string; icon: string;
-}) {
-  return (
-    <View style={s.trendRow}>
-      <Text style={s.trendLabel}>{label}</Text>
-      <Text style={s.trendValue}>{value}</Text>
-      <View style={{ flex: 1 }} />
-      <View style={[s.trendChip, { backgroundColor: statusColor + '22' }]}>
-        <Text style={[s.trendChipText, { color: statusColor }]}>{icon} {status}</Text>
-      </View>
-    </View>
-  );
-}
-
-// ─── Coach item ───────────────────────────────────────────────────────────────
-
-function CoachItem({ icon, title, detail, color }: {
-  icon: string; title: string; detail: string; color: string;
-}) {
-  return (
-    <View style={s.coachItem}>
-      <Text style={s.coachIcon}>{icon}</Text>
-      <View style={s.coachBody}>
-        <Text style={[s.coachTitle, { color }]}>{title}</Text>
-        <Text style={s.coachDetail}>{detail}</Text>
-      </View>
-    </View>
-  );
-}
+import { formatKRW, timeAgo } from '../../utils/formatters';
+import {
+  riskColor, riskBg, riskLabel, trendColor, trendLabel, rhythmLabel,
+  stageLabel, urgencyColor, eventLabel,
+} from './helpers';
+import {
+  SectionCard, SectionTitle, ProDivider, Divider, ProgressBar,
+  MetricRow, EmptyState, ScoreRing, StatBlock, TrendRow, CoachItem, pStyles,
+} from './components';
+import { useAnalyticsData } from './useAnalyticsData';
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -261,122 +34,13 @@ export default function AnalyticsScreen() {
   const { session } = useAuth();
   const userId = session?.user?.id;
 
-  const now = new Date();
-  const [ytChannelId, setYtChannelId] = useState<string | undefined>();
-
-  useEffect(() => {
-    if (!userId) return;
-    supabase
-      .from('social_channels')
-      .select('channel_id')
-      .eq('user_id', userId)
-      .eq('platform', 'youtube')
-      .limit(1)
-      .single()
-      .then(({ data }) => { if (data) setYtChannelId(data.channel_id); });
-  }, [userId]);
-
-  const { analysis: chAnalysis, analyzing, error: chError, isStale, runAnalysis } = useChannelAnalysis(userId, ytChannelId);
-
-  const { intelligence, loading: intLoading, refetch: refetchInt } = useIntelligence(userId);
-  const { metrics, loading: metricsLoading, refetch: refetchMetrics } = useAnalytics(userId);
-  const { focusItems, refetch: refetchDecision } = useDecisionEngine(userId);
-  const { graph, refetch: refetchGraph } = useBusinessGraph(userId);
-  const { review: weeklyReview, refetch: refetchReview } = useWeeklyReview(userId);
-  const { data: revenueData, refetch: refetchRevenue } = useRevenueData(
-    userId, now.getFullYear(), now.getMonth(),
-  );
-
-  const [timeline, setTimeline] = useState<MemoryEntry[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const { mark: markActivation } = useActivation();
-
-  // Track first insight view once real data is loaded
-  useEffect(() => {
-    if (intelligence) markActivation('first_insight_viewed');
-  }, [!!intelligence]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => { getRecentEvents(10).then(setTimeline); }, []);
-
-  // ── Derived intelligence ──────────────────────────────────────────────────
-
-  const healthExplanation = useMemo(
-    () => (intelligence ? explainHealthScore(intelligence, null) : null),
-    [intelligence],
-  );
-  const forecast = useMemo(
-    () => (intelligence ? forecastRevenueTool(intelligence) : null),
-    [intelligence],
-  );
-  const decisionItems = useMemo(() => focusItems.slice(0, 5), [focusItems]);
-  const topBrands = intelligence?.relationship.topBrands.slice(0, 5) ?? [];
-
-  // Bar chart: 6 months + optional forecast bar
-  const chartBars = useMemo(() => {
-    const bars = revenueData.barData;
-    if (!bars.length) return [];
-    // BarItem uses `month`; ChartBar uses `label` — map explicitly
-    const withFlags: ChartBar[] = bars.map((item, idx) => ({
-      label: item.month,
-      value: item.value,
-      isCurrentMonth: idx === bars.length - 1,
-    }));
-    // Append projected bar if intelligence is available
-    if (intelligence?.financial.projectedThisMonth) {
-      const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-      const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      withFlags.push({
-        label: MONTH_NAMES[nextMonthDate.getMonth()] + '예측',
-        value: intelligence.financial.projectedThisMonth,
-        isForecast: true,
-        isCurrentMonth: false,
-      });
-    }
-    return withFlags;
-  }, [revenueData.barData, intelligence]);
-
-  // Next month revenue projection
-  const nextMonthForecast = useMemo(() => {
-    const f = intelligence?.financial;
-    if (!f) return null;
-    const m = f.monthlyTrend === 'growing' ? 1.08 : f.monthlyTrend === 'declining' ? 0.92 : 1.0;
-    return Math.round(f.projectedThisMonth * m);
-  }, [intelligence]);
-
-  // Stability score (0–100)
-  const stabilityScore = useMemo(() => {
-    const f = intelligence?.financial;
-    if (!f) return null;
-    const volScore = f.revenueVolatility === 'low' ? 90 : f.revenueVolatility === 'medium' ? 60 : 30;
-    return Math.round((f.settlementReliability + volScore) / 2);
-  }, [intelligence]);
-
-  // Recurring brand ratio
-  const recurringBrandRatio = useMemo(() => {
-    const r = intelligence?.relationship;
-    if (!r || r.uniqueBrandCount === 0) return 0;
-    const active = r.topBrands.filter((b) => b.status === 'active').length;
-    return Math.round((active / Math.max(r.uniqueBrandCount, 1)) * 100);
-  }, [intelligence]);
-
-  // Response speed derived from stale deal ratio
-  const responseSpeed: 'fast' | 'moderate' | 'slow' = useMemo(() => {
-    const hitRate = intelligence?.operational.automationHitRate ?? 0;
-    return hitRate < 15 ? 'fast' : hitRate < 35 ? 'moderate' : 'slow';
-  }, [intelligence]);
-
-  const isLoading = (intLoading || metricsLoading) && !intelligence;
-
-  async function handleRefresh() {
-    setRefreshing(true);
-    await Promise.all([
-      refetchInt(), refetchMetrics(), refetchDecision(),
-      refetchGraph(), refetchReview(), refetchRevenue(),
-    ]);
-    const events = await getRecentEvents(10);
-    setTimeline(events);
-    setRefreshing(false);
-  }
+  const {
+    ytChannelId, channelAnalysis, intelligence, metrics, graph, weeklyReview,
+    timeline, refreshing, isLoading, handleRefresh,
+    healthExplanation, forecast, decisionItems, topBrands, chartBars,
+    nextMonthForecast, stabilityScore, recurringBrandRatio, responseSpeed,
+  } = useAnalyticsData(userId);
+  const { analysis: chAnalysis, analyzing, error: chError, isStale, runAnalysis } = channelAnalysis;
 
   function handleNavigate(dest: 'deals' | 'revenue' | 'inquiries' | 'calendar') {
     const map: Record<string, keyof TabParamList> = {
@@ -475,18 +139,18 @@ export default function AnalyticsScreen() {
       {ytChannelId && (
         <SectionCard>
           <PremiumGate feature="channel_analysis" previewHeight={200}>
-          <View style={s.sectionTitleRow}>
+          <View style={pStyles.sectionTitleRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={s.sectionTitle}>채널 분석</Text>
-              <View style={s.proBadge}><Text style={s.proBadgeText}>PRO</Text></View>
+              <Text style={pStyles.sectionTitle}>채널 분석</Text>
+              <View style={pStyles.proBadge}><Text style={pStyles.proBadgeText}>PRO</Text></View>
             </View>
             <TouchableOpacity
               onPress={runAnalysis}
               disabled={analyzing}
-              style={[s.chip, { backgroundColor: tokens.primary + '22' }]}
+              style={[pStyles.chip, { backgroundColor: tokens.primary + '22' }]}
               activeOpacity={0.7}
             >
-              <Text style={[s.chipText, { color: tokens.primary }]}>
+              <Text style={[pStyles.chipText, { color: tokens.primary }]}>
                 {analyzing ? '분석 중...' : chAnalysis ? (isStale ? '갱신' : '다시 분석') : '분석 시작'}
               </Text>
             </TouchableOpacity>
@@ -512,7 +176,7 @@ export default function AnalyticsScreen() {
                 <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                     <Text style={{ fontSize: 11, color: tokens.ink4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 }}>유입 키워드</Text>
-                    <View style={[s.chip, { backgroundColor: chAnalysis.inflow_source === 'analytics' ? tokens.uploaded + '22' : tokens.ink4 + '18', paddingVertical: 2, paddingHorizontal: 6 }]}>
+                    <View style={[pStyles.chip, { backgroundColor: chAnalysis.inflow_source === 'analytics' ? tokens.uploaded + '22' : tokens.ink4 + '18', paddingVertical: 2, paddingHorizontal: 6 }]}>
                       <Text style={{ fontSize: 9, fontWeight: '700', color: chAnalysis.inflow_source === 'analytics' ? tokens.uploaded : tokens.ink4 }}>
                         {chAnalysis.inflow_source === 'analytics' ? '실측' : '추정'}
                       </Text>
@@ -520,8 +184,8 @@ export default function AnalyticsScreen() {
                   </View>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                     {chAnalysis.inflow_keywords.map((kw) => (
-                      <View key={kw} style={[s.chip, { backgroundColor: tokens.reviewing + '18' }]}>
-                        <Text style={[s.chipText, { color: tokens.reviewing }]}>🔍 {kw}</Text>
+                      <View key={kw} style={[pStyles.chip, { backgroundColor: tokens.reviewing + '18' }]}>
+                        <Text style={[pStyles.chipText, { color: tokens.reviewing }]}>🔍 {kw}</Text>
                       </View>
                     ))}
                   </View>
@@ -535,7 +199,7 @@ export default function AnalyticsScreen() {
                 <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                     <Text style={{ fontSize: 11, color: tokens.ink4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 }}>시청자 관심 카테고리</Text>
-                    <View style={[s.chip, { backgroundColor: chAnalysis.audience_categories_source === 'analytics' ? tokens.uploaded + '22' : tokens.ink4 + '18', paddingVertical: 2, paddingHorizontal: 6 }]}>
+                    <View style={[pStyles.chip, { backgroundColor: chAnalysis.audience_categories_source === 'analytics' ? tokens.uploaded + '22' : tokens.ink4 + '18', paddingVertical: 2, paddingHorizontal: 6 }]}>
                       <Text style={{ fontSize: 9, fontWeight: '700', color: chAnalysis.audience_categories_source === 'analytics' ? tokens.uploaded : tokens.ink4 }}>
                         {chAnalysis.audience_categories_source === 'analytics' ? '실측' : '추정'}
                       </Text>
@@ -543,8 +207,8 @@ export default function AnalyticsScreen() {
                   </View>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                     {chAnalysis.audience_categories.map((cat) => (
-                      <View key={cat} style={[s.chip, { backgroundColor: tokens.uploaded + '18' }]}>
-                        <Text style={[s.chipText, { color: tokens.uploaded }]}>✦ {cat}</Text>
+                      <View key={cat} style={[pStyles.chip, { backgroundColor: tokens.uploaded + '18' }]}>
+                        <Text style={[pStyles.chipText, { color: tokens.uploaded }]}>✦ {cat}</Text>
                       </View>
                     ))}
                   </View>
@@ -575,8 +239,8 @@ export default function AnalyticsScreen() {
                   <Text style={{ fontSize: 11, color: tokens.ink4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 }}>타겟 오디언스</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                     {chAnalysis.audience_keywords.map((kw) => (
-                      <View key={kw} style={[s.chip, { backgroundColor: tokens.primary + '15' }]}>
-                        <Text style={[s.chipText, { color: tokens.primary }]}>{kw}</Text>
+                      <View key={kw} style={[pStyles.chip, { backgroundColor: tokens.primary + '15' }]}>
+                        <Text style={[pStyles.chipText, { color: tokens.primary }]}>{kw}</Text>
                       </View>
                     ))}
                   </View>
@@ -1117,45 +781,12 @@ const s = StyleSheet.create({
   pageTitle: { fontSize: 22, fontWeight: '800', color: tokens.ink, letterSpacing: -0.5 },
   pageSubtitle: { fontSize: 12, color: tokens.ink4 },
 
-  card: {
-    backgroundColor: tokens.surface,
-    marginHorizontal: 16, marginBottom: 12,
-    borderRadius: 16, borderWidth: 1, borderColor: tokens.border, overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: '#15131E', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-      android: { elevation: 2 },
-    }),
-  },
-  sectionTitleRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10,
-  },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: tokens.ink, letterSpacing: -0.2 },
-  chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  chipText: { fontSize: 11, fontWeight: '700' },
-  divider: { height: 1, backgroundColor: tokens.border, marginHorizontal: 16, marginVertical: 4 },
-
-  progressTrack: { height: 4, backgroundColor: tokens.border, borderRadius: 2, overflow: 'hidden' },
-  progressFill: { height: 4, borderRadius: 2 },
   progressRow: { paddingHorizontal: 16, marginTop: 4, marginBottom: 10 },
-
-  metricRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 9,
-  },
-  metricLabel: { fontSize: 13, color: tokens.ink3 },
-  metricValue: { fontSize: 13, fontWeight: '700', color: tokens.ink },
-  metricSub: { fontSize: 10, color: tokens.ink4, marginTop: 1 },
 
   // Health
   healthBody: {
     flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 14, gap: 20, alignItems: 'center',
   },
-  scoreRingContainer: { alignItems: 'center', gap: 6 },
-  scoreRing: { width: 84, height: 84, borderRadius: 42, borderWidth: 5, alignItems: 'center', justifyContent: 'center' },
-  scoreNumber: { fontSize: 28, fontWeight: '800', letterSpacing: -1, lineHeight: 32 },
-  scoreMax: { fontSize: 10, color: tokens.ink4, marginTop: -2 },
-  scoreTrend: { fontSize: 11, fontWeight: '600' },
   healthMetrics: { flex: 1, gap: 10 },
   metricBlock: { gap: 3 },
   metricBlockLabel: { fontSize: 9, color: tokens.ink4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
@@ -1197,13 +828,6 @@ const s = StyleSheet.create({
   // Weekly review grid
   weeklyGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8, paddingBottom: 8, gap: 8 },
 
-  // Coach
-  coachItem: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 9, gap: 10, alignItems: 'flex-start' },
-  coachIcon: { fontSize: 16, marginTop: 1, width: 22 },
-  coachBody: { flex: 1 },
-  coachTitle: { fontSize: 13, fontWeight: '700' },
-  coachDetail: { fontSize: 12, color: tokens.ink3, marginTop: 3, lineHeight: 17 },
-
   // Brand
   brandSummaryRow: { flexDirection: 'row', paddingHorizontal: 12, paddingBottom: 14, gap: 8 },
   brandStat: { flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: tokens.bg, borderRadius: 10 },
@@ -1217,13 +841,6 @@ const s = StyleSheet.create({
   brandRepeat: { fontSize: 11, color: tokens.ink4, marginRight: 4 },
   brandStatusChip: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
   brandStatusText: { fontSize: 11, fontWeight: '700' },
-
-  // Trend Intelligence
-  trendRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  trendLabel: { fontSize: 12, color: tokens.ink3, width: 80 },
-  trendValue: { fontSize: 12, fontWeight: '700', color: tokens.ink, width: 40 },
-  trendChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  trendChipText: { fontSize: 11, fontWeight: '700' },
 
   // Operational
   subLabel: {
@@ -1258,27 +875,4 @@ const s = StyleSheet.create({
 
   // Stats
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8, paddingBottom: 8, gap: 8 },
-  statBlock: { flex: 1, minWidth: '40%', alignItems: 'center', padding: 12, backgroundColor: tokens.bg, borderRadius: 10 },
-  statValue: { fontSize: 18, fontWeight: '800', color: tokens.ink },
-  statLabel: { fontSize: 10, color: tokens.ink4, marginTop: 2 },
-
-  emptyState: { paddingVertical: 16, paddingHorizontal: 16, alignItems: 'center' },
-  emptyText: { fontSize: 13, color: tokens.ink4, textAlign: 'center', lineHeight: 18 },
-
-  // PRO badge & divider
-  proBadge: {
-    backgroundColor: '#7C3AED', borderRadius: 5,
-    paddingHorizontal: 6, paddingVertical: 2,
-  },
-  proBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
-  proDividerWrap: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 16, marginVertical: 8, gap: 10,
-  },
-  proDividerLine: { flex: 1, height: 1, backgroundColor: '#7C3AED33' },
-  proDividerChip: {
-    backgroundColor: '#7C3AED', borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 5,
-  },
-  proDividerText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 });
