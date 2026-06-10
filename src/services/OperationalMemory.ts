@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { makeLogger } from '../utils/logger';
 
+const log = makeLogger('OperationalMemory');
 const MEMORY_KEY = 'op_memory_v1';
 const MAX_ENTRIES = 200;
 const TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
@@ -49,7 +51,9 @@ async function persist(entries: MemoryEntry[]): Promise<void> {
       .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
       .slice(-MAX_ENTRIES);
     await AsyncStorage.setItem(MEMORY_KEY, JSON.stringify(pruned));
-  } catch {}
+  } catch (e) {
+    log.warn('persist failed:', e);
+  }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

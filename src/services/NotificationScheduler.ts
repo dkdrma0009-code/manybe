@@ -1,6 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { respectQuietHours } from './NotificationIntelligence';
+import { makeLogger } from '../utils/logger';
+
+const log = makeLogger('NotificationScheduler');
 
 // setNotificationHandler lives in useNotifications.ts — do not duplicate here.
 
@@ -25,7 +28,7 @@ async function loadScheduledIds(): Promise<Record<string, string>> {
 }
 
 async function saveScheduledIds(map: Record<string, string>): Promise<void> {
-  try { await AsyncStorage.setItem(SCHEDULED_IDS_KEY, JSON.stringify(map)); } catch {}
+  try { await AsyncStorage.setItem(SCHEDULED_IDS_KEY, JSON.stringify(map)); } catch (e) { log.warn('saveScheduledIds failed:', e); }
 }
 
 // ─── Scheduling ───────────────────────────────────────────────────────────────
@@ -76,7 +79,9 @@ export async function scheduleDeadlineReminders(deals: DealForNotification[]): P
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
         });
         scheduledMap[`${deal.id}_${r.daysBeforeKey}`] = notifId;
-      } catch {}
+      } catch (e) {
+        log.error(`deadline reminder (${deal.id} ${r.daysBeforeKey}) failed:`, e);
+      }
     }
 
     // Settlement delay reminder: 14 days after creation if still 'uploaded'
@@ -96,7 +101,9 @@ export async function scheduleDeadlineReminders(deals: DealForNotification[]): P
               trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
             });
             scheduledMap[`${deal.id}_settle_14`] = notifId;
-          } catch {}
+          } catch (e) {
+            log.error(`settlement reminder (${deal.id}) failed:`, e);
+          }
         }
       }
     }
@@ -112,7 +119,7 @@ export async function cancelDealNotifications(
   const scheduledMap = map ?? await loadScheduledIds();
   const keys = Object.keys(scheduledMap).filter((k) => k.startsWith(dealId));
   for (const key of keys) {
-    try { await Notifications.cancelScheduledNotificationAsync(scheduledMap[key]); } catch {}
+    try { await Notifications.cancelScheduledNotificationAsync(scheduledMap[key]); } catch (e) { log.warn(`cancel ${key} failed:`, e); }
     delete scheduledMap[key];
   }
   if (!map) await saveScheduledIds(scheduledMap);

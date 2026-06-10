@@ -22,6 +22,9 @@ import {
   SMART_IDS_KEY, LAST_ACTIVE_KEY,
   type NotifCategory,
 } from '../types/notifications';
+import { makeLogger } from '../utils/logger';
+
+const log = makeLogger('SmartReminderEngine');
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
@@ -33,12 +36,12 @@ async function loadSmartIds(): Promise<Record<string, string>> {
 }
 
 async function saveSmartIds(map: Record<string, string>): Promise<void> {
-  try { await AsyncStorage.setItem(SMART_IDS_KEY, JSON.stringify(map)); } catch {}
+  try { await AsyncStorage.setItem(SMART_IDS_KEY, JSON.stringify(map)); } catch (e) { log.warn('saveSmartIds failed:', e); }
 }
 
 async function cancelSmartNotif(key: string, map: Record<string, string>): Promise<void> {
   if (map[key]) {
-    try { await Notifications.cancelScheduledNotificationAsync(map[key]); } catch {}
+    try { await Notifications.cancelScheduledNotificationAsync(map[key]); } catch (e) { log.warn(`cancel ${key} failed:`, e); }
     delete map[key];
   }
 }
@@ -62,7 +65,9 @@ async function scheduleAt(
     map[key] = id;
     NotificationAnalytics.scheduled(category, key);
     await onScheduled(category);
-  } catch {}
+  } catch (e) {
+    log.error(`scheduleAt(${key}) failed — reminder will not fire:`, e);
+  }
 }
 
 // ─── Notification copy (creator profile aware) ────────────────────────────────
@@ -237,7 +242,9 @@ export async function celebrateMilestone(milestone: string): Promise<void> {
       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 2, repeats: false },
     });
     NotificationAnalytics.scheduled('milestone_celebration', `milestone_${milestone}`);
-  } catch {}
+  } catch (e) {
+    log.error(`milestone celebration (${milestone}) failed:`, e);
+  }
 }
 
 // ─── Main refresh ─────────────────────────────────────────────────────────────
@@ -245,7 +252,7 @@ export async function celebrateMilestone(milestone: string): Promise<void> {
 /** Call on every app foreground. Updates last_active and reschedules all smart reminders. */
 export async function refreshSmartReminders(userId: string): Promise<void> {
   // 1. Stamp last-active for inactivity tracking
-  try { await AsyncStorage.setItem(LAST_ACTIVE_KEY, new Date().toISOString()); } catch {}
+  try { await AsyncStorage.setItem(LAST_ACTIVE_KEY, new Date().toISOString()); } catch (e) { log.warn('last_active stamp failed:', e); }
 
   const map = await loadSmartIds();
 

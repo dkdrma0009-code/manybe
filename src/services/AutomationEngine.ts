@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SmartRecommendation, AutomationState, RecommendationType } from '../types/automation';
 import { EventBus } from './EventBus';
+import { makeLogger } from '../utils/logger';
 
+const log = makeLogger('AutomationEngine');
 const STATE_KEY = 'automation_state_v1';
 const RECS_KEY  = 'automation_recs_v1';
 const REC_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
@@ -36,7 +38,7 @@ async function loadState(): Promise<AutomationState> {
 }
 
 async function saveState(state: AutomationState): Promise<void> {
-  try { await AsyncStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch {}
+  try { await AsyncStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) { log.warn('saveState failed:', e); }
 }
 
 // ─── Recommendation persistence ───────────────────────────────────────────────
@@ -52,7 +54,7 @@ async function loadRecs(): Promise<SmartRecommendation[]> {
 }
 
 async function saveRecs(recs: SmartRecommendation[]): Promise<void> {
-  try { await AsyncStorage.setItem(RECS_KEY, JSON.stringify(recs)); } catch {}
+  try { await AsyncStorage.setItem(RECS_KEY, JSON.stringify(recs)); } catch (e) { log.warn('saveRecs failed:', e); }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

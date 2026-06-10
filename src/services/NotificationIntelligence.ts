@@ -8,6 +8,9 @@ import {
   NOTIF_COOLDOWNS, QUIET_HOUR_END, QUIET_HOUR_START,
   type NotifCategory,
 } from '../types/notifications';
+import { makeLogger } from '../utils/logger';
+
+const log = makeLogger('NotificationIntelligence');
 
 // ─── Cooldown ─────────────────────────────────────────────────────────────────
 
@@ -19,7 +22,7 @@ async function loadCooldowns(): Promise<Record<string, string>> {
 }
 
 async function saveCooldowns(map: Record<string, string>): Promise<void> {
-  try { await AsyncStorage.setItem(COOLDOWN_KEY, JSON.stringify(map)); } catch {}
+  try { await AsyncStorage.setItem(COOLDOWN_KEY, JSON.stringify(map)); } catch (e) { log.warn('saveCooldowns failed:', e); }
 }
 
 export async function isCoolingDown(category: NotifCategory): Promise<boolean> {
@@ -62,7 +65,9 @@ export async function incrementFatigueCount(): Promise<void> {
   const count = record.date === today ? record.count + 1 : 1;
   try {
     await AsyncStorage.setItem(FATIGUE_KEY, JSON.stringify({ date: today, count }));
-  } catch {}
+  } catch (e) {
+    log.warn('fatigue count save failed:', e);
+  }
 }
 
 // ─── Composite guard ──────────────────────────────────────────────────────────

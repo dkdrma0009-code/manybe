@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../api/supabase';
 import { EventBus } from './EventBus';
+import { makeLogger } from '../utils/logger';
+
+const log = makeLogger('MutationQueue');
 
 const QUEUE_KEY = 'mutation_queue_v1';
 const MAX_ATTEMPTS = 3;
@@ -25,7 +28,7 @@ async function load(): Promise<QueuedMutation[]> {
 }
 
 async function save(queue: QueuedMutation[]): Promise<void> {
-  try { await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue)); } catch {}
+  try { await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue)); } catch (e) { log.warn('queue save failed:', e); }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

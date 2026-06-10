@@ -1,7 +1,9 @@
 // Tracks acceptance rates and effectiveness of AI-generated workflow actions.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { makeLogger } from '../utils/logger';
 
+const log = makeLogger('AutomationAnalytics');
 const KEY     = 'automation_analytics_v1';
 const MAX_LOG = 300;
 
@@ -37,7 +39,9 @@ async function load(): Promise<AutomationEvent[]> {
 async function save(events: AutomationEvent[]): Promise<void> {
   try {
     await AsyncStorage.setItem(KEY, JSON.stringify(events.slice(-MAX_LOG)));
-  } catch {}
+  } catch (e) {
+    log.warn('save failed:', e);
+  }
 }
 
 export async function trackAutomationEvent(

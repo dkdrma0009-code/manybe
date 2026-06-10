@@ -5,7 +5,9 @@ import {
   TimelineItem, TimelineGroup, TimelineSeverity, TimelineEventType,
   SEVERITY_ORDER,
 } from '../types/timeline';
+import { makeLogger } from '../utils/logger';
 
+const log = makeLogger('useTimeline');
 const STORAGE_KEY = 'timeline_read_v1';
 const READ_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -28,7 +30,9 @@ async function persistReadId(id: string, existing: Set<string>): Promise<void> {
     const all = Array.from(existing).map((i) => [i, Date.now()] as [string, number]);
     all.push([id, Date.now()]);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-  } catch {}
+  } catch (e) {
+    log.warn('persistReadId failed:', e);
+  }
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
