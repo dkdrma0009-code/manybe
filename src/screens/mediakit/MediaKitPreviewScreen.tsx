@@ -110,7 +110,7 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
       {isLoading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>AI 분석 중...</Text>
+          <Text style={styles.loadingText}>미디어 키트 생성 중...</Text>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>

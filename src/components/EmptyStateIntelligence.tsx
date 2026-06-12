@@ -96,7 +96,7 @@ export function EmptyStateIntelligence() {
         <View style={s.explanationBody}>
           <Text style={s.explanationTitle}>이렇게 보일 거예요</Text>
           <Text style={s.explanationDesc}>
-            협찬을 추가하면 AI가 실제 데이터로 분석을 시작합니다.
+            협찬을 추가하면 실제 데이터로 분석을 시작합니다.
             아래는 비슷한 규모 크리에이터의 예시입니다.
           </Text>
         </View>
@@ -165,7 +165,7 @@ export function EmptyStateIntelligence() {
 
       {/* AI Coach Demo */}
       <DemoCard>
-        <SectionTitle title="AI 코치" />
+        <SectionTitle title="성장 코치" />
         {demo.aiCoach.map((msg, idx) => (
           <View key={idx} style={s.coachRow}>
             <Text style={s.coachIcon}>{msg.icon}</Text>
@@ -229,7 +229,7 @@ export function EmptyStateIntelligence() {
       <View style={s.ctaSection}>
         <Text style={s.ctaSectionTitle}>실제 데이터로 시작해볼까요?</Text>
         <Text style={s.ctaSectionDesc}>
-          협찬을 하나만 추가해도 AI 분석이 시작됩니다
+          협찬을 하나만 추가해도 분석이 시작됩니다
         </Text>
         <TouchableOpacity
           style={s.ctaButton}
