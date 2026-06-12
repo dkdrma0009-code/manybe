@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import { getAdvertiserSession, createClient } from "@/lib/supabase-server";
+import { getAdvertiserSession } from "@/lib/supabase-server";
+import { getAdminClient, OWNER_EMAIL } from "@/lib/supabase-admin";
 
-const OWNER_EMAIL = "eficar@eficar.co.kr";
+export const dynamic = "force-dynamic";
 
 const CATEGORY_COLOR: Record<string, string> = {
   "버그": "bg-red-50 text-red-700",
@@ -22,7 +23,9 @@ export default async function AdminFeedbackPage() {
   const session = await getAdvertiserSession();
   if (!session || session.user.email !== OWNER_EMAIL) redirect("/");
 
-  const supabase = await createClient();
+  // feedback에는 SELECT RLS 정책이 없어 일반 클라이언트로는 항상 빈 목록 —
+  // owner 게이트 통과 후 service-role로 읽는다.
+  const supabase = getAdminClient();
   const { data: rows } = await supabase
     .from("feedback")
     .select("id, category, content, created_at, user_id")
