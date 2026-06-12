@@ -11,7 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useRealtime } from '../../context/RealtimeContext';
-import { createDealFromProposal } from '../../hooks/useProposals';
+import { acceptProposalGuarded } from '../../hooks/useProposals';
 import { theme } from '../../constants/theme';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -179,23 +179,24 @@ export default function ChatScreen() {
   async function handleProposalAction(action: 'accepted' | 'rejected', reason?: string) {
     setActionLoading(true);
 
-    // 수락이면 협찬 파이프라인(deals)에 먼저 등록
     if (action === 'accepted' && user) {
-      const { error: dealErr } = await createDealFromProposal(user.id, {
+      // 상태 선점 + deal 생성 (중복 수락 방지 가드 포함)
+      const err = await acceptProposalGuarded(user.id, {
+        id: proposalId,
         brand_name: brandName,
         amount,
       });
-      if (dealErr) {
-        Alert.alert('오류', '협찬 등록에 실패했어요. 잠시 후 다시 시도해주세요.');
+      if (err) {
+        Alert.alert('오류', err);
         setActionLoading(false);
         return;
       }
+    } else {
+      await supabase
+        .from('advertiser_proposals')
+        .update({ status: action, ...(reason ? { rejection_reason: reason } : {}) })
+        .eq('id', proposalId);
     }
-
-    await supabase
-      .from('advertiser_proposals')
-      .update({ status: action, ...(reason ? { rejection_reason: reason } : {}) })
-      .eq('id', proposalId);
     setProposalStatus(action);
     setActionLoading(false);
 

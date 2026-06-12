@@ -26,6 +26,31 @@ export async function createDealFromProposal(
   });
 }
 
+// 수락 전체 흐름 — pending 상태를 조건부로 선점해 같은 제안의 중복 수락(중복 deal)을 막는다.
+// 성공 시 null, 실패 시 사용자에게 보여줄 메시지 반환.
+export async function acceptProposalGuarded(
+  userId: string,
+  proposal: { id: string; brand_name: string; amount: number },
+): Promise<string | null> {
+  const { data: claimed, error: claimErr } = await supabase
+    .from('advertiser_proposals')
+    .update({ status: 'accepted' })
+    .eq('id', proposal.id)
+    .eq('status', 'pending')
+    .select('id');
+  if (claimErr) return claimErr.message;
+  if (!claimed?.length) return '이미 처리된 제안이에요.';
+
+  const { error: dealErr } = await createDealFromProposal(userId, proposal);
+  if (dealErr) {
+    // 협찬 등록 실패 시 상태 원복 (best effort)
+    await supabase.from('advertiser_proposals')
+      .update({ status: 'pending' }).eq('id', proposal.id);
+    return dealErr.message;
+  }
+  return null;
+}
+
 export function useProposals(userId: string | undefined) {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,21 +93,9 @@ export function useProposals(userId: string | undefined) {
 
   async function acceptProposal(proposal: Proposal): Promise<string | null> {
     if (!userId) return '로그인이 필요합니다';
-    try {
-      const { error: dealErr } = await createDealFromProposal(userId, proposal);
-      if (dealErr) throw dealErr;
-
-      const { error } = await supabase
-        .from('advertiser_proposals')
-        .update({ status: 'accepted' })
-        .eq('id', proposal.id);
-      if (error) throw error;
-
-      await fetchPending();
-      return null;
-    } catch (e: any) {
-      return e.message ?? '처리에 실패했습니다';
-    }
+    const err = await acceptProposalGuarded(userId, proposal);
+    await fetchPending();
+    return err;
   }
 
   async function rejectProposal(id: string, reason: string): Promise<string | null> {

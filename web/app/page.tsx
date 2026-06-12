@@ -254,9 +254,9 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/premium" className="block w-full text-center bg-white text-[#6C63FF] font-semibold py-3 rounded-xl hover:bg-purple-50 transition-colors">
-                  프리미엄 시작하기
-                </Link>
+                <a href="#download" className="block w-full text-center bg-white text-[#6C63FF] font-semibold py-3 rounded-xl hover:bg-purple-50 transition-colors">
+                  출시 알림 받기
+                </a>
               </div>
             </div>
           </div>

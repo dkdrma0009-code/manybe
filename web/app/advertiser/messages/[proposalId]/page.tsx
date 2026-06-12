@@ -20,8 +20,8 @@ export default async function ChatPage({ params }: { params: Promise<{ proposalI
   if (!proposal) notFound();
 
   const [{ data: profile }, { data: kit }] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("id", proposal.creator_id).single(),
-    supabase.from("media_kits").select("slug").eq("user_id", proposal.creator_id).single(),
+    supabase.from("profiles").select("full_name").eq("id", proposal.creator_id).maybeSingle(),
+    supabase.from("media_kits").select("slug").eq("user_id", proposal.creator_id).maybeSingle(),
   ]);
 
   const creatorName = profile?.full_name || kit?.slug || "크리에이터";

@@ -33,7 +33,7 @@ export default async function InquiryPage({ params }: { params: Promise<{ slug: 
     .from("profiles")
     .select("full_name")
     .eq("id", kit.user_id)
-    .single();
+    .maybeSingle();
 
   return (
     <InquiryForm

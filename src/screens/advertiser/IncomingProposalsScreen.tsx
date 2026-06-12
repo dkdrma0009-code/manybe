@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
 import { useRealtime } from '../../context/RealtimeContext';
-import { createDealFromProposal } from '../../hooks/useProposals';
+import { acceptProposalGuarded } from '../../hooks/useProposals';
 import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
@@ -101,35 +101,36 @@ export default function IncomingProposalsScreen() {
           onPress: async () => {
             setUpdating(proposalId);
 
-            // 수락이면 협찬 파이프라인(deals)에 먼저 등록
             if (status === 'accepted' && user) {
+              // 상태 선점 + deal 생성 (중복 수락 방지 가드 포함)
               const proposal = proposals.find((p) => p.id === proposalId);
-              if (proposal) {
-                const { error: dealErr } = await createDealFromProposal(user.id, proposal);
-                if (dealErr) {
-                  Alert.alert('오류', '협찬 등록에 실패했어요. 잠시 후 다시 시도해주세요.');
-                  setUpdating(null);
-                  return;
-                }
+              const err = proposal
+                ? await acceptProposalGuarded(user.id, proposal)
+                : '제안을 찾을 수 없어요.';
+              if (err) {
+                Alert.alert('오류', err);
+                setUpdating(null);
+                return;
               }
-            }
-
-            const { error } = await supabase
-              .from('advertiser_proposals')
-              .update({ status })
-              .eq('id', proposalId);
-            if (!error) {
               setProposals((prev) =>
                 prev.map((p) => p.id === proposalId ? { ...p, status } : p),
               );
-              if (status === 'accepted') {
-                Alert.alert(
-                  '협찬 관리에 추가됐어요',
-                  '문의 단계에서 시작합니다. 협찬 탭에서 진행 상태를 관리하세요.',
-                  [
-                    { text: '나중에', style: 'cancel' },
-                    { text: '보러 가기', onPress: () => navigation.navigate('Main', { screen: '협찬' }) },
-                  ],
+              Alert.alert(
+                '협찬 관리에 추가됐어요',
+                '문의 단계에서 시작합니다. 협찬 탭에서 진행 상태를 관리하세요.',
+                [
+                  { text: '나중에', style: 'cancel' },
+                  { text: '보러 가기', onPress: () => navigation.navigate('Main', { screen: '협찬' }) },
+                ],
+              );
+            } else {
+              const { error } = await supabase
+                .from('advertiser_proposals')
+                .update({ status })
+                .eq('id', proposalId);
+              if (!error) {
+                setProposals((prev) =>
+                  prev.map((p) => p.id === proposalId ? { ...p, status } : p),
                 );
               }
             }

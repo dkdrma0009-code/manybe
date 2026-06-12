@@ -7,6 +7,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { useAuth } from '../../hooks/useAuth';
 import { RevenueBarChart } from '../../components/RevenueBarChart';
 import { PremiumGate } from '../../components/PremiumGate';
@@ -31,6 +33,7 @@ type NavProp = BottomTabNavigationProp<TabParamList>;
 export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<NavProp>();
+  const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { session } = useAuth();
   const userId = session?.user?.id;
 
@@ -135,7 +138,23 @@ export default function AnalyticsScreen() {
       {/* ══════════════ PRO 전용 기능 ══════════════ */}
       <ProDivider />
 
-      {/* ── 2. Channel AI 분석 ───────────────────────────────────── */}
+      {/* ── 2. 채널 분석 — 미연결 시 연결 유도 ──────────────────── */}
+      {!ytChannelId && (
+        <SectionCard>
+          <SectionTitle title="채널 분석" pro />
+          <TouchableOpacity
+            style={{ paddingHorizontal: 16, paddingBottom: 16 }}
+            onPress={() => rootNav.navigate('YouTubeConnect')}
+            activeOpacity={0.8}
+          >
+            <Text style={{ fontSize: 13, color: tokens.ink3, lineHeight: 20, marginBottom: 10 }}>
+              YouTube 채널을 연결하면 댓글 감성, 유입 키워드,{'\n'}시청자 관심 분석을 받아볼 수 있어요.
+            </Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: tokens.primary }}>채널 연결하기 →</Text>
+          </TouchableOpacity>
+        </SectionCard>
+      )}
+
       {ytChannelId && (
         <SectionCard>
           <PremiumGate feature="channel_analysis" previewHeight={200}>
