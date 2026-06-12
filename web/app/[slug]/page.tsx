@@ -57,7 +57,8 @@ async function getMediaKit(slug: string) {
     supabase.from("social_channels").select("*").eq("user_id", kit.user_id),
     supabase.from("profiles").select("full_name, email").eq("id", kit.user_id).single(),
   ]);
-  supabase.from("media_kits").update({ view_count: (kit.view_count ?? 0) + 1 }).eq("id", kit.id);
+  // 방문자 통계 기록 (대시보드 '미디어 키트 조회' 카운트의 데이터 소스)
+  await supabase.from("media_kit_views").insert({ user_id: kit.user_id });
   return { kit: kit as MediaKit, channels: (channels ?? []) as SocialChannel[], profile: profile as Profile | null };
 }
 

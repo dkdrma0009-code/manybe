@@ -41,6 +41,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [hasKit, setHasKit] = useState(false);
   const [generatingBio, setGeneratingBio] = useState(false);
 
   // fields
@@ -73,6 +74,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
     const kit = data?.[0];
     if (kit) {
+      setHasKit(true);
       setBio(kit.bio ?? '');
       const p: Partial<Record<PricingKey, string>> = {};
       for (const { key } of PRICING_KEYS) {
@@ -171,24 +173,28 @@ export default function MediaKitEditScreen({ navigation }: Props) {
         }
       }
 
-      const { error } = await supabase
-        .from('media_kits')
-        .update({
-          bio: bio.trim() || null,
-          pricing: Object.keys(pricingObj).length > 0 ? pricingObj : null,
-          past_brands: pastBrands.length > 0 ? pastBrands : null,
-          // PLAN_GATE: unlimited inquiry reception — consider capping monthly inbound inquiry count for free tier
-          is_form_enabled: isFormEnabled,
-          badges: selectedBadges,
-          theme,
-          section_order: sectionOrder,
-          highlights,
-        })
-        .eq('user_id', user!.id);
+      const payload = {
+        bio: bio.trim() || null,
+        pricing: Object.keys(pricingObj).length > 0 ? pricingObj : null,
+        past_brands: pastBrands.length > 0 ? pastBrands : null,
+        // PLAN_GATE: unlimited inquiry reception — consider capping monthly inbound inquiry count for free tier
+        is_form_enabled: isFormEnabled,
+        badges: selectedBadges,
+        theme,
+        section_order: sectionOrder,
+        highlights,
+      };
+
+      // 신규 사용자는 media_kits 행이 아직 없으므로 insert (슬러그는 URL 화면에서 설정)
+      const { error } = hasKit
+        ? await supabase.from('media_kits').update(payload).eq('user_id', user!.id)
+        : await supabase.from('media_kits').insert({ user_id: user!.id, ...payload });
 
       if (error) throw error;
+      if (!hasKit) setHasKit(true);
       Alert.alert('저장 완료', '미디어 키트가 업데이트됐습니다.', [
-        { text: '확인', onPress: () => navigation.goBack() },
+        { text: '닫기', style: 'cancel', onPress: () => navigation.goBack() },
+        { text: '미리보기', onPress: () => navigation.navigate('MediaKitPreview') },
       ]);
     } catch (e: any) {
       Alert.alert('오류', e.message ?? '저장에 실패했습니다.');

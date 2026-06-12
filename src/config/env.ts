@@ -48,6 +48,10 @@ export const ENV = {
   SITE_DOMAIN: 'app.manybe.site',
   SITE_URL:    'https://app.manybe.site',
 
+  // 공개 미디어킷 웹 베이스 URL (web/app/[slug] — 문의 폼 포함 공개 페이지).
+  // 커스텀 도메인 연결 시 EXPO_PUBLIC_WEB_BASE_URL로 교체.
+  WEB_BASE_URL: process.env.EXPO_PUBLIC_WEB_BASE_URL ?? 'https://manybe-web.vercel.app',
+
   // OAuth deep link scheme (matches app.json scheme + Android intentFilter)
   APP_SCHEME: 'manybe',
 

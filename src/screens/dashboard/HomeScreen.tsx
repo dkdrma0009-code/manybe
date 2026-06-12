@@ -274,10 +274,10 @@ const dr = StyleSheet.create({
 // ─── Quick Actions ────────────────────────────────────────────────────────────
 
 const QUICK_ACTIONS = [
-  { icon: 'analytics-outline'    as const, label: '채널 분석',  screen: 'Analytics'  },
-  { icon: 'briefcase-outline'    as const, label: '협찬 관리',  screen: 'Main'       },
-  { icon: 'wallet-outline'       as const, label: '수익 기록',  screen: 'Revenue'    },
-  { icon: 'chatbubble-outline'   as const, label: '문의함',     screen: 'Inquiries'  },
+  { icon: 'id-card-outline'      as const, label: '미디어킷',   screen: 'MediaKitEdit' },
+  { icon: 'analytics-outline'    as const, label: '채널 분석',  screen: 'Analytics'    },
+  { icon: 'wallet-outline'       as const, label: '수익 기록',  screen: 'Revenue'      },
+  { icon: 'chatbubble-outline'   as const, label: '문의함',     screen: 'Inquiries'    },
 ] as const;
 
 type QuickActionScreen = (typeof QUICK_ACTIONS)[number]['screen'];
@@ -423,10 +423,7 @@ export default function HomeScreen() {
         <View style={s.gap} />
 
         {/* 퀵 액션 */}
-        <QuickActions onPress={(screen) => {
-          if (screen === 'Main') navigation.navigate('Main', { screen: '협찬' });
-          else navigation.navigate(screen);
-        }} />
+        <QuickActions onPress={(screen) => navigation.navigate(screen)} />
 
         {/* 오늘 우선 처리 */}
         {showPriority && (

@@ -153,6 +153,22 @@ export default function SettingsScreen() {
         {/* 내 작업실 / 수익 */}
         <Text style={s.sectionLabel}>작업실</Text>
         <View style={s.card}>
+          <TouchableOpacity style={s.row} onPress={() => navigation.navigate('MediaKitEdit')} activeOpacity={0.7}>
+            <View style={[s.platformIcon, { backgroundColor: '#6E56F015' }]}>
+              <Text style={[s.platformIconText, { color: '#6E56F0' }]}>📇</Text>
+            </View>
+            <Text style={[s.rowLabel, { flex: 1 }]}>미디어킷 관리</Text>
+            <Text style={{ fontSize: 18, color: colors.text.tertiary }}>›</Text>
+          </TouchableOpacity>
+          <Divider />
+          <TouchableOpacity style={s.row} onPress={() => navigation.navigate('MediaKitSlug')} activeOpacity={0.7}>
+            <View style={[s.platformIcon, { backgroundColor: '#0F9B8E15' }]}>
+              <Text style={[s.platformIconText, { color: '#0F9B8E' }]}>🔗</Text>
+            </View>
+            <Text style={[s.rowLabel, { flex: 1 }]}>미디어킷 주소(URL)</Text>
+            <Text style={{ fontSize: 18, color: colors.text.tertiary }}>›</Text>
+          </TouchableOpacity>
+          <Divider />
           <TouchableOpacity style={s.row} onPress={() => navigation.navigate('Studio')} activeOpacity={0.7}>
             <View style={[s.platformIcon, { backgroundColor: '#3D5AFE15' }]}>
               <Text style={[s.platformIconText, { color: '#3D5AFE' }]}>⊞</Text>

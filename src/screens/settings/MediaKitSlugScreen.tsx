@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { ENV } from '../../config/env';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -21,7 +22,7 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MediaKitSlug'>;
 };
 
-const WEB_BASE_URL = 'https://manybe-web.vercel.app';
+const WEB_BASE_URL = ENV.WEB_BASE_URL;
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
 
 function validateSlug(slug: string): string | null {

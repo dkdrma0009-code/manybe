@@ -9,14 +9,16 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useMediaKit } from '../../hooks/useMediaKit';
+import { ENV } from '../../config/env';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import type { CreatorBadge, BadgeId } from '../../types/mediaKit';
 import { BADGE_CATALOG, THEME_CATALOG } from '../../types/mediaKit';
 import { Image } from 'react-native';
 
-const SUPABASE_PROJECT = 'https://bewcgxzcvxuwzwxcqzmk.supabase.co'; // Edge Function base
-const WEB_BASE_URL = `${SUPABASE_PROJECT}/functions/v1/media-kit-page?slug`;
+// 문의 폼이 포함된 웹 공개 페이지 (web/app/[slug]) — 슬러그 화면과 동일 베이스
+const WEB_BASE_URL = ENV.WEB_BASE_URL;
+const WEB_HOST = WEB_BASE_URL.replace(/^https?:\/\//, '');
 
 const PRICING_LABELS: Record<string, string> = {
   short_form: '숏폼 (60초 이하)',
@@ -56,10 +58,17 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
 
   function handleCopyUrl() {
     if (!kitData?.slug) {
-      Alert.alert('URL 없음', '미디어 키트 URL을 먼저 설정해주세요.');
+      Alert.alert(
+        'URL이 아직 없어요',
+        '주소(슬러그)를 설정하면 브랜드에 보낼 수 있는 공개 링크가 생깁니다.',
+        [
+          { text: '나중에', style: 'cancel' },
+          { text: 'URL 설정하기', onPress: () => navigation.navigate('MediaKitSlug') },
+        ],
+      );
       return;
     }
-    Clipboard.setStringAsync(`${WEB_BASE_URL}=${kitData.slug}`);
+    Clipboard.setStringAsync(`${WEB_BASE_URL}/${kitData.slug}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -115,7 +124,7 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
             )}
             {kitData?.slug ? (
               <View style={styles.urlChip}>
-                <Text style={styles.urlChipText}>manybe.app/{kitData.slug}</Text>
+                <Text style={styles.urlChipText}>{WEB_HOST}/{kitData.slug}</Text>
               </View>
             ) : null}
           </View>
