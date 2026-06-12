@@ -85,11 +85,14 @@ export function useRevenueData(
     setLoading(true);
     setError(null);
     try {
-      const monthStart = new Date(year, month, 1).toISOString().split('T')[0];
-      const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
+      // 주의: toISOString()은 UTC 변환이라 KST에서 월 경계가 하루 밀린다 — 로컬 기준으로 직접 조립
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const monthStart = ymd(new Date(year, month, 1));
+      const monthEnd = ymd(new Date(year, month + 1, 0));
 
       // Build date range for last 6 months bar chart
-      const barStart = new Date(year, month - 5, 1).toISOString().split('T')[0];
+      const barStart = ymd(new Date(year, month - 5, 1));
 
       const [monthRes, barRes, txRes] = await Promise.all([
         supabase
@@ -148,7 +151,7 @@ export function useRevenueData(
       const barData: BarItem[] = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(year, month - i, 1);
-        const key = d.toISOString().slice(0, 7);
+        const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
         barData.push({ month: MONTH_NAMES[d.getMonth()], value: monthTotals[key] ?? 0 });
       }
 

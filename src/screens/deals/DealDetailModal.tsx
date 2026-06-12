@@ -205,13 +205,17 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
                   {
                     text: '기록하기',
                     onPress: async () => {
-                      await supabase.from('revenues').insert({
+                      const { error: revErr } = await supabase.from('revenues').insert({
                         user_id: uid,
                         amount: rawAmount,
                         category: 'sponsorship',
                         description: `${brand.trim()} 협찬 정산`,
                         date: new Date().toISOString().slice(0, 10),
                       });
+                      if (revErr) {
+                        Alert.alert('수익 기록 실패', revErr.message);
+                        return;
+                      }
                       showHighlightPrompt();
                     },
                   },
