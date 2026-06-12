@@ -148,12 +148,9 @@ export default function InquiryDetailModal({ visible, inquiry, userId, onClose, 
 
   function friendlyError(err: { message: string; code?: string; hint?: string }): string {
     const msg = err.message ?? '';
-    if (err.code === '42703') return `컬럼이 없어요: ${msg} — migration 002/003을 실행해주세요`;
-    if (err.code === '23503') return '참조 오류: 연결된 테이블에 데이터가 없어요';
-    if (err.code === '23505') return '이미 동일한 협찬이 존재해요';
-    if (err.code === '42501' || msg.includes('policy')) return 'RLS 권한 오류 — 로그인 상태를 확인해주세요';
-    if (msg.includes('invalid input')) return `값 형식 오류: ${msg}`;
-    return msg || '알 수 없는 오류가 발생했습니다';
+    if (err.code === '23505') return '이미 동일한 협찬이 있어요.';
+    if (err.code === '42501' || msg.includes('policy')) return '권한이 없어요. 로그아웃 후 다시 로그인해주세요.';
+    return '협찬 전환에 실패했어요. 잠시 후 다시 시도해주세요.';
   }
 
   function handleEmailContact() {

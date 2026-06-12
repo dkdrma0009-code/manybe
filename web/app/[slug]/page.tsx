@@ -52,7 +52,7 @@ interface Profile {
   email: string | null;
 }
 
-async function getMediaKit(slug: string) {
+async function getMediaKit(slug: string, recordView = false) {
   const supabase = getSupabase();
   const { data: kit } = await supabase.from("media_kits").select("*").eq("slug", slug).single();
   if (!kit) return null;
@@ -60,8 +60,10 @@ async function getMediaKit(slug: string) {
     supabase.from("social_channels").select("*").eq("user_id", kit.user_id),
     supabase.from("profiles").select("full_name, email").eq("id", kit.user_id).single(),
   ]);
-  // 방문자 통계 기록 (대시보드 '미디어 키트 조회' 카운트의 데이터 소스)
-  await supabase.from("media_kit_views").insert({ user_id: kit.user_id });
+  // 방문자 통계 기록 — 페이지 렌더에서만 (generateMetadata 호출은 제외해 방문당 1건)
+  if (recordView) {
+    await supabase.from("media_kit_views").insert({ user_id: kit.user_id });
+  }
   return { kit: kit as MediaKit, channels: (channels ?? []) as SocialChannel[], profile: profile as Profile | null };
 }
 
@@ -125,7 +127,7 @@ const BADGE_CATALOG: Record<string, { emoji: string; label: string }> = {
 
 export default async function MediaKitPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [data, session] = await Promise.all([getMediaKit(slug), getAdvertiserSession()]);
+  const [data, session] = await Promise.all([getMediaKit(slug, true), getAdvertiserSession()]);
   if (!data) notFound();
 
   const { kit, channels, profile } = data;

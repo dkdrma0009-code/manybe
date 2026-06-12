@@ -5,6 +5,7 @@ import {
   StyleSheet, Linking, Modal,
 } from 'react-native';
 import { SortableList } from './SortableList';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useSocialChannels } from '../../hooks/useSocialChannels';
@@ -68,6 +69,14 @@ export default function StudioScreen() {
   const [dbName, setDbName]           = useState<string | null>(null);
   const [showFeaturedEdit, setShowFeaturedEdit] = useState(false);
   const [featuredOrder, setFeaturedOrder] = useState<string[]>([]);
+
+  // 대표 작품 순서는 기기에 저장 — 편집 후 앱 재시작에도 유지
+  useEffect(() => {
+    AsyncStorage.getItem('studio_featured_order_v1').then((raw) => {
+      if (raw) { try { setFeaturedOrder(JSON.parse(raw)); } catch {} }
+    });
+  }, []);
+
   useEffect(() => {
     if (!user?.id || user?.user_metadata?.full_name) return;
     supabase.from('users').select('name').eq('id', user.id).single()
@@ -112,6 +121,8 @@ export default function StudioScreen() {
       const base = prev.length > 0 ? [...prev] : allDeals.map((d) => d.id);
       const [removed] = base.splice(fromIdx, 1);
       base.splice(toIdx, 0, removed);
+      AsyncStorage.setItem('studio_featured_order_v1', JSON.stringify(base))
+        .catch(() => {});
       return base;
     });
   }
