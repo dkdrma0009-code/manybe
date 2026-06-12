@@ -10,7 +10,7 @@ const FEATURES = [
   },
   {
     title: "협찬 CRM 파이프라인",
-    desc: "검토 → 협상 → 계약 → 촬영 → 정산까지. 협찬 딜의 전 과정을 한눈에 관리하세요.",
+    desc: "문의 → 검토 → 진행 → 업로드 → 정산까지. 협찬 딜의 전 과정을 한눈에 관리하세요.",
   },
   {
     title: "수익 대시보드",
@@ -25,8 +25,8 @@ const FEATURES = [
     desc: "종합소득세, 원천세를 크리에이터 수익 구조에 맞게 계산해드립니다. (단순 예상치)",
   },
   {
-    title: "클립보드 협찬 파서",
-    desc: "카카오톡 협찬 제안 문자를 복사하면 자동으로 CRM에 등록됩니다.",
+    title: "협찬 제안 인박스",
+    desc: "브랜드 제안이 앱으로 도착하고 푸시로 알려드립니다. 수락하면 CRM에 자동 등록, 정산하면 수익에 자동 기록됩니다.",
   },
 ];
 
@@ -39,11 +39,11 @@ const STEPS = [
 const FAQS = [
   {
     q: "무료로 쓸 수 있나요?",
-    a: "네. 소셜 채널 연동, 수익 대시보드, 캘린더, 세금 시뮬레이터, 미디어 키트 URL은 모두 무료입니다. 인바운드 문의 폼, 방문자 통계, PDF 리포트는 프리미엄(월 9,900원)에서 제공됩니다.",
+    a: "네. 소셜 채널 연동, 수익 대시보드, 캘린더, 세금 시뮬레이터, 미디어 키트 URL은 모두 무료입니다. 인바운드 문의 폼, 방문자 통계, 채널 분석은 프리미엄(월 9,900원)에서 제공됩니다.",
   },
   {
     q: "수동으로 입력해야 하나요?",
-    a: "아니요. 구글 OAuth로 로그인하면 유튜브 구독자 수, 조회수, 채널명이 자동으로 불러와집니다. 협찬 제안 문자도 클립보드에 복사하면 자동 파싱됩니다.",
+    a: "아니요. 구글 OAuth로 로그인하면 유튜브 구독자 수, 조회수, 채널명이 자동으로 불러와집니다. 브랜드 제안을 수락하면 협찬 관리에, 정산하면 수익에 자동으로 기록됩니다.",
   },
   {
     q: "iOS만 지원하나요?",
@@ -92,11 +92,12 @@ export default function LandingPage() {
               <span className="text-sm font-medium text-[#6C63FF]">2026년 12월 iOS 출시 예정</span>
             </div>
             <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight tracking-tight mb-6">
-              수익부터 협찬까지,<br />
-              <span className="text-gradient">매니비.</span>
+              크리에이터를 위한<br />
+              <span className="text-gradient">협찬 운영 OS</span>
             </h1>
             <p className="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed mb-10">
-              크리에이터가 쓰는 5~7개 앱을 하나로. 소셜 채널 자동 연동부터 협찬 CRM, 세금 계산까지 — 비즈니스 관리 OS.
+              미디어킷, 제안, 메시지, 수익, 일정을 한곳에서 관리하세요.
+              카톡과 엑셀에 흩어진 협찬 업무가 매니비 하나로 끝납니다.
             </p>
             {/* 사전등록 폼 */}
             <div className="max-w-md mx-auto w-full" id="download">
@@ -244,8 +245,8 @@ export default function LandingPage() {
                     "인바운드 문의 폼 활성화",
                     "미디어 키트 방문자 통계",
                     "문의 폼 → CRM 자동 등록",
-                    "PDF 리포트 내보내기",
-                    "데이터 무제한 보관",
+                    "채널 분석 (유입 키워드·시청자 분석)",
+                    "주간 리뷰 & 성장 코치",
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-3 text-sm text-white">
                       <span className="text-yellow-300 font-bold">✓</span>
