@@ -11,6 +11,21 @@ export interface Proposal {
   rejection_reason?: string | null;
 }
 
+// 제안 수락 시 협찬 파이프라인(deals)에 등록 — 모든 수락 경로가 이 함수를 거친다.
+export async function createDealFromProposal(
+  userId: string,
+  proposal: { brand_name: string; amount: number },
+) {
+  return supabase.from('deals').insert({
+    user_id: userId,
+    brand: proposal.brand_name,
+    title: `[제안] ${proposal.brand_name} 협찬`,
+    amount: proposal.amount,
+    status: 'inquiry',
+    source: 'advertiser_proposal',
+  });
+}
+
 export function useProposals(userId: string | undefined) {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,13 +69,7 @@ export function useProposals(userId: string | undefined) {
   async function acceptProposal(proposal: Proposal): Promise<string | null> {
     if (!userId) return '로그인이 필요합니다';
     try {
-      const { error: dealErr } = await supabase.from('deals').insert({
-        user_id: userId,
-        brand: proposal.brand_name,
-        title: `[제안] ${proposal.brand_name} 협찬`,
-        amount: proposal.amount,
-        status: 'inquiry',
-      });
+      const { error: dealErr } = await createDealFromProposal(userId, proposal);
       if (dealErr) throw dealErr;
 
       const { error } = await supabase

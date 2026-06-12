@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Alert,
   Modal,
   Pressable,
 } from 'react-native';
@@ -539,8 +540,13 @@ export default function DealsScreen() {
   React.useEffect(() => { refetch(); }, [dealsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleAcceptProposal(p: Proposal) {
-    await acceptProposal(p);
+    const err = await acceptProposal(p);
+    if (err) {
+      Alert.alert('오류', err);
+      return;
+    }
     refetch();
+    Alert.alert('협찬 관리에 추가됐어요', `${p.brand_name} 협찬이 문의 단계에서 시작합니다.`);
   }
   const [activeFilter, setActiveFilter] = useState<FilterTab>('전체');
   const [showAddModal, setShowAddModal] = useState(false);

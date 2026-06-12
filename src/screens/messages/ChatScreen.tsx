@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, TextInput, TouchableOpacity, FlatList,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Modal, Pressable,
+  Modal, Pressable, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../../api/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useRealtime } from '../../context/RealtimeContext';
+import { createDealFromProposal } from '../../hooks/useProposals';
 import { theme } from '../../constants/theme';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -177,6 +178,20 @@ export default function ChatScreen() {
 
   async function handleProposalAction(action: 'accepted' | 'rejected', reason?: string) {
     setActionLoading(true);
+
+    // 수락이면 협찬 파이프라인(deals)에 먼저 등록
+    if (action === 'accepted' && user) {
+      const { error: dealErr } = await createDealFromProposal(user.id, {
+        brand_name: brandName,
+        amount,
+      });
+      if (dealErr) {
+        Alert.alert('오류', '협찬 등록에 실패했어요. 잠시 후 다시 시도해주세요.');
+        setActionLoading(false);
+        return;
+      }
+    }
+
     await supabase
       .from('advertiser_proposals')
       .update({ status: action, ...(reason ? { rejection_reason: reason } : {}) })
@@ -193,6 +208,17 @@ export default function ChatScreen() {
         sender_role: 'creator',
         content: noticeContent,
       });
+    }
+
+    if (action === 'accepted') {
+      Alert.alert(
+        '협찬 관리에 추가됐어요',
+        '문의 단계에서 시작합니다. 협찬 탭에서 진행 상태를 관리하세요.',
+        [
+          { text: '채팅 계속하기', style: 'cancel' },
+          { text: '보러 가기', onPress: () => nav.navigate('Main', { screen: '협찬' }) },
+        ],
+      );
     }
   }
 
