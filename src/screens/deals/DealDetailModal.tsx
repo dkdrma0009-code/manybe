@@ -123,8 +123,13 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
       // Create deadline schedule if end_date changed
       const deadlineChanged = deadline !== rawToDisplay(deal.endDate);
       if (deadlineChanged && deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline.trim())) {
+        // 기존 마감 일정을 교체 — 수정할 때마다 중복 생성되던 문제 방지
+        await supabase.from('schedules').delete()
+          .eq('deal_id', deal.id)
+          .eq('type', 'deadline');
         await supabase.from('schedules').insert({
           user_id: uid,
+          deal_id: deal.id,
           title: `[${brand.trim()}] 협찬 마감`,
           type: 'deadline',
           start_time: new Date(`${deadline.trim()}T09:00:00`).toISOString(),
@@ -137,6 +142,7 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
         if (status === 'in_progress') {
           await supabase.from('schedules').insert({
             user_id: uid,
+            deal_id: deal.id,
             title: `[${brand.trim()}] 콘텐츠 제작 시작`,
             type: 'content',
             start_time: nowISO,
@@ -144,6 +150,7 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
         } else if (status === 'uploaded') {
           await supabase.from('schedules').insert({
             user_id: uid,
+            deal_id: deal.id,
             title: `[${brand.trim()}] 콘텐츠 업로드 완료`,
             type: 'content',
             start_time: nowISO,
@@ -151,6 +158,7 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
         } else if (status === 'settled') {
           await supabase.from('schedules').insert({
             user_id: uid,
+            deal_id: deal.id,
             title: `[${brand.trim()}] 정산 완료`,
             type: 'other',
             start_time: nowISO,

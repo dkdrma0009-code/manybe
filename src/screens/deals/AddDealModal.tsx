@@ -38,20 +38,21 @@ export default function AddDealModal({ visible, userId, onClose, onSuccess }: Pr
     setSaving(true);
     setError('');
     // PLAN_GATE: unlimited sponsorship workflows — free tier: check active (non-settled) deal count < 3 before insert
-    const { error: err } = await supabase.from('deals').insert({
+    const { data: newDeal, error: err } = await supabase.from('deals').insert({
       user_id: userId,
       brand: brand.trim(),
       title: title.trim(),
       amount: parseInt(amount.replace(/[^0-9]/g, '')) || 0,
       status,
       end_date: deadline || null,
-    });
+    }).select('id').single();
     setSaving(false);
     if (err) { setError(err.message); return; }
     const hasDeadline = !!(deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline.trim()));
     if (hasDeadline) {
       await supabase.from('schedules').insert({
         user_id: userId,
+        deal_id: newDeal?.id ?? null,
         title: `[${brand.trim()}] 협찬 마감`,
         type: 'deadline',
         start_time: new Date(`${deadline.trim()}T09:00:00`).toISOString(),
