@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+
+// 방문마다 서버 렌더 — 조회 기록(media_kit_views) 적재 + 킷 수정사항 즉시 반영
+export const dynamic = "force-dynamic";
 import { getSupabase } from "@/lib/supabase";
 import { getAdvertiserSession } from "@/lib/supabase-server";
 import type { Metadata } from "next";

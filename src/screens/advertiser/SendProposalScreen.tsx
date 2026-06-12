@@ -27,7 +27,11 @@ export default function SendProposalScreen() {
   const [amount, setAmount]        = useState('');
   const [loading, setLoading]      = useState(false);
 
-  const canSubmit = brandName.trim().length > 0 && message.trim().length > 10;
+  // 제안 품질 보장: 브랜드명·금액·캠페인 내용(10자+) 전부 필수 — 스팸/빈 제안 차단
+  const canSubmit =
+    brandName.trim().length > 0 &&
+    message.trim().length > 10 &&
+    parseInt(amount || '0', 10) > 0;
 
   async function handleSend() {
     if (!canSubmit || !user) return;
@@ -87,7 +91,7 @@ export default function SendProposalScreen() {
           </View>
 
           <View style={s.fieldGroup}>
-            <Text style={s.label}>협찬 금액 (선택)</Text>
+            <Text style={s.label}>협찬 금액 *</Text>
             <TextInput
               style={s.input}
               placeholder="예) 500000"
@@ -108,7 +112,7 @@ export default function SendProposalScreen() {
             <Text style={s.label}>제안 메시지 *</Text>
             <TextInput
               style={[s.input, s.textarea]}
-              placeholder={'협찬 내용, 기간, 조건 등을 자세히 적어주세요\n(최소 10자 이상)'}
+              placeholder={'캠페인 내용, 일정(촬영·업로드 기한), 조건을 적어주세요\n(최소 10자 이상)'}
               placeholderTextColor={colors.textTertiary}
               value={message}
               onChangeText={setMessage}

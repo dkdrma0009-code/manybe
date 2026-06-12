@@ -290,7 +290,7 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
             />
             <Field label="마감일" value={deadline} onChangeText={setDeadline} placeholder="예: 2026-06-15" />
 
-            <Text style={styles.fieldLabel}>협찬 진행 단계</Text>
+            <Text style={styles.fieldLabel}>협찬 진행 단계 <Text style={{ fontWeight: '400', color: '#9CA3AF' }}>· 단계를 탭해 변경</Text></Text>
             <PipelineStepper status={status} onChange={setStatus} />
 
             {/* Settlement section — shown when deal is uploaded or settled */}
