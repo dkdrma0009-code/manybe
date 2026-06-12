@@ -1,6 +1,6 @@
-import { Text } from '@/components/Text';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,10 +42,12 @@ export type AdvertiserTabParamList = {
 const Tab   = createBottomTabNavigator<AdvertiserTabParamList>();
 const Stack = createNativeStackNavigator<AdvertiserRootStackParamList>();
 
-const TAB_ICONS: Record<string, string> = {
-  홈:    '⌂',
-  제안내역: '◎',
-  MY:   '◉',
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TAB_ICONS: Record<string, { default: IoniconName; focused: IoniconName }> = {
+  홈:    { default: 'home-outline',       focused: 'home' },
+  제안내역: { default: 'paper-plane-outline', focused: 'paper-plane' },
+  MY:   { default: 'person-outline',     focused: 'person' },
 };
 
 function AdvertiserTabNavigator() {
@@ -78,9 +80,11 @@ function AdvertiserTabNavigator() {
         },
         tabBarIcon: ({ focused }) => (
           <View style={[s.wrapper, focused && s.wrapperActive]}>
-            <Text style={[s.icon, { color: focused ? tokens.action : tokens.ink4 }]}>
-              {TAB_ICONS[route.name]}
-            </Text>
+            <Ionicons
+              name={focused ? TAB_ICONS[route.name].focused : TAB_ICONS[route.name].default}
+              size={22}
+              color={focused ? tokens.action : tokens.ink4}
+            />
           </View>
         ),
       })}

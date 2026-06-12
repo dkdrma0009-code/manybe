@@ -351,6 +351,17 @@ export default function HomeScreen() {
 
   const [dismissedPriority, setDismissedPriority] = useState(false);
   const [pendingProposalCount, setPendingProposalCount] = useState(0);
+  const [hasMediaKit, setHasMediaKit] = useState<boolean | null>(null);
+
+  // 미디어킷 미생성 유저에게 첫 액션 유도 (P4: 온보딩 → 미디어킷 생성)
+  React.useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('media_kits')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .then(({ count }) => setHasMediaKit((count ?? 0) > 0));
+  }, [user?.id]);
 
   React.useEffect(() => { refetch(); }, [dealsVersion]); // eslint-disable-line
 
@@ -421,6 +432,21 @@ export default function HomeScreen() {
         )}
 
         <View style={s.gap} />
+
+        {/* 미디어킷 첫 생성 유도 */}
+        {hasMediaKit === false && (
+          <TouchableOpacity
+            style={s.kitNudge}
+            onPress={() => navigation.navigate('MediaKitEdit')}
+            activeOpacity={0.85}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={s.kitNudgeTitle}>📇 미디어킷을 만들어보세요</Text>
+              <Text style={s.kitNudgeDesc}>10분이면 브랜드에 보낼 수 있는 내 소개 링크가 완성돼요</Text>
+            </View>
+            <Text style={s.kitNudgeArrow}>›</Text>
+          </TouchableOpacity>
+        )}
 
         {/* 퀵 액션 */}
         <QuickActions onPress={(screen) => navigation.navigate(screen)} />
@@ -586,6 +612,21 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   proposalBannerArrow: { fontSize: 18, color: colors.text.tertiary },
+
+  kitNudge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EAE3FF',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: '#D9CEFC',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    marginBottom: space.lg,
+  },
+  kitNudgeTitle: { fontSize: 14, fontWeight: '700', color: '#4C3FB8', marginBottom: 2 },
+  kitNudgeDesc: { ...typography.caption, color: '#6E5DD6' },
+  kitNudgeArrow: { fontSize: 20, color: '#6E5DD6', marginLeft: 8 },
 
   pendingCard: {
     flexDirection: 'row',

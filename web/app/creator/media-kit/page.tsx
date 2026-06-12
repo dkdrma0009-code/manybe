@@ -396,16 +396,14 @@ export default function MediaKitPage() {
               </p>
               <p className="text-xs text-slate-500 mb-3 leading-relaxed">
                 프리미엄 플랜으로 업그레이드하면 광고주가 내 미디어 키트에서 바로 협찬 제안을 보낼 수 있습니다.
-                방문자 통계, PDF 내보내기도 함께 제공됩니다.
+                방문자 통계, 채널 분석도 함께 제공됩니다.
               </p>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold text-indigo-600">월 9,900원</span>
-                <button
-                  onClick={() => alert('결제 연동 준비 중입니다. 곧 오픈됩니다!')}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:scale-105"
-                  style={{ background: 'linear-gradient(135deg, #6366F1, #EC4899)' }}>
-                  프리미엄 시작하기 →
-                </button>
+                {/* 결제는 앱 인앱결제로 일원화 — 웹에서는 안내만 */}
+                <span className="px-4 py-2 rounded-xl text-xs font-bold text-indigo-600 bg-white border border-indigo-200">
+                  매니비 앱에서 구독
+                </span>
               </div>
             </div>
           )}
