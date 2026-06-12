@@ -185,10 +185,22 @@ export default function MediaKitEditScreen({ navigation }: Props) {
         highlights,
       };
 
-      // 신규 사용자는 media_kits 행이 아직 없으므로 insert (슬러그는 URL 화면에서 설정)
-      const { error } = hasKit
-        ? await supabase.from('media_kits').update(payload).eq('user_id', user!.id)
-        : await supabase.from('media_kits').insert({ user_id: user!.id, ...payload });
+      // 신규 사용자는 media_kits 행이 아직 없으므로 insert.
+      // slug는 NOT NULL — 이메일 기반 기본값 생성 (URL 화면에서 변경 가능)
+      let error;
+      if (hasKit) {
+        ({ error } = await supabase.from('media_kits').update(payload).eq('user_id', user!.id));
+      } else {
+        const baseSlug = ((user!.email?.split('@')[0] ?? '')
+          .toLowerCase().replace(/[^a-z0-9]/g, '')) || user!.id.slice(0, 8);
+        ({ error } = await supabase.from('media_kits')
+          .insert({ user_id: user!.id, slug: baseSlug, ...payload }));
+        if (error?.code === '23505') {
+          // slug 충돌 — 사용자 ID 일부를 붙여 재시도
+          ({ error } = await supabase.from('media_kits')
+            .insert({ user_id: user!.id, slug: `${baseSlug}-${user!.id.slice(0, 4)}`, ...payload }));
+        }
+      }
 
       if (error) throw error;
       if (!hasKit) setHasKit(true);
