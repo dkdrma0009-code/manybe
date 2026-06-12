@@ -1,5 +1,6 @@
 import { Text } from '@/components/Text';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert,
@@ -52,9 +53,12 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
   const userName = user?.user_metadata?.full_name ?? '크리에이터';
   const initial = userName.charAt(0).toUpperCase();
 
-  useEffect(() => {
-    load().then(() => generate());
-  }, []);
+  // 화면이 포커스될 때마다 다시 로드 — 편집 후 돌아와도 최신 데이터 반영
+  useFocusEffect(
+    useCallback(() => {
+      load().then((kit) => generate(kit));
+    }, [load]), // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   function handleCopyUrl() {
     if (!kitData?.slug) {

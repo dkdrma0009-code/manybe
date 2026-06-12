@@ -23,8 +23,8 @@ interface UseMediaKitResult {
   intelligence: MediaKitIntelligence | null;
   loading: boolean;
   generating: boolean;
-  load: () => Promise<void>;
-  generate: () => Promise<MediaKitIntelligence | null>;
+  load: () => Promise<MediaKitData | null>;
+  generate: (kit?: MediaKitData | null) => Promise<MediaKitIntelligence | null>;
 }
 
 const EMPTY_KIT: MediaKitData = {
@@ -46,8 +46,8 @@ export function useMediaKit(): UseMediaKitResult {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!user) return;
+  const load = useCallback(async (): Promise<MediaKitData | null> => {
+    if (!user) return null;
     setLoading(true);
     try {
       const { data } = await supabase
@@ -56,7 +56,7 @@ export function useMediaKit(): UseMediaKitResult {
         .eq('user_id', user.id)
         .limit(1);
       const kit = data?.[0];
-      setKitData({
+      const loaded: MediaKitData = {
         bio: kit?.bio ?? '',
         pricing: kit?.pricing ?? {},
         pastBrands: kit?.past_brands ?? [],
@@ -66,18 +66,21 @@ export function useMediaKit(): UseMediaKitResult {
         theme: (kit?.theme ?? 'indigo') as MediaKitTheme,
         sectionOrder: (kit?.section_order ?? DEFAULT_SECTION_ORDER) as SectionId[],
         highlights: (kit?.highlights ?? []) as HighlightSection[],
-      });
+      };
+      setKitData(loaded);
+      return loaded;
     } finally {
       setLoading(false);
     }
   }, [user]);
 
-  const generate = useCallback(async (): Promise<MediaKitIntelligence | null> => {
+  // kit 파라미터를 받으면 그것을 사용 — load() 직후 stale state 문제 회피
+  const generate = useCallback(async (kit?: MediaKitData | null): Promise<MediaKitIntelligence | null> => {
     if (!user) return null;
     setGenerating(true);
     try {
-      const kit = kitData ?? EMPTY_KIT;
-      const portfolio = await computePortfolioIntelligence(user.id, kit.pastBrands);
+      const source = kit ?? kitData ?? EMPTY_KIT;
+      const portfolio = await computePortfolioIntelligence(user.id, source.pastBrands);
       const intel = await generateMediaKitIntelligence(portfolio);
       setIntelligence(intel);
       return intel;
