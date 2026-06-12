@@ -457,6 +457,21 @@ export default function HomeScreen() {
           </>
         )}
 
+        {/* 받을 돈 (정산 대기) */}
+        {data.pendingSettlement > 0 && (
+          <TouchableOpacity
+            style={s.pendingCard}
+            onPress={() => navigation.navigate('Revenue')}
+            activeOpacity={0.85}
+          >
+            <View>
+              <Text style={s.pendingLabel}>받을 돈 (정산 대기)</Text>
+              <Text style={s.pendingValue}>{formatWon(data.pendingSettlement)}</Text>
+            </View>
+            <Text style={s.pendingArrow}>›</Text>
+          </TouchableOpacity>
+        )}
+
         {/* 브랜드 협업 */}
         {data.activeDeals.length > 0 && (
           <>
@@ -571,6 +586,22 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   proposalBannerArrow: { fontSize: 18, color: colors.text.tertiary },
+
+  pendingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FBF1DC',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: '#F0E0BE',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    marginBottom: space.lg,
+  },
+  pendingLabel: { ...typography.caption, color: '#8A6A1F', marginBottom: 2 },
+  pendingValue: { fontSize: 18, fontWeight: '800', color: '#C68318', letterSpacing: -0.5 },
+  pendingArrow: { fontSize: 20, color: '#C68318' },
 
   empty: { alignItems: 'center', paddingVertical: 60, gap: space.sm },
   emptyIcon:  { fontSize: 44 },

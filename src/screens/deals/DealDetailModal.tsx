@@ -156,8 +156,8 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
             start_time: nowISO,
           });
 
-          // 하이라이트 추가 제안
-          setTimeout(() => {
+          // 하이라이트 추가 제안 (수익 기록 확인 뒤에 표시)
+          const showHighlightPrompt = () => {
             Alert.alert(
               '🎉 정산 완료!',
               `${brand.trim()} 협업을 미디어 키트 하이라이트에 추가할까요?\n수치는 나중에 편집할 수 있어요.`,
@@ -184,7 +184,35 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
                 },
               ],
             );
-          }, 1500);
+          };
+
+          // 정산 금액을 수익 현황에 기록할지 확인 — 이중 입력 제거
+          if (rawAmount > 0) {
+            setTimeout(() => {
+              Alert.alert(
+                '수익으로 기록할까요?',
+                `${brand.trim()} 협찬 ${rawAmount.toLocaleString('ko-KR')}원을 수익 현황에 추가합니다.`,
+                [
+                  { text: '기록 안 함', style: 'cancel', onPress: showHighlightPrompt },
+                  {
+                    text: '기록하기',
+                    onPress: async () => {
+                      await supabase.from('revenues').insert({
+                        user_id: uid,
+                        amount: rawAmount,
+                        category: 'sponsorship',
+                        description: `${brand.trim()} 협찬 정산`,
+                        date: new Date().toISOString().slice(0, 10),
+                      });
+                      showHighlightPrompt();
+                    },
+                  },
+                ],
+              );
+            }, 600);
+          } else {
+            setTimeout(showHighlightPrompt, 1500);
+          }
         }
       }
     }

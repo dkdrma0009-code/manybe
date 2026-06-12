@@ -17,6 +17,7 @@ import {
 import Svg, { Path, G } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../api/supabase';
 import { useRevenueData } from '../../hooks/useRevenueData';
 import { useRealtime } from '../../context/RealtimeContext';
 import { useFinancialIntelligence } from '../../hooks/useFinancialIntelligence';
@@ -187,8 +188,22 @@ export default function RevenueScreen() {
 
   const selected = MONTHS[selectedIdx];
   const { data, loading, refetch, saveGoal } = useRevenueData(user?.id, selected.year, selected.month);
-  const { revenuesVersion } = useRealtime();
+  const { revenuesVersion, dealsVersion } = useRealtime();
   useEffect(() => { refetch(); }, [revenuesVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 받을 돈 — 업로드 완료(정산 대기) 상태 협찬 금액 합계
+  const [pendingSettlement, setPendingSettlement] = useState(0);
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('deals')
+      .select('amount')
+      .eq('user_id', user.id)
+      .eq('status', 'uploaded')
+      .then(({ data: rows }) => {
+        setPendingSettlement((rows ?? []).reduce((s, d) => s + (d.amount ?? 0), 0));
+      });
+  }, [user?.id, dealsVersion]);
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
 
@@ -269,6 +284,20 @@ export default function RevenueScreen() {
                   <Text style={styles.summaryNet}>{formatKRW(data.net)}</Text>
                 </View>
               </View>
+              {pendingSettlement > 0 && (
+                <>
+                  <View style={styles.summaryDivider} />
+                  <View style={styles.summaryBottom}>
+                    <View>
+                      <Text style={styles.summarySubLabel}>받을 돈 (정산 대기)</Text>
+                      <Text style={styles.summaryPending}>{formatKRW(pendingSettlement)}</Text>
+                    </View>
+                    <View style={styles.summaryBottomRight}>
+                      <Text style={styles.summaryPendingHint}>업로드 완료 협찬 기준</Text>
+                    </View>
+                  </View>
+                </>
+              )}
             </>
           )}
         </View>
@@ -536,6 +565,8 @@ const styles = StyleSheet.create({
   summarySubLabel: { fontSize: 12, color: '#7C6FCD', marginBottom: 3 },
   summaryTax: { fontSize: 16, fontWeight: '700', color: '#EF4444' },
   summaryNet: { fontSize: 16, fontWeight: '700', color: colors.primary },
+  summaryPending: { fontSize: 16, fontWeight: '700', color: '#C68318' },
+  summaryPendingHint: { fontSize: 11, color: '#9CA3AF', alignSelf: 'flex-end' },
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
