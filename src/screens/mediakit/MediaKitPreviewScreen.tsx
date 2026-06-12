@@ -124,7 +124,7 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
             {bio ? (
               <Text style={styles.bio}>{bio}</Text>
             ) : (
-              <Text style={styles.bioEmpty}>자기소개를 입력하거나 AI 자동완성을 사용하세요</Text>
+              <Text style={styles.bioEmpty}>자기소개를 입력하거나 자동완성을 사용하세요</Text>
             )}
             {kitData?.slug ? (
               <View style={styles.urlChip}>
@@ -256,7 +256,7 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
             <View style={styles.section}>
               <View style={styles.pitchHeader}>
                 <Text style={styles.sectionTitle}>협업 제안 문구</Text>
-                <Text style={styles.pitchHint}>AI 자동생성</Text>
+                <Text style={styles.pitchHint}>자동생성</Text>
               </View>
               <View style={styles.pitchTabs}>
                 <TouchableOpacity

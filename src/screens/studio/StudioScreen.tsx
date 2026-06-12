@@ -228,9 +228,9 @@ export default function StudioScreen() {
         <SectionTitle text="Creator Positioning" />
         <View style={s.aiPending}>
           <Text style={s.aiPendingIcon}>✦</Text>
-          <Text style={s.aiPendingTitle}>AI 분석 준비 중</Text>
+          <Text style={s.aiPendingTitle}>분석 준비 중</Text>
           <Text style={s.aiPendingDesc}>
-            채널 콘텐츠가 충분히 쌓이면 Claude AI가{'\n'}자동으로 크리에이터 포지셔닝을 분석합니다
+            채널 콘텐츠가 충분히 쌓이면{'\n'}자동으로 크리에이터 포지셔닝을 분석합니다
           </Text>
           <View style={s.aiPendingBadge}>
             <Text style={s.aiPendingBadgeText}>₩9,900 플랜에서 이용 가능</Text>

@@ -15,11 +15,11 @@ import { tokens } from '../../constants/tokens';
 
 const FEATURES_LIST = [
   { icon: '🔮', title: '예측 인텔리전스',     desc: '다음 달 수익 예측 + 불확실성 범위' },
-  { icon: '🧠', title: 'AI 코치 & 주간 리뷰', desc: '매주 AI가 분석한 코칭 인사이트' },
+  { icon: '🧠', title: '성장 코치 & 주간 리뷰', desc: '매주 자동 분석되는 코칭 인사이트' },
   { icon: '📈', title: '수익 안정성 분석',     desc: '변동성 점수 + 안정화 전략' },
-  { icon: '📊', title: '트렌드 인텔리전스',    desc: '번아웃 위험 · 응답 속도 · 집중도' },
-  { icon: '🤖', title: 'AI 분석 설명',         desc: '헬스 점수 계산 근거 전체 공개' },
-  { icon: '⚡', title: 'AI 추천 액션',         desc: '우선순위 자동화 추천 액션 플랜' },
+  { icon: '📊', title: '트렌드 스냅샷',        desc: '번아웃 위험 · 응답 속도 · 집중도' },
+  { icon: '🔍', title: '운영 진단',            desc: '헬스 점수 계산 근거 전체 공개' },
+  { icon: '⚡', title: '추천 액션',            desc: '우선순위 자동화 추천 액션 플랜' },
   { icon: '🎯', title: '브랜드 리스크 분석',   desc: '의존도 위험 + 다변화 기회 분석' },
   { icon: '🤝', title: '무제한 협찬 관리',     desc: '협찬 수 제한 없이 모든 프로젝트' },
 ];

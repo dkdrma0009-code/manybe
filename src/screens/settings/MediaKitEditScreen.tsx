@@ -100,7 +100,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
       const intel = await generateMediaKitIntelligence(portfolio);
       setBio(intel.aiGeneratedBio);
     } catch {
-      Alert.alert('오류', 'AI 자동완성에 실패했습니다.');
+      Alert.alert('오류', '자동완성에 실패했습니다.');
     } finally {
       setGeneratingBio(false);
     }
@@ -317,7 +317,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
               >
                 {generatingBio
                   ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <Text style={styles.aiBtnText}>✨ AI 자동완성</Text>
+                  : <Text style={styles.aiBtnText}>✨ 자동완성</Text>
                 }
               </TouchableOpacity>
             </View>

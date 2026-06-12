@@ -159,7 +159,7 @@ export default function AnalyticsScreen() {
           {analyzing && (
             <View style={{ paddingHorizontal: 16, paddingBottom: 16, alignItems: 'center', gap: 6 }}>
               <ActivityIndicator size="small" color={tokens.primary} />
-              <Text style={{ fontSize: 12, color: tokens.ink4 }}>댓글 수집 및 Claude AI 분석 중...</Text>
+              <Text style={{ fontSize: 12, color: tokens.ink4 }}>댓글 수집 및 분석 중...</Text>
             </View>
           )}
 
