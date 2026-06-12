@@ -126,7 +126,8 @@ export default function YouTubeConnectScreen({ navigation }: Props) {
   }, [user?.id, channels]);
 
   // expo-auth-session으로 Google OAuth 요청
-  const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+  // (Expo auth proxy는 SDK 48에서 폐지 — useProxy 옵션 제거됨)
+  const redirectUri = AuthSession.makeRedirectUri();
 
   const discovery = {
     authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',

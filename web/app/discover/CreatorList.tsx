@@ -35,16 +35,17 @@ interface Props {
 }
 
 export default function CreatorList({ creators, isLoggedIn }: Props) {
-  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  // localStorage는 lazy initializer에서 1회 읽는다 (effect 내 동기 setState 회피)
+  const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      return new Set<string>(JSON.parse(localStorage.getItem("manybe_bookmarks") ?? "[]"));
+    } catch {
+      return new Set();
+    }
+  });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
-
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("manybe_bookmarks") ?? "[]");
-      setBookmarks(new Set(saved));
-    } catch {}
-  }, []);
 
   function toggleBookmark(e: React.MouseEvent, slug: string) {
     e.preventDefault();

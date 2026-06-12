@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import {
   TrendingUp, DollarSign, Star, Eye,
   Calendar, ExternalLink, Users, ShieldCheck,
@@ -259,10 +260,10 @@ export default async function CreatorDashboardPage() {
               <p className="text-xs text-slate-500 mt-0.5">Google로 로그인하면 채널이 자동 연동됩니다</p>
             </div>
           </div>
-          <a href="/creator/login"
+          <Link href="/creator/login"
             className="text-xs font-semibold text-indigo-600 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors">
             연결하기
-          </a>
+          </Link>
         </div>
       )}
 
@@ -293,9 +294,9 @@ export default async function CreatorDashboardPage() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-semibold text-slate-900">협찬 파이프라인</h2>
-          <a href="/creator/deals" className="text-xs text-indigo-600 font-medium flex items-center gap-1">
+          <Link href="/creator/deals" className="text-xs text-indigo-600 font-medium flex items-center gap-1">
             전체 보기 <TrendingUp className="w-3 h-3" />
-          </a>
+          </Link>
         </div>
         {!activeDeals?.length ? (
           <div className="px-5 py-10 text-center text-slate-400 text-sm">진행 중인 협찬이 없습니다</div>

@@ -51,12 +51,11 @@ export default function MessagesClient({
     ? convos.filter((c) => c.creatorName.toLowerCase().includes(query.toLowerCase()))
     : convos;
 
-  if (!supabaseRef.current) {
-    supabaseRef.current = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: true } });
-  }
-
   useEffect(() => {
-    const supabase = supabaseRef.current!;
+    if (!supabaseRef.current) {
+      supabaseRef.current = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: true } });
+    }
+    const supabase = supabaseRef.current;
 
     const threadChannel = supabase
       .channel("messages-list-threads")
@@ -121,7 +120,7 @@ export default function MessagesClient({
       <div className="rounded-xl overflow-hidden bg-white" style={{ border: "1px solid var(--border-faint)" }}>
         {filtered.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-sm" style={{ color: "var(--ink-3)" }}>"{query}"에 해당하는 대화가 없습니다</p>
+            <p className="text-sm" style={{ color: "var(--ink-3)" }}>&ldquo;{query}&rdquo;에 해당하는 대화가 없습니다</p>
           </div>
         ) : filtered.map((c, i) => {
           const status = STATUS_META[c.status] ?? STATUS_META.pending;

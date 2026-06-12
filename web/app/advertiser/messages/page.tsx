@@ -45,8 +45,8 @@ export default async function MessagesPage() {
   const threadMap = Object.fromEntries((threads ?? []).map((t) => [t.proposal_id, t]));
   const threadIds = (threads ?? []).map((t) => t.id);
 
-  let unreadMap: Record<string, number> = {};
-  let lastMsgMap: Record<string, string> = {};
+  const unreadMap: Record<string, number> = {};
+  const lastMsgMap: Record<string, string> = {};
 
   if (threadIds.length > 0) {
     const { data: msgs, error: msgsError } = await supabase

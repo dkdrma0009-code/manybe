@@ -27,7 +27,7 @@ export default async function ChatPage({ params }: { params: Promise<{ proposalI
   const creatorName = profile?.full_name || kit?.slug || "크리에이터";
 
   // Get or initialize thread + existing messages
-  let { data: thread } = await supabase
+  const { data: thread } = await supabase
     .from("message_threads")
     .select("id")
     .eq("proposal_id", proposalId)

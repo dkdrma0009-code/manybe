@@ -75,7 +75,7 @@ function LoginForm() {
           <div className="mt-8 pt-6 text-center" style={{ borderTop: "1px solid var(--border-faint)" }}>
             <p className="text-xs" style={{ color: "var(--ink-4)" }}>
               크리에이터라면{" "}
-              <a href="/creator/login" className="font-medium" style={{ color: "var(--brand)" }}>크리에이터 로그인</a>을 이용해주세요
+              <Link href="/creator/login" className="font-medium" style={{ color: "var(--brand)" }}>크리에이터 로그인</Link>을 이용해주세요
             </p>
           </div>
         </div>

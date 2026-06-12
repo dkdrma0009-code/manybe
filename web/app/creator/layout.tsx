@@ -51,11 +51,11 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
 
         {/* 하단 */}
         <div className="px-3 py-4 border-t border-slate-100 space-y-1">
-          <a href="/creator/media-kit"
+          <Link href="/creator/media-kit"
             className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-indigo-50 to-pink-50 text-sm font-medium text-indigo-700 hover:from-indigo-100 hover:to-pink-100 transition-colors">
             <Eye className="w-4 h-4" />
             내 미디어 키트 →
-          </a>
+          </Link>
           <LogoutButton />
         </div>
       </aside>
