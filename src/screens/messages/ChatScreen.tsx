@@ -52,7 +52,9 @@ export default function ChatScreen() {
   const nav       = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user }  = useAuth();
 
-  const { proposalId, brandName, proposalMessage, amount, status: initialStatus } = route.params;
+  const { proposalId, brandName, proposalMessage, amount, status: initialStatus, role = 'creator' } = route.params;
+  // role='brand'면 광고주 시점 — 상대(otherRole) 메시지를 읽음 처리하고 내 메시지는 role로 전송
+  const otherRole = role === 'creator' ? 'brand' : 'creator';
 
   const [threadId, setThreadId]   = useState<string | null>(null);
   const [messages, setMessages]   = useState<ChatMessage[]>([]);
@@ -81,9 +83,20 @@ export default function ChatScreen() {
     if (existing) {
       tid = existing.id;
     } else {
+      // 스레드의 creator_id는 항상 제안의 수신자(크리에이터) — 광고주가 먼저 진입해도 동일
+      let creatorId = user.id;
+      if (role === 'brand') {
+        const { data: p } = await supabase
+          .from('advertiser_proposals')
+          .select('creator_id')
+          .eq('id', proposalId)
+          .single();
+        if (!p) return;
+        creatorId = p.creator_id;
+      }
       const { data: created, error } = await supabase
         .from('message_threads')
-        .insert({ proposal_id: proposalId, creator_id: user.id })
+        .insert({ proposal_id: proposalId, creator_id: creatorId })
         .select('id')
         .single();
       if (error || !created) return;
@@ -106,21 +119,21 @@ export default function ChatScreen() {
 
     setMessages(msgs ?? []);
 
-    // 브랜드 메시지 읽음 처리
+    // 상대방 메시지 읽음 처리
     await supabase
       .from('chat_messages')
       .update({ is_read: true })
       .eq('thread_id', tid)
-      .eq('sender_role', 'brand')
+      .eq('sender_role', otherRole)
       .eq('is_read', false);
 
     // 로컬 상태도 읽음으로 업데이트
     setMessages((prev) => prev.map((m) =>
-      m.sender_role === 'brand' ? { ...m, is_read: true } : m,
+      m.sender_role === otherRole ? { ...m, is_read: true } : m,
     ));
 
-    refreshUnreadProposalCount();
-  }, [user, proposalId, proposalMessage, refreshUnreadProposalCount]);
+    if (role === 'creator') refreshUnreadProposalCount();
+  }, [user, proposalId, proposalMessage, role, otherRole, refreshUnreadProposalCount]);
 
   useEffect(() => { initThread(); }, [initThread]);
 
@@ -137,8 +150,8 @@ export default function ChatScreen() {
           const newMsg = { ...payload.new, is_read: false } as ChatMessage;
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
-            // 브랜드 메시지 수신 시 즉시 읽음 처리
-            if (newMsg.sender_role === 'brand' && threadId) {
+            // 상대방 메시지 수신 시 즉시 읽음 처리
+            if (newMsg.sender_role === otherRole && threadId) {
               supabase.from('chat_messages').update({ is_read: true }).eq('id', newMsg.id);
               newMsg.is_read = true;
             }
@@ -169,7 +182,7 @@ export default function ChatScreen() {
     setSending(true);
     await supabase.from('chat_messages').insert({
       thread_id: threadId,
-      sender_role: 'creator',
+      sender_role: role,
       content,
     });
     setSending(false);
@@ -224,7 +237,7 @@ export default function ChatScreen() {
   }
 
   function renderMessage({ item, index }: { item: ChatMessage; index: number }) {
-    const isCreator = item.sender_role === 'creator';
+    const isCreator = item.sender_role === role; // 내 메시지 (우측 정렬)
     const prevItem  = index > 0 ? messages[index - 1] : null;
     const nextItem  = index < messages.length - 1 ? messages[index + 1] : null;
     const sameGroup = prevItem?.sender_role === item.sender_role;
@@ -279,8 +292,18 @@ export default function ChatScreen() {
         </View>
       </View>
 
-      {/* 제안 수락/거절 배너 */}
-      {proposalStatus === 'pending' ? (
+      {/* 제안 수락/거절 배너 — 수락/거절은 크리에이터만 */}
+      {role === 'brand' ? (
+        <View style={[cs.statusBadge,
+          proposalStatus === 'accepted' ? cs.statusAccepted : cs.statusRejected]}>
+          <Text style={[cs.statusBadgeText, {
+            color: proposalStatus === 'accepted' ? colors.ai.from : colors.text.tertiary,
+          }]}>
+            {proposalStatus === 'pending' ? '⏳ 크리에이터 검토 중'
+              : proposalStatus === 'accepted' ? '✓ 수락된 협찬' : '✗ 거절된 협찬'}
+          </Text>
+        </View>
+      ) : proposalStatus === 'pending' ? (
         <View style={cs.proposalBanner}>
           <Text style={cs.proposalBannerText}>협찬 제안에 답변해주세요</Text>
           <View style={cs.proposalBtnRow}>

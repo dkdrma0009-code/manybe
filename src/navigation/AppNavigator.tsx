@@ -67,6 +67,8 @@ export type RootStackParamList = {
     proposalMessage: string;
     amount: number;
     status: 'pending' | 'accepted' | 'rejected';
+    /** 'brand' = 광고주 시점 (보낸 제안의 채팅). 기본 'creator' */
+    role?: 'creator' | 'brand';
   };
   Feedback: undefined;
   IncomingProposals: undefined;

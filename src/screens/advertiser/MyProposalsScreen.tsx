@@ -155,7 +155,18 @@ export default function MyProposalsScreen() {
           renderItem={({ item }) => {
             const cfg = STATUS_CFG[item.status];
             return (
-              <View style={s.card}>
+              <TouchableOpacity
+                style={s.card}
+                activeOpacity={0.8}
+                onPress={() => nav.navigate('Chat', {
+                  proposalId: item.id,
+                  brandName: item.creator_name ?? '크리에이터',
+                  proposalMessage: item.message,
+                  amount: item.amount,
+                  status: item.status,
+                  role: 'brand',
+                })}
+              >
                 {/* 상단: 상태 + 날짜 */}
                 <View style={s.cardTop}>
                   <View style={[s.statusBadge, { backgroundColor: cfg.bg }]}>
@@ -188,7 +199,9 @@ export default function MyProposalsScreen() {
                     <Text style={s.rejectionText}>{item.rejection_reason}</Text>
                   </View>
                 )}
-              </View>
+
+                <Text style={s.chatHint}>💬 탭하면 크리에이터와 대화할 수 있어요</Text>
+              </TouchableOpacity>
             );
           }}
         />
@@ -284,6 +297,7 @@ const s = StyleSheet.create({
   },
   rejectionLabel: { fontSize: 11, fontWeight: '600', color: tokens.error, marginBottom: 3 },
   rejectionText:  { fontSize: 13, color: tokens.error, lineHeight: 18 },
+  chatHint: { fontSize: 11, color: tokens.ink4, marginTop: 4 },
 
   empty:      { alignItems: 'center', paddingTop: 80, gap: 12 },
   emptyIcon:  { fontSize: 40 },

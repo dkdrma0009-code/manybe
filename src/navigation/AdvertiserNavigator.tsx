@@ -11,6 +11,7 @@ import DiscoverCreatorsScreen from '../screens/advertiser/DiscoverCreatorsScreen
 import CreatorProfileScreen from '../screens/advertiser/CreatorProfileScreen';
 import SendProposalScreen from '../screens/advertiser/SendProposalScreen';
 import FeedbackScreen from '../screens/settings/FeedbackScreen';
+import ChatScreen from '../screens/messages/ChatScreen';
 import { tokens } from '../constants/tokens';
 
 // ─── Stack param list (모달/카드 스크린 포함) ──────────────────────────────────
@@ -22,6 +23,14 @@ export type AdvertiserRootStackParamList = {
   SendProposal: { creatorId: string; creatorName: string };
   MyProposals: undefined;
   Feedback: undefined;
+  Chat: {
+    proposalId: string;
+    brandName: string;
+    proposalMessage: string;
+    amount: number;
+    status: 'pending' | 'accepted' | 'rejected';
+    role?: 'creator' | 'brand';
+  };
 };
 
 export type AdvertiserTabParamList = {
@@ -92,6 +101,7 @@ export default function AdvertiserNavigator() {
       <Stack.Screen name="SendProposal" component={SendProposalScreen} options={{ presentation: 'card' }} />
       <Stack.Screen name="MyProposals" component={MyProposalsScreen} options={{ presentation: 'card' }} />
       <Stack.Screen name="Feedback" component={FeedbackScreen} options={{ presentation: 'card' }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ presentation: 'card' }} />
     </Stack.Navigator>
   );
 }
