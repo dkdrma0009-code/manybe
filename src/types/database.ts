@@ -1070,6 +1070,8 @@ export type Database = {
       }
       social_channel_tokens: {
         Row: {
+          instagram_access_token: string | null
+          instagram_token_expires_at: string | null
           platform: string
           updated_at: string
           user_id: string
@@ -1078,6 +1080,8 @@ export type Database = {
           youtube_token_expires_at: string | null
         }
         Insert: {
+          instagram_access_token?: string | null
+          instagram_token_expires_at?: string | null
           platform: string
           updated_at?: string
           user_id: string
@@ -1086,6 +1090,8 @@ export type Database = {
           youtube_token_expires_at?: string | null
         }
         Update: {
+          instagram_access_token?: string | null
+          instagram_token_expires_at?: string | null
           platform?: string
           updated_at?: string
           user_id?: string
@@ -1106,6 +1112,7 @@ export type Database = {
           handle: string | null
           id: string
           is_verified: boolean | null
+          needs_reauth: boolean
           platform: string
           profile_image_url: string | null
           subscriber_count: number | null
@@ -1128,6 +1135,7 @@ export type Database = {
           handle?: string | null
           id?: string
           is_verified?: boolean | null
+          needs_reauth?: boolean
           platform: string
           profile_image_url?: string | null
           subscriber_count?: number | null
@@ -1150,6 +1158,7 @@ export type Database = {
           handle?: string | null
           id?: string
           is_verified?: boolean | null
+          needs_reauth?: boolean
           platform?: string
           profile_image_url?: string | null
           subscriber_count?: number | null

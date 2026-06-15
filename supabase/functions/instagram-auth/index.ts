@@ -90,6 +90,17 @@ Deno.serve(async (req: Request) => {
 
     if (dbErr) return json({ error: dbErr.message }, 500);
 
+    // long-lived 토큰을 소유자 전용 테이블에 저장 (60일 — 배치가 만료 전 연장)
+    const igExpiresAt = new Date(Date.now() + (longData.expires_in ?? 60 * 86400) * 1000).toISOString();
+    const { error: tokErr } = await supabase.from('social_channel_tokens').upsert({
+      user_id: userId,
+      platform: 'instagram',
+      instagram_access_token: accessToken,
+      instagram_token_expires_at: igExpiresAt,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,platform' });
+    if (tokErr) return json({ error: tokErr.message }, 500);
+
     return json({
       username: detail.username,
       followers: detail.followers_count ?? 0,
