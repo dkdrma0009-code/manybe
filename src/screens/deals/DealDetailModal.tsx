@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { supabase } from '../../api/supabase';
+import { runMutation } from '../../api/mutate';
 import { colors } from '../../constants/colors';
 import PipelineStepper from '../../components/PipelineStepper';
 import { BrandHistoryCard } from '../../components/BrandHistoryCard';
@@ -127,14 +128,14 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
         await supabase.from('schedules').delete()
           .eq('deal_id', deal.id)
           .eq('type', 'deadline');
-        await supabase.from('schedules').insert({
+        await runMutation('마감 일정 생성', supabase.from('schedules').insert({
           user_id: uid,
           deal_id: deal.id,
           title: `[${brand.trim()}] 협찬 마감`,
           type: 'deadline',
           schedule_date: deadline.trim(),
           start_time: new Date(`${deadline.trim()}T09:00:00`).toISOString(),
-        });
+        }));
       }
 
       // Auto-create workflow milestone schedule on stage advance
