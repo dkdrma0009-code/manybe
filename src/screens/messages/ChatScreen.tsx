@@ -117,7 +117,12 @@ export default function ChatScreen() {
       .eq('thread_id', tid)
       .order('created_at', { ascending: true });
 
-    setMessages(msgs ?? []);
+    setMessages((msgs ?? []).map((m) => ({
+      ...m,
+      content: m.content ?? '',
+      created_at: m.created_at ?? '',
+      is_read: m.is_read ?? false,
+    })) as ChatMessage[]);
 
     // 상대방 메시지 읽음 처리
     await supabase

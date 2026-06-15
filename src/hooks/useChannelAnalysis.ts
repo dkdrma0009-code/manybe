@@ -36,7 +36,7 @@ export function useChannelAnalysis(userId: string | undefined, channelId: string
       .eq('user_id', userId)
       .eq('channel_id', channelId)
       .single()
-    if (data) setAnalysis(data as ChannelAnalysis)
+    if (data) setAnalysis(data as unknown as ChannelAnalysis)
     setLoading(false)
   }, [userId, channelId])
 

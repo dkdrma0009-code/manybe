@@ -45,10 +45,10 @@ export function useBrandHistory(userId: string | undefined, brand: string) {
     const deals: BrandDeal[] = data.map((d) => ({
       id: d.id,
       title: d.title,
-      amount: d.amount,
+      amount: d.amount ?? 0,
       status: d.status,
       endDate: d.end_date ?? null,
-      createdAt: d.created_at,
+      createdAt: d.created_at ?? '',
     }));
 
     const totalCount = deals.length;

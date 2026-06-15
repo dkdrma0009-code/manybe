@@ -27,7 +27,7 @@ export function useAnalyticsData(userId: string | undefined) {
       .eq('platform', 'youtube')
       .limit(1)
       .single()
-      .then(({ data }) => { if (data) setYtChannelId(data.channel_id); });
+      .then(({ data }) => { if (data?.channel_id) setYtChannelId(data.channel_id); });
   }, [userId]);
 
   const channelAnalysis = useChannelAnalysis(userId, ytChannelId);

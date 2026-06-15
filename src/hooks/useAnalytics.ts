@@ -38,7 +38,7 @@ export function useAnalytics(userId: string | undefined) {
       : 0;
 
     const brandCounts = new Map<string, number>();
-    for (const d of deals) brandCounts.set(d.brand, (brandCounts.get(d.brand) ?? 0) + 1);
+    for (const d of deals) brandCounts.set(d.brand ?? '', (brandCounts.get(d.brand ?? '') ?? 0) + 1);
     const topBrand = brandCounts.size > 0
       ? [...brandCounts.entries()].sort((a, b) => b[1] - a[1])[0][0]
       : null;

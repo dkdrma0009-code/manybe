@@ -8,6 +8,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../api/supabase';
+import type { Json } from '../../types/database';
 import { useAuth } from '../../hooks/useAuth';
 import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -74,7 +75,12 @@ export default function MediaKitEditScreen({ navigation }: Props) {
       .from('social_channels')
       .select('subscriber_count, subscriber_history')
       .eq('user_id', user!.id);
-    const verified = computeVerifiedBadges(chans ?? []);
+    const verified = computeVerifiedBadges(
+      (chans ?? []).map((c) => ({
+        subscriber_count: c.subscriber_count,
+        subscriber_history: (c.subscriber_history ?? []) as Array<{ date: string; count: number }>,
+      })),
+    );
     setVerifiedBadges(verified);
 
     const { data } = await supabase
@@ -87,20 +93,21 @@ export default function MediaKitEditScreen({ navigation }: Props) {
     if (kit) {
       setHasKit(true);
       setBio(kit.bio ?? '');
+      const pricingObj = (kit.pricing ?? {}) as Record<string, number>;
       const p: Partial<Record<PricingKey, string>> = {};
       for (const { key } of PRICING_KEYS) {
-        const val = kit.pricing?.[key];
+        const val = pricingObj[key];
         if (val != null) p[key] = String(val);
       }
       setPricing(p);
-      setPastBrands(kit.past_brands ?? []);
+      setPastBrands((kit.past_brands ?? []) as string[]);
       setIsFormEnabled(kit.is_form_enabled ?? false);
       // 저장된 뱃지에서 검증 뱃지는 제외하고 수동 뱃지만 보관 (검증 뱃지는 저장 시 자동 합산)
       const savedManual = ((kit.badges ?? []) as BadgeId[]).filter((b) => !AUTO_VERIFIED_BADGES.includes(b));
       setSelectedBadges(savedManual);
       setTheme((kit.theme ?? 'indigo') as MediaKitTheme);
       setSectionOrder((kit.section_order ?? DEFAULT_SECTION_ORDER) as SectionId[]);
-      setHighlights((kit.highlights ?? []) as HighlightSection[]);
+      setHighlights((kit.highlights ?? []) as unknown as HighlightSection[]);
     }
     setLoading(false);
   }
@@ -196,7 +203,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
         badges: [...selectedBadges, ...verifiedBadges],
         theme,
         section_order: sectionOrder,
-        highlights,
+        highlights: highlights as unknown as Json,
       };
 
       // 신규 사용자는 media_kits 행이 아직 없으므로 insert.

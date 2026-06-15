@@ -60,12 +60,16 @@ export default function DiscoverCreatorsScreen() {
   useEffect(() => {
     supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, media_kit_slug, social_channels(platform, subscriber_count, channel_name, handle)')
+      .select('id, full_name, avatar_url, media_kits(slug), social_channels(platform, subscriber_count, channel_name, handle)')
       .eq('role', 'creator')
       .order('created_at', { ascending: false })
       .limit(100)
       .then(({ data }) => {
-        setCreators((data ?? []) as CreatorProfile[]);
+        const mapped = (data ?? []).map((c: Record<string, unknown>) => ({
+          ...c,
+          media_kit_slug: (c.media_kits as { slug: string }[] | null)?.[0]?.slug ?? null,
+        }));
+        setCreators(mapped as unknown as CreatorProfile[]);
         setLoading(false);
       }, () => setLoading(false));
   }, []);

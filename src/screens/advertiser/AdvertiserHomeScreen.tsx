@@ -77,7 +77,7 @@ export default function AdvertiserHomeScreen() {
 
     const priceMap: Record<string, number> = {};
     for (const kit of kits ?? []) {
-      if (!kit.pricing) continue;
+      if (!kit.pricing || !kit.user_id) continue;
       const prices = Object.values(kit.pricing as Record<string, number>).filter((v) => v > 0);
       if (prices.length) priceMap[kit.user_id] = Math.min(...prices);
     }

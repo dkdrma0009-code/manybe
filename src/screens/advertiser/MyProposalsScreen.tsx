@@ -67,7 +67,11 @@ export default function MyProposalsScreen() {
       const nameMap: Record<string, string> = {};
       for (const p of profiles ?? []) nameMap[p.id] = p.full_name ?? '';
 
-      setProposals(data.map((p) => ({ ...p, creator_name: nameMap[p.creator_id] ?? null })));
+      setProposals(data.map((p) => ({
+        ...p,
+        status: p.status as Proposal['status'],
+        creator_name: nameMap[p.creator_id] ?? null,
+      })));
     } catch { /* 기존 데이터 유지 */ }
     finally { setLoading(false); setRefreshing(false); }
   }, [user]);

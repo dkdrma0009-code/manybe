@@ -40,7 +40,7 @@ function avatarColor(brand: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function formatDeadline(dateStr: string | undefined): string {
+function formatDeadline(dateStr: string | null | undefined): string {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
@@ -77,15 +77,15 @@ export function useDealsData(userId: string | undefined) {
 
       const deals: DealItem[] = (rows ?? []).map((r) => ({
         id: r.id,
-        brand: r.brand,
+        brand: r.brand ?? '',
         title: r.title,
-        amount: r.amount,
+        amount: r.amount ?? 0,
         deadline: formatDeadline(r.end_date),
         endDate: r.end_date ?? '',
         status: STATUS_MAP[r.status as Deal['status']] ?? '검토중',
         dbStatus: r.status as Deal['status'],
-        avatarColor: avatarColor(r.brand),
-        createdAt: r.created_at,
+        avatarColor: avatarColor(r.brand ?? ''),
+        createdAt: r.created_at ?? '',
       }));
 
       const totalAmount = deals.reduce((s, d) => s + d.amount, 0);

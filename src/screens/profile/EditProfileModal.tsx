@@ -38,7 +38,7 @@ export default function EditProfileModal({ visible, currentName, onClose, onSucc
     // profiles 테이블도 동기화
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from('profiles').upsert({ id: user.id, full_name: trimmed }, { onConflict: 'id' });
+      await supabase.from('profiles').update({ full_name: trimmed }).eq('id', user.id);
     }
 
     setSaving(false);

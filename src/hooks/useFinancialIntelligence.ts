@@ -82,7 +82,15 @@ export function useFinancialIntelligence(userId: string | undefined) {
         ([yearMonth, amount]) => ({ yearMonth, amount }),
       );
 
-      const deals = dealRes.data ?? [];
+      // nullable 컬럼을 읽기 경계에서 한 번 정규화 (amount/brand/created_at)
+      const deals = (dealRes.data ?? []).map((d) => ({
+        id: d.id,
+        status: d.status,
+        end_date: d.end_date,
+        amount: d.amount ?? 0,
+        brand: d.brand ?? '',
+        created_at: d.created_at ?? new Date().toISOString(),
+      }));
 
       // ── Forecast ──
       const dealsForForecast: DealForForecast[] = deals.map((d) => ({

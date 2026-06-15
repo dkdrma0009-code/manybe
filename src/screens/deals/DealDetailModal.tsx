@@ -108,7 +108,7 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
       brand: brand.trim(),
       title: title.trim(),
       amount: rawAmount,
-      status,
+      status: status as 'inquiry' | 'reviewing' | 'in_progress' | 'uploaded' | 'settled',
       end_date: deadline || null,
     }).eq('id', deal.id);
 
@@ -132,6 +132,7 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
           deal_id: deal.id,
           title: `[${brand.trim()}] 협찬 마감`,
           type: 'deadline',
+          schedule_date: deadline.trim(),
           start_time: new Date(`${deadline.trim()}T09:00:00`).toISOString(),
         });
       }
@@ -139,12 +140,14 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
       // Auto-create workflow milestone schedule on stage advance
       if (isAdvancing) {
         const nowISO = new Date().toISOString();
+        const todayDate = nowISO.slice(0, 10);
         if (status === 'in_progress') {
           await supabase.from('schedules').insert({
             user_id: uid,
             deal_id: deal.id,
             title: `[${brand.trim()}] 콘텐츠 제작 시작`,
             type: 'content',
+            schedule_date: todayDate,
             start_time: nowISO,
           });
         } else if (status === 'uploaded') {
@@ -153,6 +156,7 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
             deal_id: deal.id,
             title: `[${brand.trim()}] 콘텐츠 업로드 완료`,
             type: 'content',
+            schedule_date: todayDate,
             start_time: nowISO,
           });
         } else if (status === 'settled') {
@@ -161,6 +165,7 @@ export default function DealDetailModal({ visible, deal, onClose, onSuccess, onN
             deal_id: deal.id,
             title: `[${brand.trim()}] 정산 완료`,
             type: 'other',
+            schedule_date: todayDate,
             start_time: nowISO,
           });
 

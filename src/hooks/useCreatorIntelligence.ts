@@ -115,7 +115,15 @@ export function useCreatorIntelligence(userId: string | undefined) {
         .lte('date', prevMonthEnd),
     ]);
 
-    const deals = dealsRes.data ?? [];
+    // nullable 컬럼을 읽기 경계에서 정규화
+    const deals = (dealsRes.data ?? []).map((d) => ({
+      id: d.id,
+      brand: d.brand ?? '',
+      amount: d.amount ?? 0,
+      status: d.status,
+      end_date: d.end_date,
+      created_at: d.created_at ?? new Date().toISOString(),
+    }));
     const thisMonthRevenue = (revenueRes.data ?? []).reduce((s, r) => s + r.amount, 0);
     const lastMonthRevenue = (prevRevenueRes.data ?? []).reduce((s, r) => s + r.amount, 0);
 

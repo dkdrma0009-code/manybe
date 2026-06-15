@@ -43,7 +43,7 @@ export default function AddDealModal({ visible, userId, onClose, onSuccess }: Pr
       brand: brand.trim(),
       title: title.trim(),
       amount: parseInt(amount.replace(/[^0-9]/g, '')) || 0,
-      status,
+      status: status as 'inquiry' | 'reviewing' | 'in_progress' | 'uploaded' | 'settled',
       end_date: deadline || null,
     }).select('id').single();
     setSaving(false);
@@ -55,6 +55,7 @@ export default function AddDealModal({ visible, userId, onClose, onSuccess }: Pr
         deal_id: newDeal?.id ?? null,
         title: `[${brand.trim()}] 협찬 마감`,
         type: 'deadline',
+        schedule_date: deadline.trim(),
         start_time: new Date(`${deadline.trim()}T09:00:00`).toISOString(),
       });
     }

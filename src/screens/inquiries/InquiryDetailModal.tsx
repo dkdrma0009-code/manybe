@@ -92,7 +92,7 @@ export default function InquiryDetailModal({ visible, inquiry, userId, onClose, 
 
     const { error: insertError, data: insertedDeal } = await supabase
       .from('deals')
-      .insert(dealPayload)
+      .insert(dealPayload as never)
       .select('id')
       .single();
 

@@ -168,13 +168,15 @@ export default function MessagesScreen() {
             .order('created_at', { ascending: false }),
         ]);
         (unread ?? []).forEach((u) => {
+          if (!u.thread_id) return;
           unreadMap.set(u.thread_id, (unreadMap.get(u.thread_id) ?? 0) + 1);
         });
         // 스레드별 최신 메시지만 보관
         (lastMsgs ?? []).forEach((m) => {
+          if (!m.thread_id) return;
           if (!lastMsgMap.has(m.thread_id)) {
             const prefix = m.sender_role === 'creator' ? '나: ' : '';
-            lastMsgMap.set(m.thread_id, prefix + m.content);
+            lastMsgMap.set(m.thread_id, prefix + (m.content ?? ''));
           }
         });
       }

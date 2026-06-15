@@ -175,6 +175,7 @@ export function useTimeline(userId: string | undefined) {
 
     // ── Overdue ──────────────────────────────────────────────────────────────
     for (const d of overdueRes.data ?? []) {
+      if (!d.end_date) continue;
       const daysOver = Math.floor(
         (new Date(todayStr).getTime() - new Date(d.end_date.slice(0, 10)).getTime()) / 86400000
       );
@@ -190,7 +191,7 @@ export function useTimeline(userId: string | undefined) {
     // ── Settlement delay ──────────────────────────────────────────────────────
     const now_ms = Date.now();
     for (const d of activeRes.data ?? []) {
-      if (d.status !== 'uploaded') continue;
+      if (d.status !== 'uploaded' || !d.created_at) continue;
       const daysSince = Math.floor((now_ms - new Date(d.created_at).getTime()) / 86400000);
       if (daysSince < 14) continue;
       const isLong = daysSince > 30;
@@ -205,6 +206,7 @@ export function useTimeline(userId: string | undefined) {
 
     // ── Deadline today / this week ──────────────────────────────────────────
     for (const d of deadlineRes.data ?? []) {
+      if (!d.end_date) continue;
       const endStr = d.end_date.slice(0, 10);
       const isToday = endStr === todayStr;
       const daysLeft = Math.ceil((new Date(endStr).getTime() - new Date(todayStr).getTime()) / 86400000);
@@ -225,7 +227,7 @@ export function useTimeline(userId: string | undefined) {
         `inquiry_${i.id}`, 'inquiry_received', 'warning',
         `${i.brand_name} 협찬 문의`,
         '답변하거나 협찬으로 전환하세요',
-        i.created_at,
+        i.created_at ?? new Date().toISOString(),
         { icon: '📬', color: '#6E56F0', bg: '#EAE3FF', entityId: i.id, entityType: 'inquiry', navigateTo: { screen: 'inquiries' }, cta: '문의 확인' },
       ));
     }
@@ -233,6 +235,7 @@ export function useTimeline(userId: string | undefined) {
     // ── Today's schedules ─────────────────────────────────────────────────────
     const SCHED_ICONS: Record<string, string> = { content: '📤', deadline: '🔔', meeting: '📋', other: '💡' };
     for (const s of schedRes.data ?? []) {
+      if (!s.start_time) continue;
       const t = new Date(s.start_time);
       const timeStr = `${t.getHours() >= 12 ? '오후' : '오전'} ${t.getHours() > 12 ? t.getHours() - 12 : t.getHours()}시`;
       raw.push(makeItem(
@@ -246,11 +249,12 @@ export function useTimeline(userId: string | undefined) {
 
     // ── Recently settled (success events) ─────────────────────────────────────
     for (const d of settledRes.data ?? []) {
+      const amt = d.amount ?? 0;
       raw.push(makeItem(
         `settled_${d.id}`, 'settlement_completed', 'success',
         `${d.brand} 협찬 완료`,
-        d.amount > 0 ? `${d.amount.toLocaleString('ko-KR')}원 정산 완료` : '협찬이 완료됐어요',
-        d.created_at,
+        amt > 0 ? `${amt.toLocaleString('ko-KR')}원 정산 완료` : '협찬이 완료됐어요',
+        d.created_at ?? new Date().toISOString(),
         { icon: '✅', navigateTo: { screen: 'revenue' }, cta: '수익 기록' },
       ));
     }
@@ -259,7 +263,7 @@ export function useTimeline(userId: string | undefined) {
     const day3Ago = new Date(now); day3Ago.setDate(now.getDate() - 3);
     const day3AgoStr = day3Ago.toISOString();
     for (const d of activeRes.data ?? []) {
-      if (d.created_at < day3AgoStr) continue;
+      if (!d.created_at || d.created_at < day3AgoStr) continue;
       if (['overdue', 'deadline'].some((k) => raw.some((r) => r.id.includes(k) && r.entityId === d.id))) continue;
       raw.push(makeItem(
         `new_deal_${d.id}`, 'deal_created', 'info',

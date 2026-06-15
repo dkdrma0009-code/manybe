@@ -82,6 +82,7 @@ export function useScheduleData(
       const schedulesByDate: Record<number, ScheduleItem[]> = {};
 
       for (const r of rows ?? []) {
+        if (!r.start_time) continue;
         const d = new Date(r.start_time);
         const day = d.getDate();
         const cfg = TYPE_CONFIG[r.type as Schedule['type']] ?? TYPE_CONFIG.other;
@@ -113,6 +114,7 @@ export function useScheduleData(
 
       const weekCounts: Record<string, number> = {};
       for (const r of rows ?? []) {
+        if (!r.start_time) continue;
         const d = new Date(r.start_time);
         if (d >= weekStart && d <= weekEnd) {
           const cfg = TYPE_CONFIG[r.type as Schedule['type']] ?? TYPE_CONFIG.other;

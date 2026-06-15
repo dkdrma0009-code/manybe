@@ -58,14 +58,14 @@ export function useMediaKit(): UseMediaKitResult {
       const kit = data?.[0];
       const loaded: MediaKitData = {
         bio: kit?.bio ?? '',
-        pricing: kit?.pricing ?? {},
-        pastBrands: kit?.past_brands ?? [],
+        pricing: (kit?.pricing ?? {}) as Record<string, number>,
+        pastBrands: (kit?.past_brands ?? []) as string[],
         slug: kit?.slug ?? '',
         isFormEnabled: kit?.is_form_enabled ?? false,
         badges: (kit?.badges ?? []) as BadgeId[],
         theme: (kit?.theme ?? 'indigo') as MediaKitTheme,
         sectionOrder: (kit?.section_order ?? DEFAULT_SECTION_ORDER) as SectionId[],
-        highlights: (kit?.highlights ?? []) as HighlightSection[],
+        highlights: (kit?.highlights ?? []) as unknown as HighlightSection[],
       };
       setKitData(loaded);
       return loaded;

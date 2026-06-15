@@ -197,8 +197,10 @@ export function useHomeData(userId: string | undefined) {
       // Previous month total (for % change badge)
       const prevMonthRevenue = (prevRevenueRes.data ?? []).reduce((sum, r) => sum + r.amount, 0);
 
-      // Active deals
-      const deals: Pick<Deal, 'id' | 'brand' | 'amount' | 'status'>[] = dealsRes.data ?? [];
+      // Active deals — nullable 컬럼 정규화
+      const deals: Pick<Deal, 'id' | 'brand' | 'amount' | 'status'>[] = (dealsRes.data ?? []).map((d) => ({
+        id: d.id, brand: d.brand ?? '', amount: d.amount ?? 0, status: d.status as Deal['status'],
+      }));
       const activeDeals: HomeDeal[] = deals.map((d) => {
         const cfg = DEAL_STATUS_CONFIG[d.status];
         return {
@@ -281,6 +283,7 @@ export function useHomeData(userId: string | undefined) {
 
       const TYPE_ICON: Record<string, string> = { content: '📤', deadline: '🔔', meeting: '📋', other: '💡' };
       for (const s of scheduleRes.data ?? []) {
+        if (!s.start_time) continue;
         const t = new Date(s.start_time);
         const timeStr = `${t.getHours() >= 12 ? '오후' : '오전'} ${t.getHours() > 12 ? t.getHours() - 12 : t.getHours()}시`;
         actionItems.push({
@@ -296,6 +299,7 @@ export function useHomeData(userId: string | undefined) {
       }
 
       for (const d of overdueDeals) {
+        if (!d.end_date) continue;
         const daysOver = Math.floor(
           (new Date(todayStr).getTime() - new Date(d.end_date.slice(0, 10)).getTime()) / 86400000
         );

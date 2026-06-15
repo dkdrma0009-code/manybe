@@ -66,7 +66,7 @@ export default function IncomingProposalsScreen() {
 
       if (!data) return;
 
-      const advertiserIds = [...new Set(data.map((p) => p.advertiser_id))];
+      const advertiserIds = [...new Set(data.map((p) => p.advertiser_id).filter((x): x is string => !!x))];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, company_name')
@@ -77,7 +77,12 @@ export default function IncomingProposalsScreen() {
         nameMap[p.id] = p.company_name ?? p.full_name ?? '';
       }
 
-      setProposals(data.map((p) => ({ ...p, advertiser_name: nameMap[p.advertiser_id] ?? null })));
+      setProposals(data.map((p) => ({
+        ...p,
+        advertiser_id: p.advertiser_id ?? '',
+        status: p.status as IncomingProposal['status'],
+        advertiser_name: p.advertiser_id ? (nameMap[p.advertiser_id] ?? null) : null,
+      })));
     } catch {
       // 네트워크 오류 시 기존 데이터 유지
     } finally {
