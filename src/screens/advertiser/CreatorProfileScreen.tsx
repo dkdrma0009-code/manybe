@@ -13,6 +13,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
 import { formatCountKo as formatCount } from '../../utils/formatters';
+import { freshnessLabel } from '../../utils/dataFreshness';
 
 type Nav  = NativeStackNavigationProp<AdvertiserRootStackParamList>;
 type Route = RouteProp<AdvertiserRootStackParamList, 'CreatorProfile'>;
@@ -31,6 +32,8 @@ interface SocialChannel {
   subscriber_count: number | null;
   view_count: number | null;
   video_count: number | null;
+  updated_at: string | null;
+  needs_reauth: boolean | null;
 }
 
 type PricingKey = 'short_form' | 'long_form' | 'story' | 'mention' | 'dedicated';
@@ -57,7 +60,7 @@ export default function CreatorProfileScreen() {
   useEffect(() => {
     Promise.all([
       supabase.from('profiles').select('id, full_name, avatar_url').eq('id', params.creatorId).single(),
-      supabase.from('social_channels').select('id, platform, channel_name, handle, subscriber_count, view_count, video_count').eq('user_id', params.creatorId),
+      supabase.from('social_channels').select('id, platform, channel_name, handle, subscriber_count, view_count, video_count, updated_at, needs_reauth').eq('user_id', params.creatorId),
       supabase.from('media_kits').select('pricing').eq('user_id', params.creatorId).limit(1).single(),
     ]).then(([profileRes, channelsRes, kitRes]) => {
       setProfile(profileRes.data ?? null);
@@ -113,6 +116,11 @@ export default function CreatorProfileScreen() {
                   </Text>
                   <Text style={s.channelName} numberOfLines={1}>{ch.channel_name ?? ch.handle ?? '-'}</Text>
                   {ch.handle && <Text style={s.channelHandle}>@{ch.handle}</Text>}
+                  {freshnessLabel(ch) && (
+                    <View style={s.staleBadge}>
+                      <Text style={s.staleBadgeText}>⚠ {freshnessLabel(ch)}</Text>
+                    </View>
+                  )}
                 </View>
                 <View style={s.channelStats}>
                   {ch.subscriber_count != null && (
@@ -232,6 +240,8 @@ const s = StyleSheet.create({
   channelPlatform: { fontSize: 12, fontWeight: '700', color: tokens.action, textTransform: 'uppercase', letterSpacing: 0.5 },
   channelName: { fontSize: 14, fontWeight: '600', color: colors.text, maxWidth: 140 },
   channelHandle: { fontSize: 12, color: colors.textSecondary },
+  staleBadge: { backgroundColor: '#FEF3C7', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 4 },
+  staleBadgeText: { fontSize: 10, fontWeight: '700', color: '#B45309' },
   channelStats: { flexDirection: 'row', gap: 20 },
   stat: { alignItems: 'center' },
   statValue: { fontSize: 16, fontWeight: '700', color: colors.text },

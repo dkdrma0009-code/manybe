@@ -12,6 +12,7 @@ import { supabase } from '../../api/supabase';
 import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
 import { formatCountKo as formatCount } from '../../utils/formatters';
+import { freshnessLabel, isStaleChannel } from '../../utils/dataFreshness';
 
 type Nav = NativeStackNavigationProp<AdvertiserRootStackParamList>;
 
@@ -20,6 +21,8 @@ interface Channel {
   subscriber_count: number | null;
   channel_name: string | null;
   handle: string | null;
+  updated_at: string | null;
+  needs_reauth: boolean | null;
 }
 
 interface CreatorProfile {
@@ -60,7 +63,7 @@ export default function DiscoverCreatorsScreen() {
   useEffect(() => {
     supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, media_kits(slug), social_channels(platform, subscriber_count, channel_name, handle)')
+      .select('id, full_name, avatar_url, media_kits(slug), social_channels(platform, subscriber_count, channel_name, handle, updated_at, needs_reauth)')
       .eq('role', 'creator')
       .order('created_at', { ascending: false })
       .limit(100)
@@ -93,6 +96,13 @@ export default function DiscoverCreatorsScreen() {
     }
 
     return true;
+  });
+
+  // 오래된/재인증 필요 채널은 후순위로 (신선한 데이터 우선 노출)
+  const sorted = [...filtered].sort((a, b) => {
+    const aStale = (a.social_channels ?? []).every(isStaleChannel) ? 1 : 0;
+    const bStale = (b.social_channels ?? []).every(isStaleChannel) ? 1 : 0;
+    return aStale - bStale;
   });
 
   function getPrimaryChannel(c: CreatorProfile): Channel | null {
@@ -156,7 +166,7 @@ export default function DiscoverCreatorsScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
         <FlatList
-          data={filtered}
+          data={sorted}
           keyExtractor={(item) => item.id}
           contentContainerStyle={s.list}
           ListEmptyComponent={
@@ -188,6 +198,11 @@ export default function DiscoverCreatorsScreen() {
                     <Text style={s.cardSub}>채널 미연결</Text>
                   )}
                 </View>
+                {ch && freshnessLabel(ch) && (
+                  <View style={s.staleBadge}>
+                    <Text style={s.staleBadgeText}>{freshnessLabel(ch)}</Text>
+                  </View>
+                )}
                 <Text style={s.arrow}>›</Text>
               </TouchableOpacity>
             );
@@ -271,6 +286,8 @@ const s = StyleSheet.create({
   cardName:   { fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 2 },
   cardSub:    { fontSize: 12, color: colors.textSecondary },
   arrow:      { fontSize: 20, color: colors.textTertiary },
+  staleBadge: { backgroundColor: '#FEF3C7', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, marginRight: 6 },
+  staleBadgeText: { fontSize: 10, fontWeight: '700', color: '#B45309' },
   empty:      { alignItems: 'center', paddingTop: 60 },
   emptyText:  { fontSize: 15, color: colors.textSecondary },
 });
