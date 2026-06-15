@@ -79,16 +79,17 @@ Deno.serve(async (req: Request) => {
 
     const expiresAt = new Date(Date.now() + (expires_in ?? 3600) * 1000).toISOString()
 
-    // 2. 토큰을 social_channels에 저장 (youtube 채널 행 업데이트)
+    // 2. 토큰을 소유자 전용 테이블(social_channel_tokens)에 저장
     const { error: dbErr } = await supabase
-      .from('social_channels')
-      .update({
+      .from('social_channel_tokens')
+      .upsert({
+        user_id: userId,
+        platform: 'youtube',
         youtube_access_token:    access_token,
         youtube_refresh_token:   refresh_token ?? null,
         youtube_token_expires_at: expiresAt,
-      })
-      .eq('user_id', userId)
-      .eq('platform', 'youtube')
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,platform' })
 
     if (dbErr) return json({ error: dbErr.message }, 500)
 

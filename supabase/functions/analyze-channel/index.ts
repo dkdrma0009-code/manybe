@@ -254,10 +254,10 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-    // 채널 정보 + 저장된 OAuth 토큰 조회
+    // 채널 정보 조회
     const { data: channel } = await supabase
       .from('social_channels')
-      .select('channel_id, channel_name, subscriber_count, youtube_access_token, youtube_refresh_token, youtube_token_expires_at')
+      .select('channel_id, channel_name, subscriber_count')
       .eq('user_id', user_id)
       .eq('channel_id', channel_id)
       .single()
@@ -267,6 +267,14 @@ Deno.serve(async (req) => {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    // OAuth 토큰은 소유자 전용 테이블에서 별도 조회 (service_role이라 RLS 무관)
+    const { data: tokenRow } = await supabase
+      .from('social_channel_tokens')
+      .select('youtube_access_token, youtube_refresh_token, youtube_token_expires_at')
+      .eq('user_id', user_id)
+      .eq('platform', 'youtube')
+      .maybeSingle()
 
     // 영상 + 댓글 수집
     const videos = await fetchRecentVideos(channel_id)
@@ -282,26 +290,26 @@ Deno.serve(async (req) => {
     let realInflowKeywords: string[] = []
     let realAudienceCategories: string[] = []
 
-    if (channel.youtube_access_token) {
-      let accessToken = channel.youtube_access_token
+    if (tokenRow?.youtube_access_token) {
+      let accessToken = tokenRow.youtube_access_token
 
       // 토큰 만료 여부 확인 → 갱신
-      const isExpired = channel.youtube_token_expires_at
-        ? new Date(channel.youtube_token_expires_at).getTime() < Date.now() + 60_000
+      const isExpired = tokenRow.youtube_token_expires_at
+        ? new Date(tokenRow.youtube_token_expires_at).getTime() < Date.now() + 60_000
         : false
 
-      if (isExpired && channel.youtube_refresh_token) {
-        const newToken = await refreshAccessToken(channel.youtube_refresh_token)
+      if (isExpired && tokenRow.youtube_refresh_token) {
+        const newToken = await refreshAccessToken(tokenRow.youtube_refresh_token)
         if (newToken) {
           accessToken = newToken
           await supabase
-            .from('social_channels')
+            .from('social_channel_tokens')
             .update({
               youtube_access_token: newToken,
               youtube_token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
             })
             .eq('user_id', user_id)
-            .eq('channel_id', channel_id)
+            .eq('platform', 'youtube')
         }
       }
 

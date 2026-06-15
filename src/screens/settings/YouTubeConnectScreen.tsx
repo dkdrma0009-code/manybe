@@ -111,15 +111,15 @@ export default function YouTubeConnectScreen({ navigation }: Props) {
   const [analyticsLinked, setAnalyticsLinked] = useState(false);
   const [analyticsLinking, setAnalyticsLinking] = useState(false);
 
-  // Analytics 연동 여부 확인
+  // Analytics 연동 여부 확인 (토큰은 소유자 전용 테이블 — 본인 행만 조회됨)
   useEffect(() => {
     if (!user?.id) return;
     supabase
-      .from('social_channels')
+      .from('social_channel_tokens')
       .select('youtube_access_token')
       .eq('user_id', user.id)
       .eq('platform', 'youtube')
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         setAnalyticsLinked(!!data?.youtube_access_token);
       });

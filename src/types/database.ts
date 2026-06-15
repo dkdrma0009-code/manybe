@@ -1068,6 +1068,33 @@ export type Database = {
           },
         ]
       }
+      social_channel_tokens: {
+        Row: {
+          platform: string
+          updated_at: string
+          user_id: string
+          youtube_access_token: string | null
+          youtube_refresh_token: string | null
+          youtube_token_expires_at: string | null
+        }
+        Insert: {
+          platform: string
+          updated_at?: string
+          user_id: string
+          youtube_access_token?: string | null
+          youtube_refresh_token?: string | null
+          youtube_token_expires_at?: string | null
+        }
+        Update: {
+          platform?: string
+          updated_at?: string
+          user_id?: string
+          youtube_access_token?: string | null
+          youtube_refresh_token?: string | null
+          youtube_token_expires_at?: string | null
+        }
+        Relationships: []
+      }
       social_channels: {
         Row: {
           avg_views: number | null
@@ -1090,9 +1117,6 @@ export type Database = {
           video_count: number | null
           view_count: number | null
           views_history: Json
-          youtube_access_token: string | null
-          youtube_refresh_token: string | null
-          youtube_token_expires_at: string | null
         }
         Insert: {
           avg_views?: number | null
@@ -1115,9 +1139,6 @@ export type Database = {
           video_count?: number | null
           view_count?: number | null
           views_history?: Json
-          youtube_access_token?: string | null
-          youtube_refresh_token?: string | null
-          youtube_token_expires_at?: string | null
         }
         Update: {
           avg_views?: number | null
@@ -1140,9 +1161,6 @@ export type Database = {
           video_count?: number | null
           view_count?: number | null
           views_history?: Json
-          youtube_access_token?: string | null
-          youtube_refresh_token?: string | null
-          youtube_token_expires_at?: string | null
         }
         Relationships: []
       }

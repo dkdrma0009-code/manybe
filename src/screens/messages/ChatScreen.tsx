@@ -185,12 +185,18 @@ export default function ChatScreen() {
     const content = text.trim();
     setText('');
     setSending(true);
-    await supabase.from('chat_messages').insert({
+    const { error } = await supabase.from('chat_messages').insert({
       thread_id: threadId,
       sender_role: role,
       content,
     });
     setSending(false);
+    if (error) {
+      // 전송 실패 — 입력값 복구해 사용자가 메시지를 잃지 않게
+      setText(content);
+      Alert.alert('전송 실패', '메시지를 보내지 못했어요. 다시 시도해주세요.');
+      return;
+    }
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   }
 
