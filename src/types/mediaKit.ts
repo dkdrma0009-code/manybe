@@ -82,6 +82,40 @@ export const BADGE_CATALOG: Record<BadgeId, { emoji: string; label: string; cate
 
 export const BADGE_CATEGORIES = ['성과', '협업 스타일', '분야', '특이점'] as const;
 
+// 연동 채널 데이터로 자동 검증되는 뱃지 — 사용자가 임의 선택할 수 없다(허위 방지).
+// 나머지(협업 스타일/분야/특이점)는 자기 서술 속성이라 수동 선택 유지.
+export const AUTO_VERIFIED_BADGES: BadgeId[] = ['sub_100k', 'sub_500k', 'sub_1m', 'fast_growth'];
+
+/** 연동 채널의 구독자 수·성장 이력으로 검증 뱃지를 산출한다. */
+export function computeVerifiedBadges(channels: Array<{
+  subscriber_count?: number | null;
+  subscriber_history?: Array<{ date: string; count: number }> | null;
+}>): BadgeId[] {
+  const result: BadgeId[] = [];
+  const maxSubs = Math.max(0, ...channels.map((c) => c.subscriber_count ?? 0));
+
+  if (maxSubs >= 1_000_000) result.push('sub_1m');
+  else if (maxSubs >= 500_000) result.push('sub_500k');
+  else if (maxSubs >= 100_000) result.push('sub_100k');
+
+  // 빠른 성장: 어느 채널이든 최근 3개월 구독자 +20% 이상
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 3);
+  for (const c of channels) {
+    const hist = c.subscriber_history ?? [];
+    const cur = c.subscriber_count ?? 0;
+    if (!hist.length || cur <= 0) continue;
+    const old = hist
+      .filter((h) => new Date(h.date) <= cutoff)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    if (old && old.count > 0 && (cur - old.count) / old.count >= 0.2) {
+      result.push('fast_growth');
+      break;
+    }
+  }
+  return result;
+}
+
 // ── 테마 ─────────────────────────────────────────────────────────
 
 export type MediaKitTheme = 'indigo' | 'rose' | 'emerald' | 'amber' | 'slate';

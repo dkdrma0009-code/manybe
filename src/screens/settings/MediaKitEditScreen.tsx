@@ -15,6 +15,7 @@ import { computePortfolioIntelligence } from '../../services/PortfolioIntelligen
 import { generateMediaKitIntelligence } from '../../services/MediaKitGenerator';
 import {
   BADGE_CATALOG, BADGE_CATEGORIES, THEME_CATALOG, THEME_IDS, SECTION_CATALOG, DEFAULT_SECTION_ORDER,
+  AUTO_VERIFIED_BADGES, computeVerifiedBadges,
 } from '../../types/mediaKit';
 import type { BadgeId, MediaKitTheme, SectionId, HighlightSection } from '../../types/mediaKit';
 import { extractYoutubeThumbnail } from '../../types/mediaKit';
@@ -51,6 +52,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
   const [brandInput, setBrandInput] = useState('');
   const [isFormEnabled, setIsFormEnabled] = useState(false);
   const [selectedBadges, setSelectedBadges] = useState<BadgeId[]>([]);
+  const [verifiedBadges, setVerifiedBadges] = useState<BadgeId[]>([]);
   const [theme, setTheme] = useState<MediaKitTheme>('indigo');
   const [sectionOrder, setSectionOrder] = useState<SectionId[]>(DEFAULT_SECTION_ORDER);
   const [highlights, setHighlights] = useState<HighlightSection[]>([]);
@@ -66,6 +68,15 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
   async function loadMediaKit() {
     setLoading(true);
+
+    // 연동 채널 데이터로 검증 뱃지 산출 (구독자 수·성장 — 자기 선택 불가)
+    const { data: chans } = await supabase
+      .from('social_channels')
+      .select('subscriber_count, subscriber_history')
+      .eq('user_id', user!.id);
+    const verified = computeVerifiedBadges(chans ?? []);
+    setVerifiedBadges(verified);
+
     const { data } = await supabase
       .from('media_kits')
       .select('bio, pricing, past_brands, is_form_enabled, badges, theme, section_order, highlights')
@@ -84,7 +95,9 @@ export default function MediaKitEditScreen({ navigation }: Props) {
       setPricing(p);
       setPastBrands(kit.past_brands ?? []);
       setIsFormEnabled(kit.is_form_enabled ?? false);
-      setSelectedBadges((kit.badges ?? []) as BadgeId[]);
+      // 저장된 뱃지에서 검증 뱃지는 제외하고 수동 뱃지만 보관 (검증 뱃지는 저장 시 자동 합산)
+      const savedManual = ((kit.badges ?? []) as BadgeId[]).filter((b) => !AUTO_VERIFIED_BADGES.includes(b));
+      setSelectedBadges(savedManual);
       setTheme((kit.theme ?? 'indigo') as MediaKitTheme);
       setSectionOrder((kit.section_order ?? DEFAULT_SECTION_ORDER) as SectionId[]);
       setHighlights((kit.highlights ?? []) as HighlightSection[]);
@@ -179,7 +192,8 @@ export default function MediaKitEditScreen({ navigation }: Props) {
         past_brands: pastBrands.length > 0 ? pastBrands : null,
         // PLAN_GATE: unlimited inquiry reception — consider capping monthly inbound inquiry count for free tier
         is_form_enabled: isFormEnabled,
-        badges: selectedBadges,
+        // 수동 선택 뱃지 + 자동 검증 뱃지 합산 저장
+        badges: [...selectedBadges, ...verifiedBadges],
         theme,
         section_order: sectionOrder,
         highlights,
@@ -428,10 +442,31 @@ export default function MediaKitEditScreen({ navigation }: Props) {
                 </Text>
               </View>
             </View>
+
+            {/* 자동 인증 뱃지 — 연동 채널 데이터 기반, 선택 불가 */}
+            {verifiedBadges.length > 0 && (
+              <View style={styles.badgeCatBlock}>
+                <Text style={styles.badgeCatLabel}>✓ 자동 인증 (채널 데이터 기반)</Text>
+                <View style={styles.badgeGrid}>
+                  {verifiedBadges.map((id) => {
+                    const b = BADGE_CATALOG[id];
+                    return (
+                      <View key={id} style={[styles.badgeChip, styles.badgeChipVerified]}>
+                        <Text style={styles.badgeEmoji}>{b.emoji}</Text>
+                        <Text style={[styles.badgeChipText, styles.badgeChipTextVerified]}>{b.label}</Text>
+                        <Text style={styles.badgeVerifiedMark}>✓</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
             {BADGE_CATEGORIES.map((cat) => {
               const ids = (Object.keys(BADGE_CATALOG) as BadgeId[]).filter(
-                (id) => BADGE_CATALOG[id].category === cat,
+                (id) => BADGE_CATALOG[id].category === cat && !AUTO_VERIFIED_BADGES.includes(id),
               );
+              if (ids.length === 0) return null;
               return (
                 <View key={cat} style={styles.badgeCatBlock}>
                   <Text style={styles.badgeCatLabel}>{cat}</Text>
@@ -781,10 +816,13 @@ const styles = StyleSheet.create({
   },
   badgeChipSelected:  { backgroundColor: '#F0EFFE', borderColor: colors.primary },
   badgeChipDisabled:  { opacity: 0.35 },
+  badgeChipVerified:  { backgroundColor: '#ECFDF5', borderColor: '#10B981' },
   badgeEmoji:         { fontSize: 14 },
   badgeChipText:      { fontSize: 12, fontWeight: '600', color: '#374151' },
   badgeChipTextSelected: { color: colors.primary },
   badgeChipTextDisabled: { color: '#C4C4C4' },
+  badgeChipTextVerified: { color: '#059669' },
+  badgeVerifiedMark:  { fontSize: 11, fontWeight: '800', color: '#10B981', marginLeft: 2 },
 
   // 섹션 순서
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
