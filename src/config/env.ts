@@ -69,8 +69,11 @@ export const ENV = {
   // Supabase project reference (for service URLs, if needed by future AI runtime)
   SUPABASE_PROJECT_REF: 'bewcgxzcvxuwzwxcqzmk',
 
-  // Facebook App ID — required for Instagram Business OAuth
-  // Set in .env: EXPO_PUBLIC_FACEBOOK_APP_ID=<your_app_id>
+  // Instagram App ID — Instagram API with Instagram Login OAuth의 client_id
+  // (Meta 앱 → Instagram 로그인 설정의 "Instagram 앱 ID". Facebook App ID와 다름)
+  INSTAGRAM_APP_ID: process.env.EXPO_PUBLIC_INSTAGRAM_APP_ID ?? '',
+
+  // (레거시) Facebook App ID — Facebook 로그인 방식 사용 시에만. 현재 미사용.
   FACEBOOK_APP_ID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID ?? '',
 
   // RevenueCat — optional; absent until react-native-purchases is installed

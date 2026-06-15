@@ -38,7 +38,7 @@ export default function ChannelConnectScreen({ onComplete }: Props) {
   const hasChannel = channels.length > 0;
   const youtubeChannel = channels.find((c) => c.platform === 'youtube');
   const instagramChannel = channels.find((c) => c.platform === 'instagram');
-  const hasOAuthConfig = !!ENV.FACEBOOK_APP_ID;
+  const hasOAuthConfig = !!ENV.INSTAGRAM_APP_ID;
 
   async function handleYoutubeConnect() {
     if (!youtubeInput.trim()) return;
@@ -55,19 +55,21 @@ export default function ChannelConnectScreen({ onComplete }: Props) {
     setError('');
     setSubmitting(true);
     try {
-      const redirectUri = AuthSession.makeRedirectUri({
+      // Instagram 로그인은 HTTPS redirect만 허용 → 웹 브리지를 거쳐 앱으로 복귀
+      const webRedirect = `${ENV.WEB_BASE_URL}/auth/instagram`;
+      const appReturn = AuthSession.makeRedirectUri({
         scheme: ENV.APP_SCHEME,
         path: 'auth/instagram',
       });
 
       const authUrl =
-        `https://www.facebook.com/v21.0/dialog/oauth?` +
-        `client_id=${ENV.FACEBOOK_APP_ID}` +
-        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `https://www.instagram.com/oauth/authorize?` +
+        `client_id=${ENV.INSTAGRAM_APP_ID}` +
+        `&redirect_uri=${encodeURIComponent(webRedirect)}` +
         `&scope=${INSTAGRAM_SCOPE}` +
-        `&response_type=code&display=popup`;
+        `&response_type=code`;
 
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, appReturn);
 
       if (result.type !== 'success') {
         setSubmitting(false);
@@ -82,8 +84,9 @@ export default function ChannelConnectScreen({ onComplete }: Props) {
         return;
       }
 
+      // 토큰 교환 시 redirect_uri는 authorize에 쓴 값(webRedirect)과 정확히 일치해야 함
       const { data, error: fnErr } = await supabase.functions.invoke('instagram-auth', {
-        body: { code, redirectUri, userId: user.id },
+        body: { code, redirectUri: webRedirect, userId: user.id },
       });
 
       if (fnErr || data?.error) {

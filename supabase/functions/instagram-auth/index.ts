@@ -1,10 +1,11 @@
 // Supabase Edge Function: instagram-auth
-// Exchanges Facebook OAuth auth code for an Instagram access token,
-// fetches account info, and saves to social_channels.
+// Instagram API with Instagram Login — OAuth code를 Instagram 액세스 토큰으로
+// 교환하고 계정 정보를 social_channels에 저장한다.
+// (Facebook 페이지 연결 불필요 — 크리에이터가 인스타 계정으로 바로 로그인)
 //
 // Required secrets (set via `supabase secrets set`):
-//   FACEBOOK_APP_ID
-//   FACEBOOK_APP_SECRET
+//   INSTAGRAM_APP_ID
+//   INSTAGRAM_APP_SECRET
 //   SUPABASE_SERVICE_ROLE_KEY (auto-injected)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -14,8 +15,8 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
-const APP_ID     = Deno.env.get('FACEBOOK_APP_ID')!;
-const APP_SECRET = Deno.env.get('FACEBOOK_APP_SECRET')!;
+const APP_ID     = Deno.env.get('INSTAGRAM_APP_ID')!;
+const APP_SECRET = Deno.env.get('INSTAGRAM_APP_SECRET')!;
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -33,56 +34,52 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'code, redirectUri, userId required' }, 400);
     }
 
-    // 1. Exchange code → short-lived access token
-    const tokenRes = await fetch(
-      `https://graph.facebook.com/v21.0/oauth/access_token?` +
-      `client_id=${APP_ID}&client_secret=${APP_SECRET}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`,
-    );
+    // 1. code → short-lived token (POST form-encoded)
+    const form = new URLSearchParams({
+      client_id: APP_ID,
+      client_secret: APP_SECRET,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      code,
+    });
+    const tokenRes = await fetch('https://api.instagram.com/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
+    });
     const tokenData = await tokenRes.json();
-    if (tokenData.error) return json({ error: tokenData.error.message }, 400);
+    if (tokenData.error_type || tokenData.error || !tokenData.access_token) {
+      return json({ error: tokenData.error_message ?? tokenData.error ?? 'token_exchange_failed' }, 400);
+    }
     const shortToken: string = tokenData.access_token;
 
-    // 2. Exchange → long-lived token
+    // 2. short → long-lived token (60일)
     const longRes = await fetch(
-      `https://graph.facebook.com/v21.0/oauth/access_token?` +
-      `grant_type=fb_exchange_token&client_id=${APP_ID}` +
-      `&client_secret=${APP_SECRET}&fb_exchange_token=${shortToken}`,
+      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token` +
+      `&client_secret=${APP_SECRET}&access_token=${shortToken}`,
     );
     const longData = await longRes.json();
     const accessToken: string = longData.access_token ?? shortToken;
 
-    // 3. Get Instagram Business account linked to this Facebook token
-    const igRes = await fetch(
-      `https://graph.facebook.com/v21.0/me/accounts?fields=instagram_business_account&access_token=${accessToken}`,
-    );
-    const igData = await igRes.json();
-    const igAccount = igData.data?.find((p: any) => p.instagram_business_account);
-    if (!igAccount) {
-      return json({ error: 'instagram_no_business_account' }, 400);
-    }
-
-    const igId: string = igAccount.instagram_business_account.id;
-
-    // 4. Fetch Instagram account details
+    // 3. 계정 정보 조회 (business/creator만 followers_count 노출)
     const detailRes = await fetch(
-      `https://graph.facebook.com/v21.0/${igId}?` +
-      `fields=username,name,followers_count,media_count,account_type&access_token=${accessToken}`,
+      `https://graph.instagram.com/me?fields=user_id,username,account_type,followers_count,media_count` +
+      `&access_token=${accessToken}`,
     );
     const detail = await detailRes.json();
     if (detail.error) return json({ error: detail.error.message }, 400);
 
-    // Verify Business or Creator account
     if (!['BUSINESS', 'MEDIA_CREATOR'].includes(detail.account_type)) {
       return json({ error: 'instagram_personal_account' }, 400);
     }
 
-    // 5. Save to social_channels
+    // 4. social_channels 저장
+    const igId = String(detail.user_id ?? detail.id);
     const { error: dbErr } = await supabase.from('social_channels').upsert({
       user_id: userId,
       platform: 'instagram',
       channel_id: igId,
-      channel_name: detail.name ?? detail.username,
+      channel_name: detail.username,
       channel_url: `https://instagram.com/${detail.username}`,
       handle: detail.username,
       subscriber_count: detail.followers_count ?? 0,
