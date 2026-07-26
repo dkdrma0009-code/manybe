@@ -6,21 +6,21 @@ export const tokens = {
   primarySoft:   '#FEF0EE',
   primarySofter: '#FFF7F5',
 
-  // ── Action (indigo) — CTA buttons, links ──────────────────────────────────
-  action:     '#3D5AFE',
-  actionDeep: '#2B47D4',
-  actionSoft: '#EEF1FD',
+  // ── Action — @deprecated: alias of primary (coral). Indigo retired; migrate to primary* then remove ──
+  action:     '#E8472A', // → primary
+  actionDeep: '#C43520', // → primaryDeep
+  actionSoft: '#FEF0EE', // → primarySoft
 
-  // ── Amber — financial / pending moments ──────────────────────────────────
+  // ── Amber — financial / warning moments only ──────────────────────────────
   amber:     '#C48A40',
   amberSoft: '#F5E8D4',
 
-  // ── AI Accent — signals AI-powered moments ────────────────────────────────
-  aiFrom:    '#3D5AFE',
-  aiTo:      '#8B5CF6',
-  aiSurface: '#EEF1FD',
-  aiMuted:   '#DDE3FC',
-  aiText:    '#2B47D4',
+  // ── AI Accent — @deprecated: blue→purple cliché retired. Use primarySoft bg + primary text; migrate then remove ──
+  aiFrom:    '#E8472A', // → primary (gradient flattened to coral)
+  aiTo:      '#E8472A', // → primary
+  aiSurface: '#FEF0EE', // → primarySoft
+  aiMuted:   '#FFF7F5', // → primarySofter
+  aiText:    '#E8472A', // → primary
 
   // ── Background / Surface hierarchy ────────────────────────────────────────
   bg:       '#F7F5F0',  // warm off-white
@@ -48,18 +48,18 @@ export const tokens = {
   neutral100: '#F2F0E8',
   neutral50:  '#F9F7F2',
 
-  // ── Ink (text hierarchy) ──────────────────────────────────────────────────
-  ink:  '#111111',
-  ink2: '#444444',
-  ink3: '#777777',
-  ink4: '#AAAAAA',
-  ink5: '#D0D0D0',
+  // ── Ink — @deprecated: use neutral scale; remove after migration ──────────
+  ink:  '#0F0D0A', // → neutral900
+  ink2: '#2E2B24', // → neutral700
+  ink3: '#706D66', // → neutral500
+  ink4: '#9896A0', // → neutral400
+  ink5: '#C5C3BC', // → neutral300
 
   // ── Border ────────────────────────────────────────────────────────────────
   borderFaint:  '#EDEAE3',
   border:       '#E5E2DA',
   borderMed:    '#D0CCC2',
-  borderStrong: '#ABABAB',
+  borderStrong: '#B8B4A9',
 
   // ── Semantic ──────────────────────────────────────────────────────────────
   success:    '#1D8348',
@@ -79,16 +79,16 @@ export const tokens = {
   infoBg:  '#EEF1FD',
 
   // ── Deal status ───────────────────────────────────────────────────────────
-  inquiry:      '#3D5AFE',
-  inquiryBg:    '#EEF1FD',
-  reviewing:    '#C48A40',
-  reviewingBg:  '#F5E8D4',
-  inProgress:   '#E8472A',
-  inProgressBg: '#FEF0EE',
-  uploaded:     '#1D8348',
-  uploadedBg:   '#E8F8EE',
-  settled:      '#888888',
-  settledBg:    '#F1F0ED',
+  inquiry:      '#706D66', // neutral500
+  inquiryBg:    '#F2F0E8', // neutral100
+  reviewing:    '#4A4740', // neutral600
+  reviewingBg:  '#F2F0E8', // neutral100
+  inProgress:   '#E8472A', // primary — only the current step is emphasized
+  inProgressBg: '#FEF0EE', // primarySoft
+  uploaded:     '#1D8348', // success — completed stays green
+  uploadedBg:   '#E8F8EE', // successBg
+  settled:      '#9896A0', // neutral400
+  settledBg:    '#F9F7F2', // neutral50
 
   // Backward compat aliases
   energy:     '#E8472A',
@@ -101,4 +101,12 @@ export const tokens = {
   fontSemiBold:   'Pretendard-SemiBold',
   fontBold:       'Pretendard-Bold',
   fontExtraBold:  'Pretendard-ExtraBold',
+} as const;
+
+// ── Platform brand colors ───────────────────────────────────────────────────
+// Official brand-mandated colors. NOT design tokens — never remap to the palette.
+export const brandColors = {
+  youtube:   '#FF0000',
+  instagram: '#E1306C',
+  tiktok:    '#000000',
 } as const;
