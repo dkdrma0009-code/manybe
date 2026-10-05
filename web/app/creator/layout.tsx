@@ -3,8 +3,10 @@ import {
   LayoutDashboard, Star, DollarSign,
   Calendar, Eye,
 } from 'lucide-react';
+import { notFound } from 'next/navigation';
 import LogoutButton from './LogoutButton';
 import InboundBadge from './InboundBadge';
+import { FEATURES } from '@/lib/features';
 
 const NAV = [
   { href: '/creator/dashboard',  icon: LayoutDashboard, label: '대시보드' },
@@ -15,6 +17,8 @@ const NAV = [
 ];
 
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {
+  if (!FEATURES.CREATOR_WEB) notFound();
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* 사이드바 */}

@@ -15,6 +15,7 @@ import { colors } from '../../constants/colors';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import type { CreatorBadge, BadgeId } from '../../types/mediaKit';
 import { BADGE_CATALOG, THEME_CATALOG } from '../../types/mediaKit';
+import { FEATURES } from '../../config/featureFlags';
 import { Image } from 'react-native';
 
 // 문의 폼이 포함된 웹 공개 페이지 (web/app/[slug]) — 슬러그 화면과 동일 베이스
@@ -134,7 +135,7 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
           </View>
 
           {/* 선택된 뱃지 */}
-          {kitData?.badges && kitData.badges.length > 0 && (
+          {FEATURES.CHANNEL_BADGES && kitData?.badges && kitData.badges.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>나를 표현하는 뱃지</Text>
               <View style={styles.badgeRow}>
@@ -154,7 +155,7 @@ export default function MediaKitPreviewScreen({ navigation }: Props) {
           )}
 
           {/* AI 성과 배지 */}
-          {intelligence?.badges && intelligence.badges.length > 0 && (
+          {FEATURES.CHANNEL_BADGES && intelligence?.badges && intelligence.badges.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>크리에이터 프로필</Text>
               <View style={styles.badgeRow}>

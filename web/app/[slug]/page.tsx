@@ -8,6 +8,7 @@ import { getAdvertiserSession } from "@/lib/supabase-server";
 import type { Metadata } from "next";
 import AdvertiserNav from "@/components/AdvertiserNav";
 import Logo from "@/components/Logo";
+import { FEATURES } from "@/lib/features";
 
 interface HighlightItem {
   label: string;
@@ -179,7 +180,7 @@ export default async function MediaKitPage({ params }: { params: Promise<{ slug:
                 )}
                 <h1 className="text-3xl font-extrabold mt-2 mb-1 tracking-tight" style={{ color: heroText }}>{creatorName}</h1>
                 {kit.bio && <p className="text-sm leading-relaxed max-w-md" style={{ color: heroSubText }}>{kit.bio}</p>}
-                {creatorBadges.length > 0 && (
+                {FEATURES.CHANNEL_BADGES && creatorBadges.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {creatorBadges.slice(0, 5).map((id) => {
                       const b = BADGE_CATALOG[id];

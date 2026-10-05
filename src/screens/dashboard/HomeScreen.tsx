@@ -17,6 +17,7 @@ import { theme } from '../../constants/theme';
 import { tokens } from '../../constants/tokens';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { formatWon } from '../../utils/formatters';
+import { FEATURES } from '../../config/featureFlags';
 
 const { colors, space, radius, shadows, typography } = theme;
 
@@ -274,10 +275,10 @@ const dr = StyleSheet.create({
 // ─── Quick Actions ────────────────────────────────────────────────────────────
 
 const QUICK_ACTIONS = [
-  { icon: 'id-card-outline'      as const, label: '미디어킷',   screen: 'MediaKitEdit' },
-  { icon: 'analytics-outline'    as const, label: '채널 분석',  screen: 'Analytics'    },
-  { icon: 'wallet-outline'       as const, label: '수익 기록',  screen: 'Revenue'      },
-  { icon: 'chatbubble-outline'   as const, label: '문의함',     screen: 'Inquiries'    },
+  { icon: 'id-card-outline'      as const, label: '미디어킷',   screen: 'MediaKitEdit', enabled: true },
+  { icon: 'analytics-outline'    as const, label: '채널 분석',  screen: 'Analytics',    enabled: FEATURES.CHANNEL_ANALYTICS },
+  { icon: 'wallet-outline'       as const, label: '수익 기록',  screen: 'Revenue',      enabled: FEATURES.REVENUE },
+  { icon: 'chatbubble-outline'   as const, label: '문의함',     screen: 'Inquiries',    enabled: FEATURES.MEDIAKIT_INQUIRY },
 ] as const;
 
 type QuickActionScreen = (typeof QUICK_ACTIONS)[number]['screen'];
@@ -285,7 +286,7 @@ type QuickActionScreen = (typeof QUICK_ACTIONS)[number]['screen'];
 function QuickActions({ onPress }: { onPress: (screen: QuickActionScreen) => void }) {
   return (
     <View style={qa.wrap}>
-      {QUICK_ACTIONS.map((a) => (
+      {QUICK_ACTIONS.filter((a) => a.enabled).map((a) => (
         <TouchableOpacity key={a.label} style={qa.item} onPress={() => onPress(a.screen)} activeOpacity={0.75}>
           <View style={qa.iconWrap}>
             <Ionicons name={a.icon} size={22} color={colors.brand.default} />
@@ -377,7 +378,7 @@ export default function HomeScreen() {
 
   const userName = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? '크리에이터';
   const priorityDeal = data.activeDeals[0];
-  const showPriority = !dismissedPriority && !!priorityDeal;
+  const showPriority = FEATURES.DEALS_PIPELINE && !dismissedPriority && !!priorityDeal;
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -385,15 +386,21 @@ export default function HomeScreen() {
       <View style={s.header}>
         <Text style={s.logo}>manybe</Text>
         <View style={s.headerRight}>
-          <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Revenue')} activeOpacity={0.7}>
-            <Ionicons name="wallet-outline" size={20} color={tokens.ink2} />
-          </TouchableOpacity>
-          <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Analytics')} activeOpacity={0.7}>
-            <Ionicons name="analytics-outline" size={20} color={tokens.ink2} />
-          </TouchableOpacity>
-          <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Notifications')} activeOpacity={0.7}>
-            <Ionicons name="notifications-outline" size={20} color={tokens.ink2} />
-          </TouchableOpacity>
+          {FEATURES.REVENUE && (
+            <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Revenue')} activeOpacity={0.7}>
+              <Ionicons name="wallet-outline" size={20} color={tokens.ink2} />
+            </TouchableOpacity>
+          )}
+          {FEATURES.CHANNEL_ANALYTICS && (
+            <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Analytics')} activeOpacity={0.7}>
+              <Ionicons name="analytics-outline" size={20} color={tokens.ink2} />
+            </TouchableOpacity>
+          )}
+          {FEATURES.ACTIVITY_TIMELINE && (
+            <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Notifications')} activeOpacity={0.7}>
+              <Ionicons name="notifications-outline" size={20} color={tokens.ink2} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -406,7 +413,7 @@ export default function HomeScreen() {
         <Text style={s.date}>{formatDate()}</Text>
         <Text style={s.greeting}>{getGreeting(userName)}</Text>
 
-        {data.newInquiryCount > 0 && (
+        {FEATURES.MEDIAKIT_INQUIRY && data.newInquiryCount > 0 && (
           <View style={s.insightRow}>
             <View style={s.insightDot} />
             <Text style={s.insightText}>
@@ -477,14 +484,14 @@ export default function HomeScreen() {
                 key={ch.id}
                 ch={ch}
                 formatCount={formatCount}
-                onPress={() => navigation.navigate('Analytics')}
+                onPress={() => navigation.navigate(FEATURES.CHANNEL_ANALYTICS ? 'Analytics' : 'YouTubeConnect')}
               />
             ))}
           </>
         )}
 
         {/* 받을 돈 (정산 대기) */}
-        {data.pendingSettlement > 0 && (
+        {FEATURES.REVENUE && data.pendingSettlement > 0 && (
           <TouchableOpacity
             style={s.pendingCard}
             onPress={() => navigation.navigate('Revenue')}
@@ -499,7 +506,7 @@ export default function HomeScreen() {
         )}
 
         {/* 브랜드 협업 */}
-        {data.activeDeals.length > 0 && (
+        {FEATURES.DEALS_PIPELINE && data.activeDeals.length > 0 && (
           <>
             <SectionHeader
               title="브랜드 협업"

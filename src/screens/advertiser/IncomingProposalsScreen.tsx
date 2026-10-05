@@ -15,6 +15,7 @@ import { colors } from '../../constants/colors';
 import { tokens } from '../../constants/tokens';
 import { daysAgo as timeAgo } from '../../utils/formatters';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { FEATURES } from '../../config/featureFlags';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -120,14 +121,18 @@ export default function IncomingProposalsScreen() {
               setProposals((prev) =>
                 prev.map((p) => p.id === proposalId ? { ...p, status } : p),
               );
-              Alert.alert(
-                '협찬 관리에 추가됐어요',
-                '문의 단계에서 시작합니다. 협찬 탭에서 진행 상태를 관리하세요.',
-                [
-                  { text: '나중에', style: 'cancel' },
-                  { text: '보러 가기', onPress: () => navigation.navigate('Main', { screen: '협찬' }) },
-                ],
-              );
+              if (!FEATURES.DEALS_PIPELINE) {
+                Alert.alert('제안을 수락했어요', '메시지 탭에서 광고주와 세부 조건을 이어서 협의하세요.');
+              } else {
+                Alert.alert(
+                  '협찬 관리에 추가됐어요',
+                  '문의 단계에서 시작합니다. 협찬 탭에서 진행 상태를 관리하세요.',
+                  [
+                    { text: '나중에', style: 'cancel' },
+                    { text: '보러 가기', onPress: () => navigation.navigate('Main', { screen: '협찬' }) },
+                  ],
+                );
+              }
             } else {
               const { error } = await supabase
                 .from('advertiser_proposals')

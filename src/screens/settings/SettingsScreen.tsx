@@ -13,6 +13,7 @@ import { useSocialChannels } from '../../hooks/useSocialChannels';
 import { theme } from '../../constants/theme';
 import { supabase } from '../../api/supabase';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { FEATURES } from '../../config/featureFlags';
 
 const { colors, space, radius, shadows, typography } = theme;
 
@@ -130,10 +131,10 @@ export default function SettingsScreen() {
         <Text style={s.sectionLabel}>알림</Text>
         <View style={s.card}>
           {([
-            ['브랜드 메시지', notifBrand,    (v: boolean) => { setNotifBrand(v);    saveNotif('notif_brand', v);    }],
-            ['일정 알림',    notifSchedule, (v: boolean) => { setNotifSchedule(v); saveNotif('notif_schedule', v); }],
-            ['AI 인사이트',  notifAI,       (v: boolean) => { setNotifAI(v);       saveNotif('notif_ai', v);       }],
-          ] as [string, boolean, (v: boolean) => void][]).map(([label, val, setter], i) => (
+            ['브랜드 메시지', notifBrand,    (v: boolean) => { setNotifBrand(v);    saveNotif('notif_brand', v);    }, true],
+            ['일정 알림',    notifSchedule, (v: boolean) => { setNotifSchedule(v); saveNotif('notif_schedule', v); }, FEATURES.SCHEDULE],
+            ['AI 인사이트',  notifAI,       (v: boolean) => { setNotifAI(v);       saveNotif('notif_ai', v);       }, FEATURES.CHANNEL_ANALYTICS],
+          ] as [string, boolean, (v: boolean) => void, boolean][]).filter(([, , , enabled]) => enabled).map(([label, val, setter], i) => (
             <React.Fragment key={label}>
               {i > 0 && <Divider />}
               <View style={s.row}>
@@ -168,22 +169,30 @@ export default function SettingsScreen() {
             <Text style={[s.rowLabel, { flex: 1 }]}>미디어킷 주소(URL)</Text>
             <Text style={{ fontSize: 18, color: colors.text.tertiary }}>›</Text>
           </TouchableOpacity>
-          <Divider />
-          <TouchableOpacity style={s.row} onPress={() => navigation.navigate('Studio')} activeOpacity={0.7}>
-            <View style={[s.platformIcon, { backgroundColor: '#3D5AFE15' }]}>
-              <Text style={[s.platformIconText, { color: '#3D5AFE' }]}>⊞</Text>
-            </View>
-            <Text style={[s.rowLabel, { flex: 1 }]}>내 작업실 보기</Text>
-            <Text style={{ fontSize: 18, color: colors.text.tertiary }}>›</Text>
-          </TouchableOpacity>
-          <Divider />
-          <TouchableOpacity style={s.row} onPress={() => navigation.navigate('Revenue')} activeOpacity={0.7}>
-            <View style={[s.platformIcon, { backgroundColor: '#1D834815' }]}>
-              <Text style={[s.platformIconText, { color: '#1D8348' }]}>💰</Text>
-            </View>
-            <Text style={[s.rowLabel, { flex: 1 }]}>수익 현황</Text>
-            <Text style={{ fontSize: 18, color: colors.text.tertiary }}>›</Text>
-          </TouchableOpacity>
+          {FEATURES.DEALS_PIPELINE && (
+            <>
+              <Divider />
+              <TouchableOpacity style={s.row} onPress={() => navigation.navigate('Studio')} activeOpacity={0.7}>
+                <View style={[s.platformIcon, { backgroundColor: '#3D5AFE15' }]}>
+                  <Text style={[s.platformIconText, { color: '#3D5AFE' }]}>⊞</Text>
+                </View>
+                <Text style={[s.rowLabel, { flex: 1 }]}>내 작업실 보기</Text>
+                <Text style={{ fontSize: 18, color: colors.text.tertiary }}>›</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          {FEATURES.REVENUE && (
+            <>
+              <Divider />
+              <TouchableOpacity style={s.row} onPress={() => navigation.navigate('Revenue')} activeOpacity={0.7}>
+                <View style={[s.platformIcon, { backgroundColor: '#1D834815' }]}>
+                  <Text style={[s.platformIconText, { color: '#1D8348' }]}>💰</Text>
+                </View>
+                <Text style={[s.rowLabel, { flex: 1 }]}>수익 현황</Text>
+                <Text style={{ fontSize: 18, color: colors.text.tertiary }}>›</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* 기타 */}

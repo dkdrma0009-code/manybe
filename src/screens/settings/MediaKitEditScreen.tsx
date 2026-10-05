@@ -22,6 +22,7 @@ import type { BadgeId, MediaKitTheme, SectionId, HighlightSection } from '../../
 import { extractYoutubeThumbnail } from '../../types/mediaKit';
 import { Image } from 'react-native';
 import { ENV } from '../../config/env';
+import { FEATURES } from '../../config/featureFlags';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MediaKitEdit'>;
@@ -437,6 +438,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
           </View>
 
           {/* 뱃지 */}
+          {FEATURES.CHANNEL_BADGES && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View>
@@ -511,6 +513,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
               );
             })}
           </View>
+          )}
 
           {/* 섹션 표시 순서 */}
           <View style={styles.section}>

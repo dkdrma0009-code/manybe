@@ -32,6 +32,7 @@ import AdvertiserNavigator from './AdvertiserNavigator';
 import { useNotifications } from '../hooks/useNotifications';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { colors } from '../constants/colors';
+import { FEATURES } from '../config/featureFlags';
 import type { TabParamList } from './TabNavigator';
 import UpgradeScreen from '../screens/paywall/UpgradeScreen';
 import MediaKitPreviewScreen from '../screens/mediakit/MediaKitPreviewScreen';
@@ -235,7 +236,9 @@ export default function AppNavigator() {
   }, []);
 
   const isAuthedUser = DEV_BYPASS_AUTH || !!session;
-  const isAdvertiser = userRole === 'advertiser';
+  // Phase 0: 광고주는 웹 전용 — 앱은 역할 선택 없이 크리에이터 플로우만 노출 (광고주 화면 코드는 보존)
+  const isAdvertiser = FEATURES.ADVERTISER_APP && userRole === 'advertiser';
+  const needsRoleSelection = FEATURES.ADVERTISER_APP && !roleDone;
   const waitingForChannelCheck = isAuthedUser && !isAdvertiser && channelConnectDone === null;
 
   if (roleDone === null || advertiserOnboardingDone === null || loading || waitingForChannelCheck) {
@@ -252,7 +255,7 @@ export default function AppNavigator() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <NavigationContainer>
-          {!roleDone ? (
+          {needsRoleSelection ? (
             <RoleSelectionScreen onComplete={(role) => { setUserRole(role); setRoleDone(true); }} />
           ) : !isAdvertiser && !onboardingDone ? (
             <OnboardingScreen onComplete={() => setOnboardingDone(true)} />

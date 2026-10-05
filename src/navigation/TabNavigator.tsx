@@ -11,6 +11,7 @@ import MessagesScreen from '../screens/messages/MessagesScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
 import { tokens } from '../constants/tokens';
 import { useRealtime } from '../context/RealtimeContext';
+import { FEATURES } from '../config/featureFlags';
 
 export type TabParamList = {
   홈: undefined;
@@ -63,7 +64,8 @@ export default function TabNavigator() {
           letterSpacing: 0.1,
         },
         tabBarIcon: ({ focused }) => {
-          const msgBadgeCount = unreadInquiryCount + unreadProposalMessageCount;
+          const msgBadgeCount =
+            (FEATURES.MEDIAKIT_INQUIRY ? unreadInquiryCount : 0) + unreadProposalMessageCount;
           const showBadge = route.name === '메시지' && msgBadgeCount > 0;
           const icons = TAB_ICONS[route.name];
           return (
@@ -86,8 +88,8 @@ export default function TabNavigator() {
       })}
     >
       <Tab.Screen name="홈"   component={HomeScreen} />
-      <Tab.Screen name="협찬"  component={DealsScreen} />
-      <Tab.Screen name="일정"  component={ScheduleScreen} />
+      {FEATURES.DEALS_PIPELINE && <Tab.Screen name="협찬"  component={DealsScreen} />}
+      {FEATURES.SCHEDULE && <Tab.Screen name="일정"  component={ScheduleScreen} />}
       <Tab.Screen name="메시지" component={MessagesScreen} />
       <Tab.Screen name="설정"  component={SettingsScreen} />
     </Tab.Navigator>

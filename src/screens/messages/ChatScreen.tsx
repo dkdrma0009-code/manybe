@@ -14,6 +14,7 @@ import { useRealtime } from '../../context/RealtimeContext';
 import { acceptProposalGuarded } from '../../hooks/useProposals';
 import { theme } from '../../constants/theme';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { FEATURES } from '../../config/featureFlags';
 
 const { colors, space, radius, typography } = theme;
 
@@ -235,7 +236,9 @@ export default function ChatScreen() {
       });
     }
 
-    if (action === 'accepted') {
+    if (action === 'accepted' && !FEATURES.DEALS_PIPELINE) {
+      Alert.alert('제안을 수락했어요', '채팅에서 광고주와 세부 조건을 이어서 협의하세요.');
+    } else if (action === 'accepted') {
       Alert.alert(
         '협찬 관리에 추가됐어요',
         '문의 단계에서 시작합니다. 협찬 탭에서 진행 상태를 관리하세요.',
