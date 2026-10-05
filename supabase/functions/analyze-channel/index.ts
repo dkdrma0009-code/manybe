@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getRequestUserId } from '../_shared/auth.ts'
 
 const YOUTUBE_KEY      = Deno.env.get('YOUTUBE_API_KEY') ?? ''
 const ANTHROPIC_KEY    = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
@@ -245,14 +246,22 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   try {
-    const { channel_id, user_id } = await req.json()
-    if (!channel_id || !user_id) {
-      return new Response(JSON.stringify({ error: 'channel_id and user_id required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+    // 분석 대상 사용자는 JWT로만 판별 (body의 user_id는 무시 — 타인 토큰 사용·분석 결과 위조 방지)
+    const user_id = await getRequestUserId(req, supabase)
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const { channel_id } = await req.json()
+    if (!channel_id) {
+      return new Response(JSON.stringify({ error: 'channel_id required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     // 채널 정보 조회
     const { data: channel } = await supabase

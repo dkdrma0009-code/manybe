@@ -8,6 +8,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY (auto-injected)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getRequestUserId } from '../_shared/auth.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -54,9 +55,13 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   try {
-    const { code, redirectUri, userId } = await req.json()
-    if (!code || !redirectUri || !userId) {
-      return json({ error: 'code, redirectUri, userId required' }, 400)
+    // 저장 대상 사용자는 JWT로만 판별 (body의 userId는 무시 — service-role 쓰기 위조 방지)
+    const userId = await getRequestUserId(req, supabase)
+    if (!userId) return json({ error: 'unauthorized' }, 401)
+
+    const { code, redirectUri } = await req.json()
+    if (!code || !redirectUri) {
+      return json({ error: 'code, redirectUri required' }, 400)
     }
 
     // 1. auth code → access_token + refresh_token

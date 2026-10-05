@@ -59,7 +59,7 @@ async function getMediaKit(slug: string, recordView = false) {
   if (!kit) return null;
   const [{ data: channels }, { data: profile }] = await Promise.all([
     supabase.from("social_channels").select("*").eq("user_id", kit.user_id),
-    supabase.from("profiles").select("full_name, email").eq("id", kit.user_id).single(),
+    supabase.from("profiles").select("full_name").eq("id", kit.user_id).single(),
   ]);
   // 방문자 통계 기록 — 페이지 렌더에서만 (generateMetadata 호출은 제외해 방문당 1건)
   if (recordView) {
