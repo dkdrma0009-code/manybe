@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
 import { useHomeData } from '../../hooks/useHomeData';
@@ -18,6 +18,9 @@ import { tokens } from '../../constants/tokens';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { formatWon } from '../../utils/formatters';
 import { FEATURES } from '../../config/featureFlags';
+import {
+  getAvailabilityDisplayState, formatConfirmedDate, AVAILABILITY_FRESH_DAYS, type AdAvailability,
+} from '../../utils/adAvailability';
 
 const { colors, space, radius, shadows, typography } = theme;
 
@@ -353,16 +356,32 @@ export default function HomeScreen() {
   const [dismissedPriority, setDismissedPriority] = useState(false);
   const [pendingProposalCount, setPendingProposalCount] = useState(0);
   const [hasMediaKit, setHasMediaKit] = useState<boolean | null>(null);
+  const [kitAvailability, setKitAvailability] = useState<{
+    ad_availability: AdAvailability | null;
+    ad_availability_confirmed_at: string | null;
+  } | null>(null);
 
   // 미디어킷 미생성 유저에게 첫 액션 유도 (P4: 온보딩 → 미디어킷 생성)
-  React.useEffect(() => {
+  // + 광고 수신 상태 확인 카드. 설정 화면에서 돌아올 때 반영되도록 포커스마다 조회.
+  useFocusEffect(React.useCallback(() => {
     if (!user?.id) return;
     supabase
       .from('media_kits')
-      .select('id', { count: 'exact', head: true })
+      .select('ad_availability, ad_availability_confirmed_at')
       .eq('user_id', user.id)
-      .then(({ count }) => setHasMediaKit((count ?? 0) > 0));
-  }, [user?.id]);
+      .limit(1)
+      .then(({ data, error }) => {
+        if (error) return; // 조회 실패 시 잘못된 안내를 띄우지 않음
+        const row = data?.[0] ?? null;
+        setHasMediaKit(!!row);
+        setKitAvailability(row);
+      });
+  }, [user?.id]));
+
+  const availabilityState = kitAvailability
+    ? getAvailabilityDisplayState(kitAvailability.ad_availability, kitAvailability.ad_availability_confirmed_at)
+    : null;
+  const availabilityConfirmed = formatConfirmedDate(kitAvailability?.ad_availability_confirmed_at);
 
   React.useEffect(() => { refetch(); }, [dealsVersion]); // eslint-disable-line
 
@@ -440,7 +459,44 @@ export default function HomeScreen() {
 
         <View style={s.gap} />
 
-        {/* 미디어킷 첫 생성 유도 */}
+        {/* 광고 수신 상태 — 미설정·확인 필요는 행동 유도, 최신 상태는 조용히 표시 */}
+        {hasMediaKit === true && (availabilityState === 'unset' || availabilityState === 'stale') && (
+          <TouchableOpacity
+            style={s.kitNudge}
+            onPress={() => navigation.navigate('MediaKitEdit')}
+            activeOpacity={0.85}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={s.kitNudgeTitle}>
+                {availabilityState === 'unset'
+                  ? '광고 수신 가능 여부를 설정해주세요.'
+                  : '광고 수신 상태를 다시 확인해주세요.'}
+              </Text>
+              <Text style={s.kitNudgeDesc}>
+                {availabilityState === 'unset'
+                  ? '광고주에게 지금 협업 가능한지 알려줄 수 있어요'
+                  : `마지막 확인 후 ${AVAILABILITY_FRESH_DAYS}일이 지났어요${availabilityConfirmed ? ` (${availabilityConfirmed})` : ''}`}
+              </Text>
+            </View>
+            <Text style={s.availCta}>{availabilityState === 'unset' ? '설정하기' : '상태 확인하기'} ›</Text>
+          </TouchableOpacity>
+        )}
+        {hasMediaKit === true && (availabilityState === 'accepting' || availabilityState === 'not_accepting') && (
+          <TouchableOpacity
+            style={s.availRow}
+            onPress={() => navigation.navigate('MediaKitEdit')}
+            activeOpacity={0.85}
+          >
+            <Text style={s.availRowText}>
+              {availabilityState === 'accepting' ? '광고 수신 가능' : '현재 광고 수신 중지'}
+            </Text>
+            <Text style={s.availRowMeta}>
+              {availabilityConfirmed ? `마지막 확인 ${availabilityConfirmed}` : ''} ›
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* 미디어킷 첫 생성 유도 — 미디어킷이 없으면 광고 수신 설정도 여기서 시작 (availability 단독 INSERT 없음) */}
         {hasMediaKit === false && (
           <TouchableOpacity
             style={s.kitNudge}
@@ -634,6 +690,21 @@ const s = StyleSheet.create({
   kitNudgeTitle: { fontSize: 14, fontWeight: '700', color: '#4C3FB8', marginBottom: 2 },
   kitNudgeDesc: { ...typography.caption, color: '#6E5DD6' },
   kitNudgeArrow: { fontSize: 20, color: '#6E5DD6', marginLeft: 8 },
+  availCta: { fontSize: 13, fontWeight: '700', color: '#4C3FB8', marginLeft: 8 },
+  availRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border.faint,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    marginBottom: space.lg,
+  },
+  availRowText: { ...typography.bodyStrong, fontSize: 13, color: colors.text.primary },
+  availRowMeta: { ...typography.caption, color: colors.text.tertiary },
 
   pendingCard: {
     flexDirection: 'row',

@@ -597,6 +597,11 @@ export type Database = {
       }
       media_kits: {
         Row: {
+          ad_availability: "accepting" | "not_accepting" | null
+          ad_availability_confirmed_at: string | null
+          availability_note: string | null
+          available_from: string | null
+          available_until: string | null
           badge_data: Json
           badges: string[] | null
           bio: string | null
@@ -617,6 +622,11 @@ export type Database = {
           view_count: number | null
         }
         Insert: {
+          ad_availability?: "accepting" | "not_accepting" | null
+          ad_availability_confirmed_at?: string | null
+          availability_note?: string | null
+          available_from?: string | null
+          available_until?: string | null
           badge_data?: Json
           badges?: string[] | null
           bio?: string | null
@@ -637,6 +647,11 @@ export type Database = {
           view_count?: number | null
         }
         Update: {
+          ad_availability?: "accepting" | "not_accepting" | null
+          ad_availability_confirmed_at?: string | null
+          availability_note?: string | null
+          available_from?: string | null
+          available_until?: string | null
           badge_data?: Json
           badges?: string[] | null
           bio?: string | null

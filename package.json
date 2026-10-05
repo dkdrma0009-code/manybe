@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "gen:types": "supabase gen types typescript --project-id bewcgxzcvxuwzwxcqzmk > src/types/database.ts",
     "typecheck": "tsc --noEmit",
-    "smoke": "node scripts/smoke-test.mjs"
+    "smoke": "node scripts/smoke-test.mjs",
+    "test:availability": "node --experimental-strip-types --test scripts/test-ad-availability.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

@@ -23,6 +23,8 @@ import { extractYoutubeThumbnail } from '../../types/mediaKit';
 import { Image } from 'react-native';
 import { ENV } from '../../config/env';
 import { FEATURES } from '../../config/featureFlags';
+import AdAvailabilitySection from './AdAvailabilitySection';
+import type { AvailabilityRow } from '../../utils/adAvailability';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MediaKitEdit'>;
@@ -52,7 +54,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
   const [pricing, setPricing] = useState<Partial<Record<PricingKey, string>>>({});
   const [pastBrands, setPastBrands] = useState<string[]>([]);
   const [brandInput, setBrandInput] = useState('');
-  const [isFormEnabled, setIsFormEnabled] = useState(false);
+  const [availability, setAvailability] = useState<AvailabilityRow | null>(null);
   const [selectedBadges, setSelectedBadges] = useState<BadgeId[]>([]);
   const [verifiedBadges, setVerifiedBadges] = useState<BadgeId[]>([]);
   const [theme, setTheme] = useState<MediaKitTheme>('indigo');
@@ -86,7 +88,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
     const { data } = await supabase
       .from('media_kits')
-      .select('bio, pricing, past_brands, is_form_enabled, badges, theme, section_order, highlights')
+      .select('bio, pricing, past_brands, badges, theme, section_order, highlights, ad_availability, ad_availability_confirmed_at, available_from, available_until, availability_note')
       .eq('user_id', user!.id)
       .limit(1);
 
@@ -102,7 +104,13 @@ export default function MediaKitEditScreen({ navigation }: Props) {
       }
       setPricing(p);
       setPastBrands((kit.past_brands ?? []) as string[]);
-      setIsFormEnabled(kit.is_form_enabled ?? false);
+      setAvailability({
+        ad_availability: kit.ad_availability,
+        ad_availability_confirmed_at: kit.ad_availability_confirmed_at,
+        available_from: kit.available_from,
+        available_until: kit.available_until,
+        availability_note: kit.availability_note,
+      });
       // 저장된 뱃지에서 검증 뱃지는 제외하고 수동 뱃지만 보관 (검증 뱃지는 저장 시 자동 합산)
       const savedManual = ((kit.badges ?? []) as BadgeId[]).filter((b) => !AUTO_VERIFIED_BADGES.includes(b));
       setSelectedBadges(savedManual);
@@ -198,8 +206,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
         bio: bio.trim() || null,
         pricing: Object.keys(pricingObj).length > 0 ? pricingObj : null,
         past_brands: pastBrands.length > 0 ? pastBrands : null,
-        // PLAN_GATE: unlimited inquiry reception — consider capping monthly inbound inquiry count for free tier
-        is_form_enabled: isFormEnabled,
+        // is_form_enabled는 여기서 저장하지 않는다 — 광고 수신 설정 섹션이 상태 저장 시에만 과도기 동기화
         // 수동 선택 뱃지 + 자동 검증 뱃지 합산 저장
         badges: [...selectedBadges, ...verifiedBadges],
         theme,
@@ -323,6 +330,9 @@ export default function MediaKitEditScreen({ navigation }: Props) {
         keyboardVerticalOffset={0}
       >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+
+          {/* 광고 수신 설정 — 기존 "협찬 문의 폼 활성화" 토글 대체 */}
+          <AdAvailabilitySection userId={user!.id} hasKit={hasKit} initial={availability} />
 
           {/* 자기소개 */}
           <View style={styles.section}>
@@ -689,27 +699,6 @@ export default function MediaKitEditScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
 
-          {/* 인바운드 폼 */}
-          <View style={styles.section}>
-            <View style={styles.toggleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sectionTitle}>협찬 문의 폼 활성화</Text>
-                <Text style={styles.sectionDesc}>브랜드가 미디어 키트에서 직접 협찬을 제안할 수 있어요</Text>
-              </View>
-              <Switch
-                value={isFormEnabled}
-                onValueChange={setIsFormEnabled}
-                trackColor={{ false: '#E5E7EB', true: colors.primary }}
-                thumbColor="#fff"
-              />
-            </View>
-            {isFormEnabled && (
-              <View style={styles.formEnabledBadge}>
-                <Text style={styles.formEnabledText}>✓ 문의 폼이 활성화된 상태입니다. 브랜드가 문의를 보낼 수 있어요.</Text>
-              </View>
-            )}
-          </View>
-
           <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -796,12 +785,6 @@ const styles = StyleSheet.create({
   tagText:   { fontSize: 13, fontWeight: '600', color: colors.primary },
   tagRemove: { fontSize: 11, color: '#9CA3AF', fontWeight: '700' },
   emptyBrands: { fontSize: 13, color: '#C4C4C4', textAlign: 'center', paddingVertical: 8 },
-
-  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  formEnabledBadge: {
-    marginTop: 12, backgroundColor: '#D1FAE5', borderRadius: 10, padding: 10,
-  },
-  formEnabledText: { fontSize: 12, color: '#059669', fontWeight: '500', lineHeight: 18 },
 
   // 테마
   themeRow:         { flexDirection: 'row', gap: 12, marginTop: 14, marginBottom: 8 },
