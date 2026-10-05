@@ -55,7 +55,12 @@ interface Profile {
 
 async function getMediaKit(slug: string, recordView = false) {
   const supabase = getSupabase();
-  const { data: kit } = await supabase.from("media_kits").select("*").eq("slug", slug).single();
+  // anon 공개 컬럼만 명시 — availability 컬럼은 비회원 공개 범위 확정 전 anon 비공개(031)
+  const { data: kit } = await supabase
+    .from("media_kits")
+    .select("id, user_id, slug, bio, pricing, past_brands, is_form_enabled, view_count, category, badges, theme, section_order, cover_image_url, highlights")
+    .eq("slug", slug)
+    .single();
   if (!kit) return null;
   const [{ data: channels }, { data: profile }] = await Promise.all([
     supabase.from("social_channels").select("*").eq("user_id", kit.user_id),
