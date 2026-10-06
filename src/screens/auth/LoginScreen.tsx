@@ -20,29 +20,15 @@ type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 };
 
-const DEMO_EMAIL    = 'demo@manybe.site';
-const DEMO_PASSWORD = 'manybe2026!';
-
 export default function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
-
-  const handleDemoLogin = async () => {
-    setErrorMsg(null);
-    setDemoLoading(true);
-    const { error } = await signIn(DEMO_EMAIL, DEMO_PASSWORD);
-    setDemoLoading(false);
-    if (error) {
-      setErrorMsg('데모 계정이 없습니다. Supabase Auth에서 demo@manybe.site / manybe2026! 으로 먼저 생성하세요.');
-    }
-  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -166,25 +152,6 @@ export default function LoginScreen({ navigation }: Props) {
             activeOpacity={0.8}
           >
             <Text style={styles.signupButtonText}>이메일로 회원가입</Text>
-          </TouchableOpacity>
-
-          {/* 데모 계정 */}
-          <View style={styles.demoRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>개발용</Text>
-            <View style={styles.dividerLine} />
-          </View>
-          <TouchableOpacity
-            style={[styles.demoButton, demoLoading && styles.buttonDisabled]}
-            onPress={handleDemoLogin}
-            disabled={demoLoading}
-            activeOpacity={0.7}
-          >
-            {demoLoading ? (
-              <ActivityIndicator color="#9CA3AF" size="small" />
-            ) : (
-              <Text style={styles.demoButtonText}>🧪 데모 계정으로 체험하기</Text>
-            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -355,27 +322,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 15,
     fontWeight: '600',
-  },
-  demoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 12,
-    gap: 12,
-  },
-  demoButton: {
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
-  },
-  demoButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#9CA3AF',
   },
   errorBox: {
     backgroundColor: '#FEF2F2',

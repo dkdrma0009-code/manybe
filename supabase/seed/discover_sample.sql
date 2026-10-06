@@ -3,9 +3,10 @@
 --
 -- 실행 전 준비:
 -- Supabase Auth → Users에서 아래 계정 3개 생성 (이메일/비밀번호 방식)
---   creator1@manybe.site / manybe2026!
---   creator2@manybe.site / manybe2026!
---   creator3@manybe.site / manybe2026!
+--   creator1@manybe.site
+--   creator2@manybe.site
+--   creator3@manybe.site
+-- (비밀번호는 개발 환경에서 계정별 별도 credential로 설정 — 저장소에 기록하지 않음)
 -- 생성 후 이 SQL 실행하세요.
 -- ══════════════════════════════════════════════════════════════════════════════
 

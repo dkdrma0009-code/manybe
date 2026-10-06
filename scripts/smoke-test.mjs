@@ -1,12 +1,28 @@
-// 핵심 쓰기 경로 스모크 테스트 — 실제 DB(원격)에 대해 데모 계정으로
+// 핵심 쓰기 경로 스모크 테스트 — 실제 DB(원격)에 대해 테스트 계정으로
 // insert/update를 한 번씩 실행해 "조용히 실패하는" 스키마/RLS 회귀를 잡는다.
 // 이번 프로젝트에서 폰으로 손수 찾은 버그류(NOT NULL 누락, 없는 컬럼,
-// role 필수 등)를 자동 재현. 실행: npm run smoke
+// role 필수 등)를 자동 재현.
 //
-// 시드 데이터를 손상시키지 않도록 만든 행은 전부 즉시 삭제한다.
+// ⚠️ 원격 DB에 실제로 쓴다. 만든 행은 즉시 삭제·복원하지만 실수 실행을 막기 위해
+//    아래 3개 환경변수가 모두 있어야만 실행된다 (credential은 코드·저장소에 두지 않는다).
+//      MANYBE_SMOKE_EMAIL        테스트 전용 계정 이메일
+//      MANYBE_SMOKE_PASSWORD     그 계정 비밀번호
+//      MANYBE_ALLOW_REMOTE_SMOKE=1  원격 쓰기 실행 명시 승인
+//    실행 예: MANYBE_SMOKE_EMAIL=... MANYBE_SMOKE_PASSWORD=... MANYBE_ALLOW_REMOTE_SMOKE=1 npm run smoke
 
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
+
+const SMOKE_EMAIL = process.env.MANYBE_SMOKE_EMAIL;
+const SMOKE_PASSWORD = process.env.MANYBE_SMOKE_PASSWORD;
+if (!SMOKE_EMAIL || !SMOKE_PASSWORD) {
+  console.error('MANYBE_SMOKE_EMAIL / MANYBE_SMOKE_PASSWORD 환경변수가 필요합니다. (기본 계정 없음)');
+  process.exit(1);
+}
+if (process.env.MANYBE_ALLOW_REMOTE_SMOKE !== '1') {
+  console.error('이 스크립트는 원격 DB에 쓰기를 수행합니다. 실행하려면 MANYBE_ALLOW_REMOTE_SMOKE=1 을 명시하세요.');
+  process.exit(1);
+}
 
 // .env.local 파싱 (dotenv 의존 없이)
 const env = {};
@@ -17,8 +33,6 @@ for (const line of readFileSync(new URL('../.env.local', import.meta.url), 'utf8
 
 const URL_ = env.EXPO_PUBLIC_SUPABASE_URL;
 const KEY = env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-const DEMO_EMAIL = 'demo@manybe.site';
-const DEMO_PW = 'manybe2026!';
 
 const sb = createClient(URL_, KEY, { auth: { persistSession: false } });
 
@@ -36,10 +50,10 @@ function assert(cond, msg) { if (!cond) throw new Error(msg); }
 
 const run = async () => {
   // 0. 로그인
-  const { data: auth, error: authErr } = await sb.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PW });
+  const { data: auth, error: authErr } = await sb.auth.signInWithPassword({ email: SMOKE_EMAIL, password: SMOKE_PASSWORD });
   if (authErr) { console.error('로그인 실패:', authErr.message); process.exit(1); }
   const uid = auth.user.id;
-  console.log(`\n스모크 테스트 — ${DEMO_EMAIL} (${uid.slice(0, 8)})\n`);
+  console.log(`\n스모크 테스트 — ${SMOKE_EMAIL} (${uid.slice(0, 8)})\n`);
 
   // 1. profiles 업데이트 (role 필수 회귀 감지)
   await step('profiles.update (이름 변경→복원)', async () => {
