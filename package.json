@@ -12,7 +12,8 @@
     "smoke": "node scripts/smoke-test.mjs",
     "test:availability": "node --experimental-strip-types --test scripts/test-ad-availability.mjs",
     "test:categories": "node --experimental-strip-types --test scripts/test-creator-categories.mjs",
-    "test:discovery": "node --experimental-strip-types --test scripts/test-discovery-rules.mjs"
+    "test:discovery": "node --experimental-strip-types --test scripts/test-discovery-rules.mjs",
+    "test:discovery-filters": "node --experimental-strip-types --import ./scripts/ts-resolve-hook.mjs --test scripts/test-discovery-filters.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
