@@ -62,7 +62,8 @@ async function getMediaKit(slug: string, recordView = false) {
     .single();
   if (!kit) return null;
   const [{ data: channels }, { data: profile }] = await Promise.all([
-    supabase.from("social_channels").select("*").eq("user_id", kit.user_id),
+    // 공개 미디어킷은 안전 컬럼 View로만 조회 (views_history 등 분석 이력 비공개 — 032/033)
+    supabase.from("social_channels_public").select("platform, channel_name, subscriber_count, view_count, profile_image_url").eq("user_id", kit.user_id),
     supabase.from("profiles").select("full_name").eq("id", kit.user_id).single(),
   ]);
   // 방문자 통계 기록 — 페이지 렌더에서만 (generateMetadata 호출은 제외해 방문당 1건)

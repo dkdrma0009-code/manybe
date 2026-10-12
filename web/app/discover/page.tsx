@@ -62,7 +62,8 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
 
   const [{ data: profiles }, { data: channels }] = await Promise.all([
     supabase.from("profiles").select("id, full_name").in("id", userIds),
-    supabase.from("social_channels").select("user_id, platform, channel_name, subscriber_count").in("user_id", userIds),
+    // 공개 탐색은 안전 컬럼 View로만 조회 (views_history 등 분석 이력 비공개 — 032/033)
+    supabase.from("social_channels_public").select("user_id, platform, channel_name, subscriber_count").in("user_id", userIds),
   ]);
 
   const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]));
