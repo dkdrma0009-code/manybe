@@ -25,6 +25,7 @@ import { ENV } from '../../config/env';
 import { FEATURES } from '../../config/featureFlags';
 import AdAvailabilitySection from './AdAvailabilitySection';
 import type { AvailabilityRow } from '../../utils/adAvailability';
+import { CREATOR_CATEGORIES, isCreatorCategory, normalizeCategory } from '../../constants/creatorCategories';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MediaKitEdit'>;
@@ -51,6 +52,8 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
   // fields
   const [bio, setBio] = useState('');
+  // media_kits.category 단일 선택. 목록 밖 레거시 값은 다른 값을 고르기 전까지 그대로 보존
+  const [category, setCategory] = useState<string | null>(null);
   const [pricing, setPricing] = useState<Partial<Record<PricingKey, string>>>({});
   const [pastBrands, setPastBrands] = useState<string[]>([]);
   const [brandInput, setBrandInput] = useState('');
@@ -88,7 +91,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
     const { data } = await supabase
       .from('media_kits')
-      .select('bio, pricing, past_brands, badges, theme, section_order, highlights, ad_availability, ad_availability_confirmed_at, available_from, available_until, availability_note')
+      .select('bio, category, pricing, past_brands, badges, theme, section_order, highlights, ad_availability, ad_availability_confirmed_at, available_from, available_until, availability_note')
       .eq('user_id', user!.id)
       .limit(1);
 
@@ -96,6 +99,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
     if (kit) {
       setHasKit(true);
       setBio(kit.bio ?? '');
+      setCategory(normalizeCategory(kit.category));
       const pricingObj = (kit.pricing ?? {}) as Record<string, number>;
       const p: Partial<Record<PricingKey, string>> = {};
       for (const { key } of PRICING_KEYS) {
@@ -204,6 +208,7 @@ export default function MediaKitEditScreen({ navigation }: Props) {
 
       const payload = {
         bio: bio.trim() || null,
+        category: normalizeCategory(category),
         pricing: Object.keys(pricingObj).length > 0 ? pricingObj : null,
         past_brands: pastBrands.length > 0 ? pastBrands : null,
         // is_form_enabled는 여기서 저장하지 않는다 — 광고 수신 설정 섹션이 상태 저장 시에만 과도기 동기화
@@ -365,6 +370,32 @@ export default function MediaKitEditScreen({ navigation }: Props) {
               textAlignVertical="top"
             />
             <Text style={styles.charCount}>{bio.length} / 200</Text>
+          </View>
+
+          {/* 카테고리 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>카테고리</Text>
+            <Text style={[styles.sectionDesc, { marginBottom: 12 }]}>광고주가 크리에이터를 찾을 때 쓰는 대표 분야 1개를 골라주세요</Text>
+            <View style={styles.badgeGrid}>
+              {category && !isCreatorCategory(category) && (
+                <View style={[styles.badgeChip, styles.badgeChipSelected]}>
+                  <Text style={[styles.badgeChipText, styles.badgeChipTextSelected]}>{category} (이전 분류)</Text>
+                </View>
+              )}
+              {CREATOR_CATEGORIES.map(({ value, label }) => {
+                const selected = category === value;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    style={[styles.badgeChip, selected && styles.badgeChipSelected]}
+                    onPress={() => setCategory(value)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.badgeChipText, selected && styles.badgeChipTextSelected]}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
           {/* 광고 단가 */}
