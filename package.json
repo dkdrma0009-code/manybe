@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke-test.mjs",
     "test:availability": "node --experimental-strip-types --test scripts/test-ad-availability.mjs",
-    "test:categories": "node --experimental-strip-types --test scripts/test-creator-categories.mjs"
+    "test:categories": "node --experimental-strip-types --test scripts/test-creator-categories.mjs",
+    "test:discovery": "node --experimental-strip-types --test scripts/test-discovery-rules.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
