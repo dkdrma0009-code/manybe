@@ -86,18 +86,47 @@ test('규모: 기존 4단계 숫자 그대로 + 모든 경계 [min, max)', () =>
   // 각 값은 정확히 한 구간에만 속한다
   for (const n of counts) assert.equal(AUDIENCE_RANGES.filter((r) => n >= r.min && n < r.max).length, 1, String(n));
 });
-test('규모: 플랫폼 미선택 → 전체 채널 합', () => {
-  const x = c('x', { channels: [ch('youtube', 100_000), ch('instagram', 20_000)] });
-  assert.equal(filterAudience(x.channels, null), 120_000);
-  assert.deepEqual(run([x], { followerRange: 'mid' }), ['x']);
-  assert.deepEqual(run([x], { followerRange: 'micro' }), []);
+// 규모 필터 = 대표(최대) 채널 1개 기준. 합산하지 않는다.
+const ytIg = c('yt90-ig30', { channels: [ch('youtube', 90_000), ch('instagram', 30_000)] });
+const ytIgBig = c('yt120-ig900', { channels: [ch('youtube', 120_000), ch('instagram', 900_000)] });
+
+test('규모 A: 플랫폼 미선택 → 가장 큰 채널 (90k → micro, 합계 120k로 mid 아님)', () => {
+  assert.equal(filterAudience(ytIg.channels, null), 90_000);
+  assert.deepEqual(run([ytIg], { followerRange: 'micro' }), ['yt90-ig30']);
+  assert.deepEqual(run([ytIg], { followerRange: 'mid' }), []);
 });
-test('규모: 플랫폼 선택 → 해당 플랫폼 채널만', () => {
-  const x = c('x', { channels: [ch('youtube', 100_000), ch('instagram', 20_000)] });
-  assert.equal(filterAudience(x.channels, 'instagram'), 20_000);
-  assert.deepEqual(run([x], { platform: 'instagram', followerRange: 'micro' }), ['x']);
-  assert.deepEqual(run([x], { platform: 'instagram', followerRange: 'mid' }), []);
-  assert.deepEqual(run([x], { platform: 'youtube', followerRange: 'mid' }), ['x']);
+test('규모 B: platform=instagram → 30k → micro', () => {
+  assert.equal(filterAudience(ytIg.channels, 'instagram'), 30_000);
+  assert.deepEqual(run([ytIg], { platform: 'instagram', followerRange: 'micro' }), ['yt90-ig30']);
+  assert.deepEqual(run([ytIg], { platform: 'instagram', followerRange: 'mid' }), []);
+});
+test('규모 C: 플랫폼 미선택 → 900k → mid (합계 1.02M로 macro 아님)', () => {
+  assert.equal(filterAudience(ytIgBig.channels, null), 900_000);
+  assert.deepEqual(run([ytIgBig], { followerRange: 'mid' }), ['yt120-ig900']);
+  assert.deepEqual(run([ytIgBig], { followerRange: 'macro' }), []);
+});
+test('규모 D: platform=youtube → 120k → mid', () => {
+  assert.equal(filterAudience(ytIgBig.channels, 'youtube'), 120_000);
+  assert.deepEqual(run([ytIgBig], { platform: 'youtube', followerRange: 'mid' }), ['yt120-ig900']);
+});
+test('규모 E: 같은 플랫폼 채널 여러 개 → 그 중 최대 (30k+50k 합산 80k 아님)', () => {
+  const x = c('ig-dup', { channels: [ch('instagram', 30_000), ch('instagram', 50_000), ch('youtube', 5_000)] });
+  assert.equal(filterAudience(x.channels, 'instagram'), 50_000);
+  assert.deepEqual(run([x], { platform: 'instagram', followerRange: 'micro' }), ['ig-dup']);
+  // 합산 시 경계를 넘는 경우로 확인: 60k + 50k = 110k(mid)여도 micro
+  const y = c('ig-dup2', { channels: [ch('instagram', 60_000), ch('instagram', 50_000)] });
+  assert.deepEqual(run([y], { platform: 'instagram', followerRange: 'micro' }), ['ig-dup2']);
+  assert.deepEqual(run([y], { platform: 'instagram', followerRange: 'mid' }), []);
+});
+test('규모 F: 필터 audience ≠ 정렬 audience (정렬은 B2 전체 합계)', () => {
+  const a = c('a-yt90-ig30', { channels: [ch('youtube', 90_000), ch('instagram', 30_000)] });
+  const b = c('b-yt100', { channels: [ch('youtube', 100_000)] });
+  // 필터: A 대표 90k(micro), B 100k(mid)
+  assert.deepEqual(run([a, b], { followerRange: 'micro' }), ['a-yt90-ig30']);
+  assert.deepEqual(run([a, b], { followerRange: 'mid' }), ['b-yt100']);
+  // 정렬: 나머지 조건 동일 → 합계 A 120k > B 100k 이므로 A가 위
+  const out = filterDiscoveryCandidates([b, a], {}, NOW);
+  assert.deepEqual(out.map((x) => [x.slug, x.totalAudience]), [['a-yt90-ig30', 120_000], ['b-yt100', 100_000]]);
 });
 test('규모: NULL·음수·비정상 값은 0', () => {
   const x = c('x', { channels: [ch('youtube', null), ch('youtube', -500), ch('instagram', NaN), ch('tiktok', 5_000)] });

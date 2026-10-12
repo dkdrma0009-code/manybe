@@ -55,9 +55,17 @@ export function getMinimumRate(pricing: unknown): number | null {
   return min;
 }
 
-/** 필터 기준 audience: 플랫폼 선택 시 해당 플랫폼 채널 합, 아니면 전체 채널 합 */
+/**
+ * 팔로워 규모 필터 기준 = 대표 채널 1개 규모(기존 /discover 의미 유지).
+ * 플랫폼 선택 시 그 플랫폼 채널 중 최대, 아니면 전체 채널 중 최대. NULL·음수·비정상 값은 0.
+ * 플랫폼 간 합산은 중복 구독자를 reach처럼 보이게 하므로 하지 않는다.
+ * (정렬용 audience는 별개 — adAvailability.totalAudience 의 전체 합계)
+ */
 export function filterAudience(channels: DiscoveryFilterCandidate["channels"], platform?: DiscoveryPlatform | null): number {
-  return totalAudience(platform ? channels.filter((c) => c.platform === platform) : channels);
+  return (platform ? channels.filter((c) => c.platform === platform) : channels).reduce((max, c) => {
+    const n = c.subscriber_count;
+    return typeof n === "number" && Number.isFinite(n) && n > max ? n : max;
+  }, 0);
 }
 
 /** "필터 N" 표시용. 검색어(keyword)는 일반 검색이라 세지 않는다 */
